@@ -1,0 +1,13 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+tweaker3 = {editable = true, git = "https://github.com/ChristophSchranz/Tweaker-3.git"}
+numpy-stl = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.10"

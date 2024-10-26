@@ -1,0 +1,274 @@
+#! /usr/bin/env python3
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Optional, Tuple
+import argparse
+import os
+import subprocess
+import tempfile
+
+import requests
+import stl.mesh
+
+SUPPORTED_VERBS = {
+    'info',
+    'build',
+    'orient',
+    'project',
+    'slice',
+    'print',
+}
+
+PROJECTION_CODE = {
+    # These all receive the following vars:
+    # stl_file, x_mid, y_mid, z_mid, x_size, y_size, z_size
+    '3view': '''
+        HEIGHT = .6;
+        SPACING = 10;
+
+        module model() {
+            translate([-x_mid, -y_mid, -z_mid]) import(stl_file);
+        }
+
+        linear_extrude(HEIGHT) {
+            translate([0, z_size + SPACING, 0]) projection() model();
+            translate([-x_size - SPACING, 0, 0]) projection() rotate([-90, 90, 0]) model();
+            projection() rotate([-90, 0, 0]) model();
+        }
+    '''
+}
+
+IMPLIED_VERBS = {
+    'print': 'slice',
+    'project': 'info',  # The project step needs model dimensions to arrange the model
+}
+
+CONFIG_DIR = '/home/troy/.config/3dmake'
+PROFILES_DIR = CONFIG_DIR + '/profiles'
+
+
+@dataclass
+class FileSet:
+    name: str = 'default'
+    build_dir: Path = Path('build') # TODO based on options
+    # TODO scad_file: Optional[Path] = None
+    scad_source: Optional[Path] = Path("src/main.scad") # TODO based on options
+    model: Optional[Path] = Path('build/model.stl') # TODO based on options
+    oriented_model: Optional[Path] = None
+    projected_model: Optional[Path] = None
+    sliced_gcode: Optional[Path] = None
+
+    def model_to_project(self) -> Optional[Path]:
+        return self.oriented_model or self.model
+
+    def model_to_slice(self) -> Optional[Path]:
+        return self.projected_model or self.oriented_model or self.model
+
+@dataclass
+class CommandOptions:
+    projection = '3view'
+    printer_profile = 'prusa_mini_supports'
+    octoprint_host = 'http://octo.local'
+    octoprint_key = 'BBE173845D7A44CC93ABE77F8D6F071E'
+    auto_start_prints = False
+
+@dataclass
+class Thruple:
+    x: float
+    y: float
+    z: float
+
+@dataclass
+class MeshMetrics:
+    xrange: Tuple[float, float]
+    yrange: Tuple[float, float]
+    zrange: Tuple[float, float]
+
+    def sizes(self) -> Thruple:
+        return Thruple(
+            self.xrange[1] - self.xrange[0],
+            self.yrange[1] - self.yrange[0],
+            self.zrange[1] - self.zrange[0]
+        )
+
+    def midpoints(self) -> Thruple:
+        return Thruple(
+            (self.xrange[1] + self.xrange[0]) / 2,
+            (self.yrange[1] + self.yrange[0]) / 2,
+            (self.zrange[1] + self.zrange[0]) / 2,
+        )
+
+
+parser = argparse.ArgumentParser(
+    prog='3dmake',
+)
+
+parser.add_argument('-s', '--scale')
+parser.add_argument('-p', '--profile')
+parser.add_argument('extra', nargs='+')
+
+args = parser.parse_args()
+
+extras = args.extra
+infiles = []
+while extras and '.' in extras[-1]:
+    infiles.append(extras.pop())
+
+verbs = set([x.lower() for x in extras])
+
+file_set = FileSet()
+options = CommandOptions()
+
+if len(infiles) > 1:
+    raise RuntimeError("Multiple inputs not supported yet")
+elif infiles:
+    single_infile = Path(infiles[0])
+    extension = single_infile.suffix.lower()
+
+    file_set.build_dir = Path(tempfile.mkdtemp())
+    file_set.name = single_infile.stem  # Derive the model name from the STL name
+
+    if extension == '.stl':
+        file_set.model = single_infile
+    elif extension == '.scad':
+        file_set.scad_source = single_infile
+        file_set.model = file_set.build_dir / "model.stl"
+        # TODO is this auto-add behavior a good idea?
+        verbs.add('build')
+    else:
+        raise RuntimeError("Unsupported file formats. Supported formats are .stl and .scad")
+
+elif Path('./3dmake.toml').exists():
+    file_set.name = Path().absolute().parts[-1]  # Derive the model name from the project's parent dir
+else:
+    raise RuntimeError("Must either specify input file or run in a 3dmake project directory")
+
+if not len(verbs):
+    raise RuntimeError("Must provide a verb")
+
+# Check verbs and insert any implied ones
+for verb in list(verbs):
+    if verb not in SUPPORTED_VERBS:
+        raise RuntimeError(f"Unknown verb '{verb}'")
+    if verb in IMPLIED_VERBS:
+        verbs.add(IMPLIED_VERBS[verb])
+
+if 'build' in verbs:
+    if not file_set.scad_source:
+        raise RuntimeError("Cannot build without OpenSCAD source file")
+    print("\nBuilding...")
+    subprocess.run([
+        'openscad',
+        '--hardwarnings',
+        '--export-format', 'binstl',
+        '--quiet',
+        '-o', file_set.model,
+        file_set.scad_source
+    ])
+
+if 'orient' in verbs:
+    print("\nAuto-orienting...")
+
+    file_set.oriented_model = file_set.build_dir / 'oriented.stl' 
+    # TODO figure out how to use Tweaker3 as a library; which is not straightforward
+    subprocess.run([
+        'tweaker3',
+        '-i', file_set.model,
+        '-x', # Extended mode, TODO maybe this should be configurable?
+        '-o', file_set.oriented_model,
+    ])
+
+mesh_metrics = None
+if 'info' in verbs:
+    mesh = stl.mesh.Mesh.from_file(file_set.model_to_project())
+    
+    mesh_metrics = MeshMetrics(
+        xrange=(mesh.x.min(), mesh.x.max()),
+        yrange=(mesh.y.min(), mesh.y.max()),
+        zrange=(mesh.z.min(), mesh.z.max()),
+    )
+
+    sizes = mesh_metrics.sizes()
+    print(f"\nMesh size: x={sizes.x:.2f}, y={sizes.y:.2f}, z={sizes.z:.2f}")
+
+if 'project' in verbs:
+    print("\nProjecting...")
+    scad_code = PROJECTION_CODE[options.projection].replace("\n", '')
+
+    file_set.projected_model = file_set.build_dir / 'projected.stl' 
+
+    sizes = mesh_metrics.sizes()
+    midpoints = mesh_metrics.midpoints()
+
+    subprocess.run([
+        'openscad',
+        '--quiet',
+        '--hardwarnings',
+        '--export-format', 'binstl',
+        '-o', file_set.projected_model,
+        '-D', f'stl_file="{file_set.model_to_project().absolute()}";',
+        '-D', f'x_mid={midpoints.x:.2f};',
+        '-D', f'y_mid={midpoints.y:.2f};',
+        '-D', f'z_mid={midpoints.z:.2f};',
+        '-D', f'x_size={sizes.x:.2f};',
+        '-D', f'y_size={sizes.y:.2f};',
+        '-D', f'z_size={sizes.z:.2f};',
+        '-D', scad_code,
+        os.devnull,
+    ])
+
+    print(file_set.projected_model) # TODO debug
+
+if 'slice' in verbs:
+    if not file_set.model.exists():
+        raise RuntimeError("Model has not been built")
+
+    print("\nSlicing...")
+    ini_file = f"{PROFILES_DIR}/{options.printer_profile}.ini"
+    gcode_file = file_set.build_dir / 'sliced.gcode'
+    
+    subprocess.run([
+        'prusa-slicer',
+        '--export-gcode',
+        '-o', gcode_file,
+        '--load', ini_file,
+        '--loglevel=1', # Log only errors
+        file_set.model_to_slice()
+    ])
+
+    file_set.sliced_gcode = gcode_file
+
+if 'print' in verbs:
+    print("\nPrinting...")
+    server_filename = f"{file_set.name}.gcode"
+    with open(file_set.sliced_gcode, 'rb') as fh:
+        response = requests.post(
+            f"{options.octoprint_host}/api/files/local", # TODO folder
+            headers={
+                'X-Api-Key': options.octoprint_key,
+            },
+            files={
+                'file': (server_filename, fh, 'application/octet-stream'),
+            },
+            data={
+                'select': True,
+                'print': options.auto_start_prints,
+            },
+            verify=False, # TODO; this is needed for self-signed local servers
+        )
+    
+    # TODO handle this better
+    if response.status_code == 201:
+        print(f"    File uploaded successfully as {server_filename}!")
+    else:
+        print(f"    Failed to upload. Status code: {response.status_code}")
+        print(response.text)
+
+
+# Input types
+#   src+ (scad)
+#   model+ (stl)
+#   arrangement (stl)
+#   projection (stl)
+#   
