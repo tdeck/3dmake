@@ -44,9 +44,10 @@ IMPLIED_VERBS = {
     'project': 'info',  # The project step needs model dimensions to arrange the model
 }
 
-CONFIG_DIR = '/home/troy/.config/3dmake'
-PROFILES_DIR = CONFIG_DIR + '/profiles'
-OVERLAYS_DIR = CONFIG_DIR + '/overlays'
+CONFIG_DIR = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / ".config") / "3dmake"
+print("Config dir", CONFIG_DIR)
+PROFILES_DIR = CONFIG_DIR / 'profiles'
+OVERLAYS_DIR = CONFIG_DIR / 'overlays'
 
 
 @dataclass
@@ -69,7 +70,7 @@ class FileSet:
 @dataclass
 class CommandOptions:
     projection = '3view'
-    printer_profile = 'prusa_mini_supports'
+    printer_profile = 'prusa_mini'
     overlays: List[str] = field(default_factory=list)
     octoprint_host = 'http://octo.local'
     octoprint_key = 'BBE173845D7A44CC93ABE77F8D6F071E'
@@ -236,12 +237,12 @@ if 'slice' in verbs:
 
     print("\nSlicing...")
 
-    ini_files: List[Path] = [Path(f"{PROFILES_DIR}/{options.printer_profile}.ini")]
+    ini_files: List[Path] = [PROFILES_DIR / f"{options.printer_profile}.ini"]
     for overlay in options.overlays:
         # If there is a printer-specific version of this overlay, prefer it. Otherwise
         # use the default version
-        profile_specific_path =  Path(OVERLAYS_DIR) / options.printer_profile / f"{overlay}.ini"
-        default_path = Path(OVERLAYS_DIR) / "default" / f"{overlay}.ini"
+        profile_specific_path =  OVERLAYS_DIR / options.printer_profile / f"{overlay}.ini"
+        default_path = OVERLAYS_DIR / "default" / f"{overlay}.ini"
         if profile_specific_path.exists():
             ini_files.append(profile_specific_path)
         elif default_path.exists():
@@ -261,8 +262,6 @@ if 'slice' in verbs:
     for ini_file in ini_files:
         cmd.append('--load')
         cmd.append(ini_file)
-
-    print("Command to run:", cmd) # TODO debug
 
     subprocess.run(cmd)
 
