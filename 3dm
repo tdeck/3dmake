@@ -1,8 +1,8 @@
 #! /usr/bin/env python3
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 import argparse
 import os
 import subprocess
@@ -46,6 +46,7 @@ IMPLIED_VERBS = {
 
 CONFIG_DIR = '/home/troy/.config/3dmake'
 PROFILES_DIR = CONFIG_DIR + '/profiles'
+OVERLAYS_DIR = CONFIG_DIR + '/overlays'
 
 
 @dataclass
@@ -69,6 +70,7 @@ class FileSet:
 class CommandOptions:
     projection = '3view'
     printer_profile = 'prusa_mini_supports'
+    overlays: List[str] = field(default_factory=list)
     octoprint_host = 'http://octo.local'
     octoprint_key = 'BBE173845D7A44CC93ABE77F8D6F071E'
     auto_start_prints = False
@@ -106,6 +108,7 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('-s', '--scale')
 parser.add_argument('-p', '--profile')
+parser.add_argument('-o', '--overlay', action='extend', nargs='*')
 parser.add_argument('extra', nargs='+')
 
 args = parser.parse_args()
@@ -153,6 +156,10 @@ for verb in list(verbs):
         raise RuntimeError(f"Unknown verb '{verb}'")
     if verb in IMPLIED_VERBS:
         verbs.add(IMPLIED_VERBS[verb])
+
+print("Args overlay", args.overlay) # TODO debug
+if args.overlay:
+    options.overlays = args.overlay
 
 if 'build' in verbs:
     if not file_set.scad_source:
@@ -218,6 +225,9 @@ if 'project' in verbs:
         os.devnull,
     ])
 
+    # Insert a projection overlay to print projections quicker
+    options.overlays.insert(0, 'projection')
+
     print(file_set.projected_model) # TODO debug
 
 if 'slice' in verbs:
@@ -225,17 +235,36 @@ if 'slice' in verbs:
         raise RuntimeError("Model has not been built")
 
     print("\nSlicing...")
-    ini_file = f"{PROFILES_DIR}/{options.printer_profile}.ini"
+
+    ini_files: List[Path] = [Path(f"{PROFILES_DIR}/{options.printer_profile}.ini")]
+    for overlay in options.overlays:
+        # If there is a printer-specific version of this overlay, prefer it. Otherwise
+        # use the default version
+        profile_specific_path =  Path(OVERLAYS_DIR) / options.printer_profile / f"{overlay}.ini"
+        default_path = Path(OVERLAYS_DIR) / "default" / f"{overlay}.ini"
+        if profile_specific_path.exists():
+            ini_files.append(profile_specific_path)
+        elif default_path.exists():
+            ini_files.append(default_path)
+        else:
+            raise RuntimeError(f"Could not find overlay '{overlay}' for profile '{options.printer_profile}'")
+
     gcode_file = file_set.build_dir / 'sliced.gcode'
     
-    subprocess.run([
+    cmd = [
         'prusa-slicer',
         '--export-gcode',
         '-o', gcode_file,
-        '--load', ini_file,
         '--loglevel=1', # Log only errors
         file_set.model_to_slice()
-    ])
+    ]
+    for ini_file in ini_files:
+        cmd.append('--load')
+        cmd.append(ini_file)
+
+    print("Command to run:", cmd) # TODO debug
+
+    subprocess.run(cmd)
 
     file_set.sliced_gcode = gcode_file
 
