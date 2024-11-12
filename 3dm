@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Literal, Union
 import argparse
 import os
 import subprocess
@@ -56,6 +56,7 @@ class CommandOptions:
     projection: str
     printer_profile: str
     default_model: str
+    scale: Union[float, Literal["auto"]] = 1.0
     overlays: List[str] = field(default_factory=list)
     octoprint_host: Optional[str]
     octoprint_key: Optional[str]
@@ -129,8 +130,8 @@ parser = argparse.ArgumentParser(
     prog='3dmake',
 )
 
-parser.add_argument('-s', '--scale')
-parser.add_argument('-p', '--profile')
+parser.add_argument('-s', '--scale') # can be either "auto" or a float
+parser.add_argument('-p', '--profile', type=str)
 parser.add_argument('-o', '--overlay', action='extend', nargs='*')
 parser.add_argument('extra', nargs='+')
 
@@ -145,6 +146,20 @@ verbs = set([x.lower() for x in extras])
 
 file_set = FileSet()
 options, project_root = load_config()
+
+if args.scale:
+    if args.scale.replace('.', '').isdecimal():
+        options.scale = float(args.scale)
+    elif args.scale.lower() == 'auto':
+        options.scale = 'auto'
+    else:
+        raise RuntimeError("Invalid value for --scale, must be a decimal number or auto")
+
+if args.profile:
+    options.printer_profile = args.profile
+
+if options.scale == 'auto':
+    raise NotImplementedError("Auto-scaling is not supported yet") # TODO 
 
 print("Config:", options)
 
@@ -283,6 +298,7 @@ if 'slice' in verbs:
         '--export-gcode',
         '-o', gcode_file,
         '--loglevel=1', # Log only errors
+        '--scale', str(options.scale),
         file_set.model_to_slice()
     ]
     for ini_file in ini_files:
