@@ -5,8 +5,10 @@ from pathlib import Path
 from typing import Optional, Tuple, List, Literal, Union
 import argparse
 import os
+import sys
 import subprocess
 import tempfile
+import threading
 
 import requests
 import stl.mesh
@@ -48,6 +50,31 @@ IMPLIED_VERBS = {
 CONFIG_DIR = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / ".config") / "3dmake"
 PROFILES_DIR = CONFIG_DIR / 'profiles'
 OVERLAYS_DIR = CONFIG_DIR / 'overlays'
+
+class IndentStream:
+    def __init__(self, wrapped_stream, indent=4):
+        self.wrapped_stream = wrapped_stream
+        self.indent_str = ' ' * indent
+        self.pipe_read, self.pipe_write = os.pipe()
+
+        # Start a thread to read from the pipe and forward indented output
+        self._start_reader_thread()
+
+    def _start_reader_thread(self):
+        def _reader():
+            with os.fdopen(self.pipe_read, 'r') as pipe:
+                for line in pipe:
+                    # Indent each line and write to the wrapped stream
+                    self.wrapped_stream.write(f"{self.indent_str}{line}")
+                    self.wrapped_stream.flush()
+
+        threading.Thread(target=_reader, daemon=True).start()
+
+    def fileno(self):
+        return self.pipe_write
+
+    def close(self):
+        os.close(self.pipe_write)
 
 @dataclass(kw_only=True)
 class CommandOptions:
@@ -197,6 +224,8 @@ for verb in list(verbs):
 if args.overlay:
     options.overlays = args.overlay
 
+indent_stdout = IndentStream(sys.stdout)
+
 if 'build' in verbs:
     if not file_set.scad_source:
         raise RuntimeError("Cannot build without OpenSCAD source file")
@@ -210,7 +239,7 @@ if 'build' in verbs:
         '--quiet',
         '-o', file_set.model,
         file_set.scad_source
-    ])
+    ], stdout=indent_stdout, stderr=indent_stdout)
 
 if 'orient' in verbs:
     print("\nAuto-orienting...")
@@ -222,7 +251,7 @@ if 'orient' in verbs:
         '-i', file_set.model,
         '-x', # Extended mode, TODO maybe this should be configurable?
         '-o', file_set.oriented_model,
-    ])
+    ], stdout=indent_stdout, stderr=indent_stdout)
 
 mesh_metrics = None
 if 'info' in verbs:
@@ -261,7 +290,7 @@ if 'project' in verbs:
         '-D', f'z_size={sizes.z:.2f};',
         '-D', scad_code,
         os.devnull,
-    ])
+    ], stdout=indent_stdout, stderr=indent_stdout)
 
     # Insert a projection overlay to print projections quicker
     options.overlays.insert(0, 'projection')
@@ -301,7 +330,10 @@ if 'slice' in verbs:
         cmd.append('--load')
         cmd.append(ini_file)
 
-    subprocess.run(cmd)
+    # Here we suppress a lot of the progress messages from PrusaSlicer because
+    # the loglevel directive doesn't seem to work. True errors should appear on
+    # stderr where they will be displayed.
+    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=indent_stdout)
 
     file_set.sliced_gcode = gcode_file
 
@@ -323,7 +355,7 @@ if 'print' in verbs:
             },
             verify=False, # TODO; this is needed for self-signed local servers
         )
-    
+
     # TODO handle this better
     if response.status_code == 201:
         print(f"    File uploaded successfully as {server_filename}!")
