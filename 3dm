@@ -46,7 +46,6 @@ IMPLIED_VERBS = {
 }
 
 CONFIG_DIR = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / ".config") / "3dmake"
-print("Config dir", CONFIG_DIR)
 PROFILES_DIR = CONFIG_DIR / 'profiles'
 OVERLAYS_DIR = CONFIG_DIR / 'overlays'
 
@@ -161,8 +160,6 @@ if args.profile:
 if options.scale == 'auto':
     raise NotImplementedError("Auto-scaling is not supported yet") # TODO 
 
-print("Config:", options)
-
 if len(infiles) > 1:
     raise RuntimeError("Multiple inputs not supported yet")
 elif infiles:
@@ -197,7 +194,6 @@ for verb in list(verbs):
     if verb in IMPLIED_VERBS:
         verbs.add(IMPLIED_VERBS[verb])
 
-print("Args overlay", args.overlay) # TODO debug
 if args.overlay:
     options.overlays = args.overlay
 
