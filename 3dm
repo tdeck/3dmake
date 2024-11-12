@@ -55,6 +55,7 @@ class CommandOptions:
     project_name: Optional[str] = None # This will be populated automatically with the project's parent dir if not overridden
     projection: str
     printer_profile: str
+    default_model: str
     overlays: List[str] = field(default_factory=list)
     octoprint_host: Optional[str]
     octoprint_key: Optional[str]
@@ -165,9 +166,9 @@ elif infiles:
         verbs.add('build')
     else:
         raise RuntimeError("Unsupported file formats. Supported formats are .stl and .scad")
-
 elif project_root:
     file_set.name = options.project_name
+    file_set.scad_source = project_root / "src" / f"{options.default_model}.scad"
 else:
     raise RuntimeError("Must either specify input file or run in a 3dmake project directory")
 
@@ -188,6 +189,8 @@ if args.overlay:
 if 'build' in verbs:
     if not file_set.scad_source:
         raise RuntimeError("Cannot build without OpenSCAD source file")
+    if not file_set.scad_source.exists():
+        raise RuntimeError(f"Source file {file_set.scad_source} does not exist")
     print("\nBuilding...")
     subprocess.run([
         'openscad',
