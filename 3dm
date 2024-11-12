@@ -52,6 +52,7 @@ OVERLAYS_DIR = CONFIG_DIR / 'overlays'
 
 @dataclass(kw_only=True)
 class CommandOptions:
+    project_name: Optional[str] = None # This will be populated automatically with the project's parent dir if not overridden
     projection: str
     printer_profile: str
     overlays: List[str] = field(default_factory=list)
@@ -115,7 +116,10 @@ def load_config() -> Tuple[CommandOptions, Optional[Path]]:
     if Path('./3dmake.toml').exists():
         with open("./3dmake.toml", 'rb') as fh:
             settings_dict.update(tomli.load(fh))
-        project_root = Path("./3dmake.toml")
+        project_root = Path().absolute()
+
+        if 'project_name' not in settings_dict:
+            settings_dict['project_name'] = project_root.parts[-1]
 
     return CommandOptions(**settings_dict), project_root
 
@@ -163,7 +167,7 @@ elif infiles:
         raise RuntimeError("Unsupported file formats. Supported formats are .stl and .scad")
 
 elif project_root:
-    file_set.name = Path().absolute().parts[-1]  # Derive the model name from the project's parent dir
+    file_set.name = options.project_name
 else:
     raise RuntimeError("Must either specify input file or run in a 3dmake project directory")
 
