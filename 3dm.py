@@ -47,6 +47,12 @@ def get_deps() -> Dependencies:
 
     return Dependencies(openscad_path, slicer_path)
 
+INPUTLESS_VERBS = {
+    'setup',
+    'new',
+}
+
+ISOLATED_VERBS = INPUTLESS_VERBS
 
 SUPPORTED_VERBS = {
     'info',
@@ -55,7 +61,7 @@ SUPPORTED_VERBS = {
     'project',
     'slice',
     'print',
-}
+} | ISOLATED_VERBS
 
 PROJECTION_CODE = {
     # These all receive the following vars:
@@ -209,6 +215,18 @@ verbs = set([x.lower() for x in extras])
 file_set = FileSet()
 options, project_root = load_config()
 
+if not len(verbs):
+    raise RuntimeError("Must provide a verb")
+
+# Check verbs and insert any implied ones
+for verb in list(verbs):
+    if verb not in SUPPORTED_VERBS:
+        raise RuntimeError(f"Unknown verb '{verb}'")
+    if verb in ISOLATED_VERBS and len(verbs) > 1:
+        raise RuntimeError(f"The verb '{verb}' can only be used on its own'")
+    if verb in IMPLIED_VERBS:
+        verbs.add(IMPLIED_VERBS[verb])
+
 if args.scale:
     if args.scale.replace('.', '').isdecimal():
         options.scale = float(args.scale)
@@ -225,6 +243,10 @@ if options.scale == 'auto':
 
 if len(infiles) > 1:
     raise RuntimeError("Multiple inputs not supported yet")
+elif next(iter(verbs)) in INPUTLESS_VERBS:
+    if infiles:
+        raise RuntimeError("This verb does not take an input file")
+    # Otherwise don't require an infile
 elif infiles:
     single_infile = Path(infiles[0])
     extension = single_infile.suffix.lower()
@@ -248,20 +270,30 @@ elif project_root:
 else:
     raise RuntimeError("Must either specify input file or run in a 3dmake project directory")
 
-if not len(verbs):
-    raise RuntimeError("Must provide a verb")
-
-# Check verbs and insert any implied ones
-for verb in list(verbs):
-    if verb not in SUPPORTED_VERBS:
-        raise RuntimeError(f"Unknown verb '{verb}'")
-    if verb in IMPLIED_VERBS:
-        verbs.add(IMPLIED_VERBS[verb])
-
 if args.overlay:
     options.overlays = args.overlay
 
 indent_stdout = IndentStream(sys.stdout)
+
+if verbs == {'setup'}:
+    pass # TODO
+elif verbs == {'new'}:
+    proj_dir = input("Choose a project directory name (press ENTER for current dir): ").strip()
+    if proj_dir == '':
+        proj_dir = '.'  # Current directory
+
+    proj_path = Path(proj_dir)
+
+    # Create project dirs
+    proj_path.mkdir(exist_ok=True)
+    (proj_path / "src").mkdir(exist_ok=True)
+    (proj_path / "build").mkdir(exist_ok=True)
+
+    # Create empty 3dmake.toml if none exists
+    open(proj_path / "3dmake.toml", 'a').close()
+
+    # Create empty main.scad if none exists
+    open(proj_path / "src/main.scad", 'a').close()
 
 if 'build' in verbs:
     if not file_set.scad_source:
