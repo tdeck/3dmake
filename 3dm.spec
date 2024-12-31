@@ -1,11 +1,23 @@
 # -*- mode: python ; coding: utf-8 -*-
+# This file configures the PyInstaller build
+
+import platform
+
+
+deps_dir = {
+    'Linux': 'deps/linux',
+    'Windows': 'deps/windows',
+}[platform.system()]
 
 
 a = Analysis(
     ['3dm.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[
+        (f'./{deps_dir}', deps_dir),
+        (f'./default_config', 'default_config'),
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

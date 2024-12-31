@@ -10,9 +10,42 @@ import subprocess
 import tempfile
 import threading
 import tomllib
+import platform
 
 import requests
 import stl.mesh
+
+if getattr(sys, 'frozen', False):
+    # Special case for PyInstaller
+    SCRIPT_DIR = Path(sys._MEIPASS)
+else:
+    SCRIPT_DIR = Path(sys.path[0])
+
+@dataclass
+class Dependencies:
+    OPENSCAD: Path
+    SLICER: Path
+
+def get_deps() -> Dependencies:
+    os_type = platform.system()
+
+    openscad_path = SCRIPT_DIR.joinpath(
+        {
+            'Linux': 'deps/linux/OpenSCAD.AppImage',
+            'Windows': 'deps/windows/openscad/openscad.exe',
+        }[os_type]
+    )
+
+    slicer_path = SCRIPT_DIR.joinpath(
+        {
+            'Linux': 'deps/linux/PrusaSlicer.AppImage',
+            'Windows': 'deps/windows/prusaslicer/prusa-slicer-console.exe',
+        }[os_type]
+    )
+
+
+    return Dependencies(openscad_path, slicer_path)
+
 
 SUPPORTED_VERBS = {
     'info',
@@ -47,6 +80,8 @@ IMPLIED_VERBS = {
     'project': 'info',  # The project step needs model dimensions to arrange the model
 }
 
+
+DEPS = get_deps()
 CONFIG_DIR = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / ".config") / "3dmake"
 PROFILES_DIR = CONFIG_DIR / 'profiles'
 OVERLAYS_DIR = CONFIG_DIR / 'overlays'
@@ -233,7 +268,7 @@ if 'build' in verbs:
         raise RuntimeError(f"Source file {file_set.scad_source} does not exist")
     print("\nBuilding...")
     subprocess.run([
-        'openscad',
+        DEPS.OPENSCAD,
         '--hardwarnings',
         '--export-format', 'binstl',
         '--quiet',
@@ -278,7 +313,7 @@ if 'project' in verbs:
     midpoints = mesh_metrics.midpoints()
 
     subprocess.run([
-        'openscad',
+        DEPS.OPENSCAD,
         '--quiet',
         '--hardwarnings',
         '--export-format', 'binstl',
@@ -321,7 +356,7 @@ if 'slice' in verbs:
     gcode_file = file_set.build_dir / 'sliced.gcode'
     
     cmd = [
-        'prusa-slicer',
+        DEPS.SLICER,
         '--export-gcode',
         '-o', gcode_file,
         '--loglevel=1', # Log only errors
