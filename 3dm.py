@@ -9,10 +9,10 @@ import sys
 import subprocess
 import tempfile
 import threading
+import tomllib
 
 import requests
 import stl.mesh
-import tomli
 
 SUPPORTED_VERBS = {
     'info',
@@ -84,8 +84,8 @@ class CommandOptions:
     default_model: str
     scale: Union[float, Literal["auto"]] = 1.0
     overlays: List[str] = field(default_factory=list)
-    octoprint_host: Optional[str]
-    octoprint_key: Optional[str]
+    octoprint_host: Optional[str] = None
+    octoprint_key: Optional[str] = None
     auto_start_prints: bool = False
 
 @dataclass
@@ -138,12 +138,12 @@ def load_config() -> Tuple[CommandOptions, Optional[Path]]:
 
     # First load the global defaults
     with open(CONFIG_DIR / "defaults.toml", 'rb') as fh:
-        settings_dict = tomli.load(fh)
+        settings_dict = tomllib.load(fh)
 
     # TODO should we check parent dirs?
     if Path('./3dmake.toml').exists():
         with open("./3dmake.toml", 'rb') as fh:
-            settings_dict.update(tomli.load(fh))
+            settings_dict.update(tomllib.load(fh))
         project_root = Path().absolute()
 
         if 'project_name' not in settings_dict:
@@ -264,7 +264,9 @@ if 'info' in verbs:
     )
 
     sizes = mesh_metrics.sizes()
+    mid = mesh_metrics.midpoints()
     print(f"\nMesh size: x={sizes.x:.2f}, y={sizes.y:.2f}, z={sizes.z:.2f}")
+    print(f"Mesh center: x={mid.x:.2f}, y={mid.y:.2f}, z={mid.z:.2f}")
 
 if 'project' in verbs:
     print("\nProjecting...")
