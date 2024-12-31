@@ -14,6 +14,7 @@ import platform
 
 import requests
 import stl.mesh
+from tweaker3 import MeshTweaker, FileHandler
 
 if getattr(sys, 'frozen', False):
     # Special case for PyInstaller
@@ -229,6 +230,7 @@ elif infiles:
     extension = single_infile.suffix.lower()
 
     file_set.build_dir = Path(tempfile.mkdtemp())
+    print("Build dir:", file_set.build_dir) # TODO
     file_set.name = single_infile.stem  # Derive the model name from the STL name
 
     if extension == '.stl':
@@ -280,13 +282,22 @@ if 'orient' in verbs:
     print("\nAuto-orienting...")
 
     file_set.oriented_model = file_set.build_dir / 'oriented.stl' 
-    # TODO figure out how to use Tweaker3 as a library; which is not straightforward
-    subprocess.run([
-        'tweaker3',
-        '-i', file_set.model,
-        '-x', # Extended mode, TODO maybe this should be configurable?
-        '-o', file_set.oriented_model,
-    ], stdout=indent_stdout, stderr=indent_stdout)
+
+    # This was basically copied from Tweaker.py since it doesn't have a code-based interface
+    # to handle all meshes at once
+    file_handler = FileHandler.FileHandler()
+    mesh_objects = file_handler.load_mesh(file_set.model)
+    info = {}  # This is what Tweaker calls this; it needs a better name
+    for part, content in mesh_objects.items():
+        tweak_res = MeshTweaker.Tweak(
+            content['mesh'],
+            extended_mode=True,
+            verbose=False,
+            show_progress=False,
+        )
+        info[part] = dict(matrix=tweak_res.matrix, tweaker_stats=tweak_res)
+
+        file_handler.write_mesh(mesh_objects, info, file_set.oriented_model, 'binarystl')
 
 mesh_metrics = None
 if 'info' in verbs:
