@@ -12,6 +12,7 @@ import threading
 import tomllib
 import platform
 import shutil
+import readline # This will make input() support backspace and the like
 
 from platformdirs import user_config_dir
 import requests
@@ -331,6 +332,7 @@ if verbs == {'setup'}:
     settings_dict = dict(
         projection='3view',
         default_model='main',
+        auto_start_prints=True,
     )
 
 
@@ -364,7 +366,7 @@ if verbs == {'setup'}:
     with open(CONFIG_DIR / "defaults.toml", 'w') as fh:
         # TODO write this properly; it's brittle
         for k, v in settings_dict.items():
-            fh.write(f"{k} = '{v}'\n")
+            fh.write(f"{k} = {repr(v)}\n")
         
 
 
