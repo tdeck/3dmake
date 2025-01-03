@@ -7,6 +7,7 @@ name = "pypi"
 tweaker3 = {editable = true, git = "https://github.com/ChristophSchranz/Tweaker-3.git"}
 numpy-stl = "*"
 requests = "*"
+platformdirs = "*"
 
 [dev-packages]
 pyinstaller = "*"

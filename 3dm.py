@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Tuple, List, Literal, Union
+from typing import Optional, Tuple, List, Literal, Union, Dict, Any
 import argparse
 import os
 import sys
@@ -11,7 +11,9 @@ import tempfile
 import threading
 import tomllib
 import platform
+import shutil
 
+from platformdirs import user_config_dir
 import requests
 import stl.mesh
 from tweaker3 import MeshTweaker, FileHandler
@@ -46,6 +48,30 @@ def get_deps() -> Dependencies:
 
 
     return Dependencies(openscad_path, slicer_path)
+
+def yes_or_no(question: str) -> bool:
+    answer = input(f"{question} (y or n): ").strip()
+    return answer == 'y'
+
+def option_select(prompt: str, options: Dict[str, Any], allow_none=False) -> Optional[Any]:
+    while True:
+        print(prompt)
+        index_to_opts: Dict[int, Any] = {}
+        for i, (option_key, option_value) in enumerate(options.items()):
+            index_to_opts[i + 1] = option_value
+            print(f"{i + 1}: {option_key}")
+
+        res = input("Choose an option number, or type AGAIN to re-print the list: ").strip()
+
+        if allow_none and res == '':
+            return None
+        if res.isdigit() and int(res) in index_to_opts:
+            return index_to_opts[int(res)]
+        elif res.lower() == 'again':
+            continue
+        else:
+            print("That is not a valid option")
+            continue
 
 INPUTLESS_VERBS = {
     'setup',
@@ -89,7 +115,8 @@ IMPLIED_VERBS = {
 
 
 DEPS = get_deps()
-CONFIG_DIR = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / ".config") / "3dmake"
+
+CONFIG_DIR = Path(user_config_dir('3dmake', None))
 PROFILES_DIR = CONFIG_DIR / 'profiles'
 OVERLAYS_DIR = CONFIG_DIR / 'overlays'
 
@@ -213,10 +240,19 @@ while extras and '.' in extras[-1]:
 verbs = set([x.lower() for x in extras])
 
 file_set = FileSet()
-options, project_root = load_config()
 
 if not len(verbs):
     raise RuntimeError("Must provide a verb")
+
+# Check that 3dmake has been set up on this machine; if not do so
+if not CONFIG_DIR.exists() and verbs != {'setup'}:
+    print("3DMake settings and print options have not been set up on this machine.")
+    if not yes_or_no("Do you want to set them up now?"):
+        exit(0)
+
+    verbs = {'setup'}
+    infiles = []
+
 
 # Check verbs and insert any implied ones
 for verb in list(verbs):
@@ -226,6 +262,11 @@ for verb in list(verbs):
         raise RuntimeError(f"The verb '{verb}' can only be used on its own'")
     if verb in IMPLIED_VERBS:
         verbs.add(IMPLIED_VERBS[verb])
+
+# Load options if necessary
+options, project_root = None, None
+if next(iter(verbs)) not in INPUTLESS_VERBS:
+    options, project_root = load_config()
 
 if args.scale:
     if args.scale.replace('.', '').isdecimal():
@@ -238,7 +279,7 @@ if args.scale:
 if args.profile:
     options.printer_profile = args.profile
 
-if options.scale == 'auto':
+if options and options.scale == 'auto':
     raise NotImplementedError("Auto-scaling is not supported yet") # TODO 
 
 if len(infiles) > 1:
@@ -276,8 +317,58 @@ if args.overlay:
 indent_stdout = IndentStream(sys.stdout)
 
 if verbs == {'setup'}:
-    pass # TODO
-elif verbs == {'new'}:
+    if CONFIG_DIR.exists():
+        print(f"The configuration directory {CONFIG_DIR} already exists.")
+        print(f"I can overwrite the configuration files and printer profiles that came")
+        print(f"with 3dmake, returning them to default settings.")
+        if not yes_or_no("Do you want to do this?"):
+            print("Cancelling.")
+            exit(0)
+
+    default_conf_dir = SCRIPT_DIR / 'default_config'
+    shutil.copytree(default_conf_dir, CONFIG_DIR, dirs_exist_ok=True) # Don't need to mkdir -p as shutil will do this
+
+    settings_dict = dict(
+        projection='3view',
+        default_model='main',
+    )
+
+
+    profile_names = [
+        file_name[:-4] # Strip extension
+        for file_name in os.listdir(CONFIG_DIR / "profiles")
+            if file_name.endswith(".ini")  # Filter for INI files
+    ]
+
+    profile_options = {
+        p.replace('_', ' '): p
+        for p in profile_names
+    }
+
+    profile_name = option_select("Choose a supported printer model", profile_options)
+    settings_dict['printer_profile'] = profile_name
+   
+    if yes_or_no("Do you want to set up an OctoPrint connection?"):
+        server = input("What is the web address of your OctoPrint server (including http://)? ").strip()
+
+        print("You must set up an OctoPrint API key for 3dmake if you do not have one already.")
+        print("To do this, open the OctoPrint settings in your browser, navigate to Application Keys,")
+        print("and manually generate a key.")
+
+        key = input("What is your OctoPrint application key? ").strip()
+
+        settings_dict['octoprint_server'] = server
+        settings_dict['octoprint_key'] = key
+    
+
+    with open(CONFIG_DIR / "defaults.toml", 'w') as fh:
+        # TODO write this properly; it's brittle
+        for k, v in settings_dict.items():
+            fh.write(f"{k} = '{v}'\n")
+        
+
+
+if verbs == {'new'}:
     proj_dir = input("Choose a project directory name (press ENTER for current dir): ").strip()
     if proj_dir == '':
         proj_dir = '.'  # Current directory
