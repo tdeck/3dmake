@@ -94,7 +94,7 @@ SUPPORTED_VERBS = {
 PROJECTION_CODE = {
     # These all receive the following vars:
     # stl_file, x_mid, y_mid, z_mid, x_size, y_size, z_size
-    '3view': '''
+    '3sil': '''
         HEIGHT = .6;
         SPACING = 10;
 
@@ -150,22 +150,25 @@ class IndentStream:
 @dataclass(kw_only=True)
 class CommandOptions:
     project_name: Optional[str] = None # This will be populated automatically with the project's parent dir if not overridden
+    model_name: str = "main"
     projection: str
     printer_profile: str
-    default_model: str
     scale: Union[float, Literal["auto"]] = 1.0
     overlays: List[str] = field(default_factory=list)
     octoprint_host: Optional[str] = None
     octoprint_key: Optional[str] = None
     auto_start_prints: bool = False
 
-@dataclass
 class FileSet:
-    name: str = 'default'
-    build_dir: Path = Path('build') # TODO based on options
-    # TODO scad_file: Optional[Path] = None
-    scad_source: Optional[Path] = Path("src/main.scad") # TODO based on options
-    model: Optional[Path] = Path('build/model.stl') # TODO based on options
+    def __init__(self, options: CommandOptions):
+        self.build_dir: Path = Path('build') # TODO based on options
+
+        self.scad_source = Path("src") / f"{options.model_name}.scad"
+        self.model = self.build_dir / f"{options.model_name}.stl"
+
+    build_dir: Path
+    scad_source: Optional[Path]
+    model: Optional[Path]
     oriented_model: Optional[Path] = None
     projected_model: Optional[Path] = None
     sliced_gcode: Optional[Path] = None
@@ -175,6 +178,11 @@ class FileSet:
 
     def model_to_slice(self) -> Optional[Path]:
         return self.projected_model or self.oriented_model or self.model
+
+    def final_output(self) -> Optional[Path]:
+        """ Returns the most processed output file; which will be the command's final result in single file mode. """
+        return self.sliced_gcode or self.model_to_slice()
+
 
 @dataclass
 class Thruple:
@@ -228,6 +236,7 @@ parser = argparse.ArgumentParser(
 )
 
 parser.add_argument('-s', '--scale') # can be either "auto" or a float
+parser.add_argument('-m', '--model')
 parser.add_argument('-p', '--profile', type=str)
 parser.add_argument('-o', '--overlay', action='extend', nargs='*')
 parser.add_argument('extra', nargs='+')
@@ -240,8 +249,6 @@ while extras and '.' in extras[-1]:
     infiles.append(extras.pop())
 
 verbs = set([x.lower() for x in extras])
-
-file_set = FileSet()
 
 if not len(verbs):
     raise RuntimeError("Must provide a verb")
@@ -278,11 +285,19 @@ if args.scale:
     else:
         raise RuntimeError("Invalid value for --scale, must be a decimal number or auto")
 
+if args.model:
+    options.model_name = args.model
+    if infiles:
+        raise RuntimeError("Cannot select a model name when using an input file")
+
 if args.profile:
     options.printer_profile = args.profile
 
 if options and options.scale == 'auto':
     raise NotImplementedError("Auto-scaling is not supported yet") # TODO 
+
+if options:
+    file_set = FileSet(options)
 
 if len(infiles) > 1:
     raise RuntimeError("Multiple inputs not supported yet")
@@ -294,9 +309,10 @@ elif infiles:
     single_infile = Path(infiles[0])
     extension = single_infile.suffix.lower()
 
+    options.model_name = single_infile.stem # Derive the model name from the STL/scad name
+
     file_set.build_dir = Path(tempfile.mkdtemp())
     print("Build dir:", file_set.build_dir) # TODO
-    file_set.name = single_infile.stem  # Derive the model name from the STL name
 
     if extension == '.stl':
         file_set.model = single_infile
@@ -308,8 +324,7 @@ elif infiles:
     else:
         raise RuntimeError("Unsupported file formats. Supported formats are .stl and .scad")
 elif project_root:
-    file_set.name = options.project_name
-    file_set.scad_source = project_root / "src" / f"{options.default_model}.scad"
+    file_set.scad_source = project_root / "src" / f"{options.model_name}.scad"
 else:
     raise RuntimeError("Must either specify input file or run in a 3dmake project directory")
 
@@ -331,8 +346,8 @@ if verbs == {'setup'}:
     shutil.copytree(default_conf_dir, CONFIG_DIR, dirs_exist_ok=True) # Don't need to mkdir -p as shutil will do this
 
     settings_dict = dict(
-        projection='3view',
-        default_model='main',
+        projection='3sil',
+        model_name='main',
         auto_start_prints=True,
     )
 
@@ -407,7 +422,7 @@ if 'build' in verbs:
 if 'orient' in verbs:
     print("\nAuto-orienting...")
 
-    file_set.oriented_model = file_set.build_dir / 'oriented.stl' 
+    file_set.oriented_model = file_set.build_dir / f"{file_set.model.stem}-oriented.stl"
 
     # This was basically copied from Tweaker.py since it doesn't have a code-based interface
     # to handle all meshes at once
@@ -444,7 +459,7 @@ if 'project' in verbs:
     print("\nProjecting...")
     scad_code = PROJECTION_CODE[options.projection].replace("\n", '')
 
-    file_set.projected_model = file_set.build_dir / 'projected.stl' 
+    file_set.projected_model = file_set.build_dir / f"{file_set.model_to_project().stem}-{options.projection}.stl"
 
     sizes = mesh_metrics.sizes()
     midpoints = mesh_metrics.midpoints()
@@ -490,7 +505,10 @@ if 'slice' in verbs:
         else:
             raise RuntimeError(f"Could not find overlay '{overlay}' for profile '{options.printer_profile}'")
 
-    gcode_file = file_set.build_dir / 'sliced.gcode'
+    project_prefix = ''
+    if options.project_name:
+        project_prefix = f"{options.project_name}-"
+    gcode_file = file_set.build_dir / f"{project_prefix}{file_set.model_to_slice().stem}.gcode"
     
     cmd = [
         DEPS.SLICER,
@@ -513,7 +531,7 @@ if 'slice' in verbs:
 
 if 'print' in verbs:
     print("\nPrinting...")
-    server_filename = f"{file_set.name}.gcode"
+    server_filename = file_set.sliced_gcode.name
     with open(file_set.sliced_gcode, 'rb') as fh:
         response = requests.post(
             f"{options.octoprint_host}/api/files/local", # TODO folder
@@ -536,6 +554,13 @@ if 'print' in verbs:
     else:
         print(f"    Failed to upload. Status code: {response.status_code}")
         print(response.text)
+
+if infiles:
+    # If we're in single file mode, copy the last result to the working dir
+    output = file_set.final_output()
+    if output:
+        shutil.copy(file_set.final_output(), Path('.'))
+        print(f"Result is {file_set.final_output().name}")
 
 
 # Input types
