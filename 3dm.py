@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 
+
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Tuple, List, Literal, Union, Dict, Any, Callable
@@ -86,7 +87,7 @@ SUPPORTED_VERBS = {
     'info',
     'build',
     'orient',
-    'project',
+    'sketch',
     'slice',
     'print',
 } | ISOLATED_VERBS
@@ -112,7 +113,7 @@ PROJECTION_CODE = {
 
 IMPLIED_VERBS = {
     'print': 'slice',
-    'project': 'info',  # The project step needs model dimensions to arrange the model
+    'sketch': 'info',  # The sketch step needs model dimensions to arrange the model
 }
 
 
@@ -154,7 +155,7 @@ class IndentStream:
 class CommandOptions:
     project_name: Optional[str] = None # This will be populated automatically with the project's parent dir if not overridden
     model_name: str = "main"
-    projection: str
+    sketch_view: str
     printer_profile: str
     scale: Union[float, Literal["auto"]] = 1.0
     overlays: List[str] = field(default_factory=list)
@@ -305,7 +306,7 @@ options, project_root = None, None
 if next(iter(verbs)) not in INPUTLESS_VERBS:
     options, project_root = load_config()
 
-if args.scale:
+if args.scale: # TODO support x,y,z scaling
     if args.scale.replace('.', '').isdecimal():
         options.scale = float(args.scale)
     elif args.scale.lower() == 'auto':
@@ -378,7 +379,7 @@ if verbs == {'setup'}:
     shutil.copytree(default_conf_dir, CONFIG_DIR, dirs_exist_ok=True) # Don't need to mkdir -p as shutil will do this
 
     settings_dict = dict(
-        projection='3sil',
+        sketch_view='3sil',
         model_name='main',
         auto_start_prints=True,
     )
@@ -490,11 +491,11 @@ if 'info' in verbs:
     print(f"\nMesh size: x={sizes.x:.2f}, y={sizes.y:.2f}, z={sizes.z:.2f}")
     print(f"Mesh center: x={mid.x:.2f}, y={mid.y:.2f}, z={mid.z:.2f}")
 
-if 'project' in verbs:
-    print("\nProjecting...")
-    scad_code = PROJECTION_CODE[options.projection].replace("\n", '')
+if 'sketch' in verbs:
+    print("\nSketching...")
+    scad_code = PROJECTION_CODE[options.sketch_view].replace("\n", '')
 
-    file_set.projected_model = file_set.build_dir / f"{file_set.model_to_project().stem}-{options.projection}.stl"
+    file_set.projected_model = file_set.build_dir / f"{file_set.model_to_project().stem}-{options.sketch_view}.stl"
 
     sizes = mesh_metrics.sizes()
     midpoints = mesh_metrics.midpoints()
@@ -520,7 +521,7 @@ if 'project' in verbs:
         raise RuntimeError(f"    Command failed with return code {process_result.returncode}")
 
     # Insert a projection overlay to print projections quicker
-    options.overlays.insert(0, 'projection')
+    options.overlays.insert(0, 'sketch')
 
 
 if 'slice' in verbs:
@@ -601,10 +602,3 @@ if infiles:
         shutil.copy(file_set.final_output(), Path('.'))
         print(f"Result is {file_set.final_output().name}")
 
-
-# Input types
-#   src+ (scad)
-#   model+ (stl)
-#   arrangement (stl)
-#   projection (stl)
-#
