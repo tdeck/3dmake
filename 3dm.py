@@ -241,7 +241,23 @@ def should_print_openscad_log(line: str) -> bool:
     OpenSCAD doesn't provide a good way to filter logs on the command line so we must resort to this.
     """
 
-    return line.startswith('ERROR:') or line.startswith('WARNING:') or line.startswith('TRACE:')
+    ALLOWED_PREFIXES = [ # From printutils.cc, some of these may never appear
+        'ERROR:',
+        'WARNING:',
+        'TRACE:',
+        'FONT-WARNING:',
+        'EXPORT-WARNING:',
+        'EXPORT-ERROR:',
+        'PARSER-ERROR:',
+        'ECHO:', # Logs from within OpenSCAD code; this will need better handling for multi-line echos
+    ]
+
+    # This may be inefficient but the number of log lines should be low
+    for prefix in ALLOWED_PREFIXES:
+        if line.startswith(prefix):
+            return True
+
+    return False
 
 parser = argparse.ArgumentParser(
     prog='3dmake',
@@ -506,7 +522,6 @@ if 'project' in verbs:
     # Insert a projection overlay to print projections quicker
     options.overlays.insert(0, 'projection')
 
-    print(file_set.projected_model) # TODO debug
 
 if 'slice' in verbs:
     if not file_set.model.exists():
