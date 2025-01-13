@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Tuple, List, Literal, Union, Dict, Any
+from typing import Optional, Tuple, List, Literal, Union, Dict, Any, Callable
 import argparse
 import os
 import sys
@@ -123,9 +123,10 @@ PROFILES_DIR = CONFIG_DIR / 'profiles'
 OVERLAYS_DIR = CONFIG_DIR / 'overlays'
 
 class IndentStream:
-    def __init__(self, wrapped_stream, indent=4):
+    def __init__(self, wrapped_stream, indent=4, filter_fn: Callable[[str], bool]=lambda: True):
         self.wrapped_stream = wrapped_stream
         self.indent_str = ' ' * indent
+        self.filter_fn = filter_fn
         self.pipe_read, self.pipe_write = os.pipe()
 
         # Start a thread to read from the pipe and forward indented output
@@ -135,8 +136,9 @@ class IndentStream:
         def _reader():
             with os.fdopen(self.pipe_read, 'r') as pipe:
                 for line in pipe:
-                    # Indent each line and write to the wrapped stream
-                    self.wrapped_stream.write(f"{self.indent_str}{line}")
+                    if self.filter_fn(line):
+                        # Indent each line and write to the wrapped stream
+                        self.wrapped_stream.write(f"{self.indent_str}{line}")
                     self.wrapped_stream.flush()
 
         threading.Thread(target=_reader, daemon=True).start()
@@ -146,6 +148,7 @@ class IndentStream:
 
     def close(self):
         os.close(self.pipe_write)
+
 
 @dataclass(kw_only=True)
 class CommandOptions:
@@ -231,6 +234,15 @@ def load_config() -> Tuple[CommandOptions, Optional[Path]]:
     return CommandOptions(**settings_dict), project_root
 
 
+def should_print_openscad_log(line: str) -> bool:
+    """
+    Returns true if the log line matches an ERROR, WARNING, or TRACE pattern.
+
+    OpenSCAD doesn't provide a good way to filter logs on the command line so we must resort to this.
+    """
+
+    return line.startswith('ERROR:') or line.startswith('WARNING:') or line.startswith('TRACE:')
+
 parser = argparse.ArgumentParser(
     prog='3dmake',
 )
@@ -294,7 +306,7 @@ if args.profile:
     options.printer_profile = args.profile
 
 if options and options.scale == 'auto':
-    raise NotImplementedError("Auto-scaling is not supported yet") # TODO 
+    raise NotImplementedError("Auto-scaling is not supported yet") # TODO
 
 if options:
     file_set = FileSet(options)
@@ -332,6 +344,10 @@ if args.overlay:
     options.overlays = args.overlay
 
 indent_stdout = IndentStream(sys.stdout)
+filter_and_indent_stdout = IndentStream(
+    sys.stdout,
+    filter_fn=should_print_openscad_log,
+)
 
 if verbs == {'setup'}:
     if CONFIG_DIR.exists():
@@ -365,7 +381,7 @@ if verbs == {'setup'}:
 
     profile_name = option_select("Choose a supported printer model", profile_options)
     settings_dict['printer_profile'] = profile_name
-   
+
     if yes_or_no("Do you want to set up an OctoPrint connection?"):
         server = input("What is the web address of your OctoPrint server (including http://)? ").strip()
 
@@ -410,14 +426,17 @@ if 'build' in verbs:
     if not file_set.scad_source.exists():
         raise RuntimeError(f"Source file {file_set.scad_source} does not exist")
     print("\nBuilding...")
-    subprocess.run([
+    process_result = subprocess.run([
         DEPS.OPENSCAD,
         '--hardwarnings',
         '--export-format', 'binstl',
-        '--quiet',
+        # Can't use --quiet here since it suppresses warnings
         '-o', file_set.model,
         file_set.scad_source
-    ], stdout=indent_stdout, stderr=indent_stdout)
+    ], stdout=subprocess.DEVNULL, stderr=filter_and_indent_stdout)
+
+    if process_result.returncode != 0:
+        raise RuntimeError(f"    Command failed with return code {process_result.returncode}")
 
 if 'orient' in verbs:
     print("\nAuto-orienting...")
@@ -464,7 +483,7 @@ if 'project' in verbs:
     sizes = mesh_metrics.sizes()
     midpoints = mesh_metrics.midpoints()
 
-    subprocess.run([
+    process_result = subprocess.run([
         DEPS.OPENSCAD,
         '--quiet',
         '--hardwarnings',
@@ -479,7 +498,10 @@ if 'project' in verbs:
         '-D', f'z_size={sizes.z:.2f};',
         '-D', scad_code,
         os.devnull,
-    ], stdout=indent_stdout, stderr=indent_stdout)
+    ], stdout=subprocess.DEVNULL, stderr=filter_and_indent_stdout)
+
+    if process_result.returncode != 0:
+        raise RuntimeError(f"    Command failed with return code {process_result.returncode}")
 
     # Insert a projection overlay to print projections quicker
     options.overlays.insert(0, 'projection')
@@ -525,7 +547,9 @@ if 'slice' in verbs:
     # Here we suppress a lot of the progress messages from PrusaSlicer because
     # the loglevel directive doesn't seem to work. True errors should appear on
     # stderr where they will be displayed.
-    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=indent_stdout)
+    process_result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=indent_stdout)
+    if process_result.returncode != 0:
+        raise RuntimeError(f"    Command failed with return code {process_result.returncode}")
 
     file_set.sliced_gcode = gcode_file
 
@@ -568,4 +592,4 @@ if infiles:
 #   model+ (stl)
 #   arrangement (stl)
 #   projection (stl)
-#   
+#
