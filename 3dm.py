@@ -16,7 +16,7 @@ import shutil
 import readline # This will make input() support backspace and the like
 import json
 
-from platformdirs import user_config_dir
+from platformdirs import user_config_path
 import requests
 import stl.mesh
 from tweaker3 import MeshTweaker, FileHandler
@@ -24,8 +24,11 @@ from tweaker3 import MeshTweaker, FileHandler
 if getattr(sys, 'frozen', False):
     # Special case for PyInstaller
     SCRIPT_DIR = Path(sys._MEIPASS)
+    SCRIPT_BIN_PATH = Path(sys.executable).absolute()
 else:
     SCRIPT_DIR = Path(sys.path[0])
+    SCRIPT_BIN_PATH = Path(__file__).absolute()
+
 
 @dataclass
 class Dependencies:
@@ -76,6 +79,46 @@ def option_select(prompt: str, options: Dict[str, Any], allow_none=False) -> Opt
             print("That is not a valid option")
             continue
 
+def add_self_to_path():
+    os_type = platform.system()
+
+    if os_type == 'Windows':
+        bin_dir = Path(os.getenv('USERPROFILE')) / "AppData" / "Local" / "Microsoft" / "WindowsApps"
+
+        # TODO untested
+        if bin_dir.exists():
+            import winshell
+            with winshell.shortcut(bin_dir / "3dm.lnk"):
+                shortcut.path = SCRIPT_BIN_PATH
+                shortcut.description = '3dmake'
+        else:
+            print("3dmake was not added to your PATH automatically. Consider adding this folder")
+            print("to your PATH environment variable:")
+            print(SCRIPT_BIN_PATH.parent)
+            # TODO not sure whether to give a setx command or not, hopefully this is a rare case
+
+    else:  # Assume a Linux/Unix platform
+        bin_dir = Path(os.getenv('HOME')) / '.local' / 'bin' # This is in the XDG spec
+
+        if bin_dir.exists():
+            (bin_dir / '3dm').symlink_to(SCRIPT_BIN_PATH)
+        else:
+            # If it doesn't exist, maybe we could create it and it'll be in the PATH, but maybe
+            # not. Better to assume it won't work and tell the user to set things up themselves.
+
+            user_shell = os.getenv('SHELL', '')
+            shell_config_file = '~/.profile'
+            if 'bash' in user_shell:
+                shell_config_file = '~/.bashrc'
+            elif 'zsh' in user_shell:
+                shell_config_file = '~/.zshrc'
+
+            print("3dmake was not added to your PATH automatically. Consider adding a line like")
+            print(f"this to your shell config file (e.g. {shell_config_file}):")
+            print(f'export PATH="{SCRIPT_BIN_PATH.parent}:$PATH"')
+            print(f"After doing this, you must reload your shell.")
+
+
 INPUTLESS_VERBS = {
     'setup',
     'new',
@@ -119,7 +162,7 @@ IMPLIED_VERBS = {
 
 DEPS = get_deps()
 
-CONFIG_DIR = Path(user_config_dir('3dmake', None))
+CONFIG_DIR = user_config_path('3dmake', None)
 PROFILES_DIR = CONFIG_DIR / 'profiles'
 OVERLAYS_DIR = CONFIG_DIR / 'overlays'
 
@@ -417,7 +460,7 @@ if verbs == {'setup'}:
         for k, v in settings_dict.items():
             fh.write(f"{k} = {json.dumps(v)}\n")
         
-
+    add_self_to_path()
 
 if verbs == {'new'}:
     proj_dir = input("Choose a project directory name (press ENTER for current dir): ").strip()
