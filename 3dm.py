@@ -15,11 +15,13 @@ import platform
 import shutil
 import json
 
-import pyreadline3 # This will make input() support backspace and the like
+from prompt_toolkit import prompt
 from platformdirs import user_config_path
 import requests
 import stl.mesh
 from tweaker3 import MeshTweaker, FileHandler
+
+from version import VERSION
 
 if getattr(sys, 'frozen', False):
     # Special case for PyInstaller
@@ -56,18 +58,18 @@ def get_deps() -> Dependencies:
     return Dependencies(openscad_path, slicer_path)
 
 def yes_or_no(question: str) -> bool:
-    answer = input(f"{question} (y or n): ").strip()
+    answer = prompt(f"{question} (y or n): ").strip()
     return answer == 'y'
 
-def option_select(prompt: str, options: Dict[str, Any], allow_none=False) -> Optional[Any]:
+def option_select(prompt_msg: str, options: Dict[str, Any], allow_none=False) -> Optional[Any]:
     while True:
-        print(prompt)
+        print(prompt_msg)
         index_to_opts: Dict[int, Any] = {}
         for i, (option_key, option_value) in enumerate(options.items()):
             index_to_opts[i + 1] = option_value
             print(f"{i + 1}: {option_key}")
 
-        res = input("Choose an option number, or type AGAIN to re-print the list: ").strip()
+        res = prompt("Choose an option number, or type AGAIN to re-print the list: ").strip()
 
         if allow_none and res == '':
             return None
@@ -123,6 +125,7 @@ def add_self_to_path():
 INPUTLESS_VERBS = {
     'setup',
     'new',
+    'version',
 }
 
 ISOLATED_VERBS = INPUTLESS_VERBS
@@ -456,13 +459,13 @@ if verbs == {'setup'}:
     settings_dict['printer_profile'] = profile_name
 
     if yes_or_no("Do you want to set up an OctoPrint connection?"):
-        server = input("What is the web address of your OctoPrint server (including http://)? ").strip()
+        server = prompt("What is the web address of your OctoPrint server (including http://)? ").strip()
 
         print("You must set up an OctoPrint API key for 3dmake if you do not have one already.")
         print("To do this, open the OctoPrint settings in your browser, navigate to Application Keys,")
         print("and manually generate a key.")
 
-        key = input("What is your OctoPrint application key? ").strip()
+        key = prompt("What is your OctoPrint application key? ").strip()
 
         settings_dict['octoprint_server'] = server
         settings_dict['octoprint_key'] = key
@@ -476,7 +479,7 @@ if verbs == {'setup'}:
     add_self_to_path()
 
 if verbs == {'new'}:
-    proj_dir = input("Choose a project directory name (press ENTER for current dir): ").strip()
+    proj_dir = prompt("Choose a project directory name (press ENTER for current dir): ").strip()
     if proj_dir == '':
         proj_dir = '.'  # Current directory
 
@@ -492,6 +495,12 @@ if verbs == {'new'}:
 
     # Create empty main.scad if none exists
     open(proj_path / "src/main.scad", 'a').close()
+
+if verbs == {'version'}:
+    print(f"3Dmake version {VERSION}")
+    print(f"Program location: {SCRIPT_BIN_PATH}")
+    print(f"Configuration dir: {CONFIG_DIR}")
+    print("\nThanks for trying 3Dmake!")
 
 if 'build' in verbs:
     if not file_set.scad_source:

@@ -9,7 +9,7 @@ numpy-stl = "*"
 requests = "*"
 platformdirs = "*"
 mslex = {version = "*", markers = "sys_platform == 'win32'"}
-pyreadline3 = "*"
+prompt_toolkit = "*"
 
 [dev-packages]
 pyinstaller = "*"
