@@ -8,7 +8,7 @@ tweaker3 = {editable = true, git = "https://github.com/ChristophSchranz/Tweaker-
 numpy-stl = "*"
 requests = "*"
 platformdirs = "*"
-mslex = {version = "*", markers = "sys_platform == 'win32'"} # This is only needed by winshell but not listed in deps :S
+mslex = {version = "*", markers = "sys_platform == 'win32'"}
 pyreadline3 = "*"
 
 [dev-packages]
