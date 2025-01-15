@@ -8,8 +8,7 @@ tweaker3 = {editable = true, git = "https://github.com/ChristophSchranz/Tweaker-
 numpy-stl = "*"
 requests = "*"
 platformdirs = "*"
-winshell = {version = "*", markers = "sys_platform == 'win32'"} # TODO consider not using this library
-pywin32 = {version = "*", markers = "sys_platform == 'win32'"} # This is only needed by winshell but not listed in deps :S
+mslex = {version = "*", markers = "sys_platform == 'win32'"} # This is only needed by winshell but not listed in deps :S
 pyreadline3 = "*"
 
 [dev-packages]

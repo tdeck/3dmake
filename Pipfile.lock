@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "074b89814666534151f14933510608a59652505d2d526a8567df6945b4cc8a4a"
+            "sha256": "90ac6978d9bdfe67008a8f21a681597f19dbdbbbd206e86dcb71404c5a462e18"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -129,6 +129,14 @@
             ],
             "markers": "python_version >= '3.6'",
             "version": "==3.10"
+        },
+        "mslex": {
+            "hashes": [
+                "sha256:641c887d1d3db610eee2af37a8e5abda3f70b3006cdfd2d0d29dc0d1ae28a85d",
+                "sha256:c7074b347201b3466fc077c5692fbce9b5f62a63a51f537a53fbbd02eff2eea4"
+            ],
+            "markers": "sys_platform == 'win32'",
+            "version": "==1.3.0"
         },
         "numpy": {
             "hashes": [

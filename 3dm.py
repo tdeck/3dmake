@@ -87,10 +87,12 @@ def add_self_to_path():
 
         # TODO untested
         if bin_dir.exists():
-            import winshell
-            with winshell.shortcut(str(bin_dir / "3dm.lnk")) as lnk: # I found the hard way this doesn't support Path objs
-                lnk.path = str(SCRIPT_BIN_PATH)
-                lnk.description = '3dmake'
+            import mslex
+            # Windows requires special admin permission to create symlinks
+            # So instead we create a batch file in this directory that simply runs 3dmake
+            with open(bin_dir / '3dm.bat', 'w') as fh:
+                fh.write("@echo off\r\n")
+                fh.write(f"{mslex.quote(str(SCRIPT_BIN_PATH))} %*\r\n")
         else:
             print("3dmake was not added to your PATH automatically. Consider adding this folder")
             print("to your PATH environment variable:")
