@@ -104,7 +104,9 @@ def add_self_to_path():
         bin_dir = Path(os.getenv('HOME')) / '.local' / 'bin' # This is in the XDG spec
 
         if bin_dir.exists():
-            (bin_dir / '3dm').symlink_to(SCRIPT_BIN_PATH)
+            symlink_path = bin_dir / '3dm'
+            symlink_path.unlink(missing_ok=True) # Replace if one already exists
+            symlink_path.symlink_to(SCRIPT_BIN_PATH)
         else:
             # If it doesn't exist, maybe we could create it and it'll be in the PATH, but maybe
             # not. Better to assume it won't work and tell the user to set things up themselves.
