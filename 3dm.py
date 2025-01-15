@@ -155,13 +155,78 @@ PROJECTION_CODE = {
 
         linear_extrude(HEIGHT) {
             /* Top */
-            translate([0, y_size/2 + z_size/2 + SPACING/*z_size + SPACING */, 0]) projection() model(); /* Top */
+            translate([0, y_size/2 + z_size/2 + SPACING/*z_size + SPACING */, 0]) projection() model();
 
             /* Left */
             translate([-x_size/2 - y_size/2 - SPACING, 0, 0]) projection() rotate([-90, 90, 0]) model();
 
             /* Front */
             projection() rotate([-90, 0, 0]) model();
+        }
+    ''',
+    'topsil': '''
+        HEIGHT = .6;
+        SPACING = 10;
+
+        module model() {
+            translate([-x_mid, -y_mid, -z_mid]) import(stl_file);
+        }
+
+        linear_extrude(HEIGHT) {
+            /* Top */
+            projection() model();
+        }
+    ''',
+    'leftsil': '''
+        HEIGHT = .6;
+        SPACING = 10;
+
+        module model() {
+            translate([-x_mid, -y_mid, -z_mid]) import(stl_file);
+        }
+
+        linear_extrude(HEIGHT) {
+            /* Left */
+            projection() rotate([-90, 90, 0]) model();
+        }
+    ''',
+    'rightsil': '''
+        HEIGHT = .6;
+        SPACING = 10;
+
+        module model() {
+            translate([-x_mid, -y_mid, -z_mid]) import(stl_file);
+        }
+
+        linear_extrude(HEIGHT) {
+            /* Right */
+            projection() rotate([-90, -90, 0]) model();
+        }
+    ''',
+    'frontsil': '''
+        HEIGHT = .6;
+        SPACING = 10;
+
+        module model() {
+            translate([-x_mid, -y_mid, -z_mid]) import(stl_file);
+        }
+
+        linear_extrude(HEIGHT) {
+            /* Front */
+            projection() rotate([-90, 0, 0]) model();
+        }
+    ''',
+    'backsil': '''
+        HEIGHT = .6;
+        SPACING = 10;
+
+        module model() {
+            translate([-x_mid, -y_mid, -z_mid]) import(stl_file);
+        }
+
+        linear_extrude(HEIGHT) {
+            /* Back */
+            projection() rotate([-90, 180, 0]) model();
         }
     '''
 }
@@ -210,7 +275,7 @@ class IndentStream:
 class CommandOptions:
     project_name: Optional[str] = None # This will be populated automatically with the project's parent dir if not overridden
     model_name: str = "main"
-    preview_view: str
+    view: str
     printer_profile: str
     scale: Union[float, Literal["auto"]] = 1.0
     overlays: List[str] = field(default_factory=list)
@@ -323,6 +388,7 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('-s', '--scale') # can be either "auto" or a float
 parser.add_argument('-m', '--model')
+parser.add_argument('-v', '--view', type=str)
 parser.add_argument('-p', '--profile', type=str)
 parser.add_argument('-o', '--overlay', action='extend', nargs='*')
 parser.add_argument('--debug', action='store_true')
@@ -379,6 +445,9 @@ if args.model:
 
 if args.profile:
     options.printer_profile = args.profile
+
+if args.view:
+    options.view = args.view
 
 if args.debug:
     options.debug = True
@@ -446,7 +515,7 @@ if verbs == {'setup'}:
     shutil.copytree(default_conf_dir, CONFIG_DIR, dirs_exist_ok=True) # Don't need to mkdir -p as shutil will do this
 
     settings_dict = dict(
-        preview_view='3sil',
+        view='3sil',
         model_name='main',
         auto_start_prints=True,
     )
@@ -577,9 +646,12 @@ if 'info' in verbs:
 
 if 'preview' in verbs:
     print("\nPreparing preview...")
-    scad_code = PROJECTION_CODE[options.preview_view].replace("\n", '')
+    if options.view not in PROJECTION_CODE:
+        raise RuntimeError(f"The preview view '{options.view}' does not exist")
 
-    file_set.projected_model = file_set.build_dir / f"{file_set.model_to_project().stem}-{options.preview_view}.stl"
+    scad_code = PROJECTION_CODE[options.view].replace("\n", '')
+
+    file_set.projected_model = file_set.build_dir / f"{file_set.model_to_project().stem}-{options.view}.stl"
 
     sizes = mesh_metrics.sizes()
     midpoints = mesh_metrics.midpoints()
@@ -687,3 +759,4 @@ if infiles:
         shutil.copy(file_set.final_output(), Path('.'))
         print(f"Result is {file_set.final_output().name}")
 
+print("Done.")
