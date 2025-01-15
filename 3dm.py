@@ -144,6 +144,7 @@ SUPPORTED_VERBS = {
 PROJECTION_CODE = {
     # These all receive the following vars:
     # stl_file, x_mid, y_mid, z_mid, x_size, y_size, z_size
+    # Do not use // line comments in this code as line breaks will be removed
     '3sil': '''
         HEIGHT = .6;
         SPACING = 10;
@@ -153,8 +154,13 @@ PROJECTION_CODE = {
         }
 
         linear_extrude(HEIGHT) {
-            translate([0, z_size + SPACING, 0]) projection() model();
-            translate([-x_size - SPACING, 0, 0]) projection() rotate([-90, 90, 0]) model();
+            /* Top */
+            translate([0, y_size/2 + z_size/2 + SPACING/*z_size + SPACING */, 0]) projection() model(); /* Top */
+
+            /* Left */
+            translate([-x_size/2 - y_size/2 - SPACING, 0, 0]) projection() rotate([-90, 90, 0]) model();
+
+            /* Front */
             projection() rotate([-90, 0, 0]) model();
         }
     '''
