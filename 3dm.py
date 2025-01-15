@@ -13,7 +13,7 @@ import threading
 import tomllib
 import platform
 import shutil
-import readline # This will make input() support backspace and the like
+import pyreadline3 # This will make input() support backspace and the like
 import json
 
 from platformdirs import user_config_path
@@ -88,9 +88,9 @@ def add_self_to_path():
         # TODO untested
         if bin_dir.exists():
             import winshell
-            with winshell.shortcut(bin_dir / "3dm.lnk"):
-                shortcut.path = SCRIPT_BIN_PATH
-                shortcut.description = '3dmake'
+            with winshell.shortcut(str(bin_dir / "3dm.lnk")) as lnk: # I found the hard way this doesn't support Path objs
+                lnk.path = str(SCRIPT_BIN_PATH)
+                lnk.description = '3dmake'
         else:
             print("3dmake was not added to your PATH automatically. Consider adding this folder")
             print("to your PATH environment variable:")
