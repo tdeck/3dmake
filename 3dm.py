@@ -136,7 +136,7 @@ SUPPORTED_VERBS = {
     'info',
     'build',
     'orient',
-    'sketch',
+    'preview',
     'slice',
     'print',
 } | ISOLATED_VERBS
@@ -162,7 +162,7 @@ PROJECTION_CODE = {
 
 IMPLIED_VERBS = {
     'print': 'slice',
-    'sketch': 'info',  # The sketch step needs model dimensions to arrange the model
+    'preview': 'info',  # The preview step needs model dimensions to arrange the model
 }
 
 
@@ -204,7 +204,7 @@ class IndentStream:
 class CommandOptions:
     project_name: Optional[str] = None # This will be populated automatically with the project's parent dir if not overridden
     model_name: str = "main"
-    sketch_view: str
+    preview_view: str
     printer_profile: str
     scale: Union[float, Literal["auto"]] = 1.0
     overlays: List[str] = field(default_factory=list)
@@ -440,7 +440,7 @@ if verbs == {'setup'}:
     shutil.copytree(default_conf_dir, CONFIG_DIR, dirs_exist_ok=True) # Don't need to mkdir -p as shutil will do this
 
     settings_dict = dict(
-        sketch_view='3sil',
+        preview_view='3sil',
         model_name='main',
         auto_start_prints=True,
     )
@@ -457,7 +457,7 @@ if verbs == {'setup'}:
         for p in profile_names
     }
 
-    profile_name = option_select("Choose a supported printer model", profile_options)
+    profile_name = option_select("Choose a default printer model", profile_options)
     settings_dict['printer_profile'] = profile_name
 
     if yes_or_no("Do you want to set up an OctoPrint connection?"):
@@ -558,11 +558,11 @@ if 'info' in verbs:
     print(f"\nMesh size: x={sizes.x:.2f}, y={sizes.y:.2f}, z={sizes.z:.2f}")
     print(f"Mesh center: x={mid.x:.2f}, y={mid.y:.2f}, z={mid.z:.2f}")
 
-if 'sketch' in verbs:
-    print("\nSketching...")
-    scad_code = PROJECTION_CODE[options.sketch_view].replace("\n", '')
+if 'preview' in verbs:
+    print("\nPreparing preview...")
+    scad_code = PROJECTION_CODE[options.preview_view].replace("\n", '')
 
-    file_set.projected_model = file_set.build_dir / f"{file_set.model_to_project().stem}-{options.sketch_view}.stl"
+    file_set.projected_model = file_set.build_dir / f"{file_set.model_to_project().stem}-{options.preview_view}.stl"
 
     sizes = mesh_metrics.sizes()
     midpoints = mesh_metrics.midpoints()
@@ -589,7 +589,7 @@ if 'sketch' in verbs:
         raise RuntimeError(f"    Command failed with return code {process_result.returncode}")
 
     # Insert a projection overlay to print projections quicker
-    options.overlays.insert(0, 'sketch')
+    options.overlays.insert(0, 'preview')
 
 
 if 'slice' in verbs:
