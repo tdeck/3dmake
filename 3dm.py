@@ -13,9 +13,9 @@ import threading
 import tomllib
 import platform
 import shutil
-import pyreadline3 # This will make input() support backspace and the like
 import json
 
+import pyreadline3 # This will make input() support backspace and the like
 from platformdirs import user_config_path
 import requests
 import stl.mesh
@@ -85,7 +85,6 @@ def add_self_to_path():
     if os_type == 'Windows':
         bin_dir = Path(os.getenv('USERPROFILE')) / "AppData" / "Local" / "Microsoft" / "WindowsApps"
 
-        # TODO untested
         if bin_dir.exists():
             import mslex
             # Windows requires special admin permission to create symlinks
@@ -169,7 +168,7 @@ PROFILES_DIR = CONFIG_DIR / 'profiles'
 OVERLAYS_DIR = CONFIG_DIR / 'overlays'
 
 class IndentStream:
-    def __init__(self, wrapped_stream, indent=4, filter_fn: Callable[[str], bool]=lambda: True):
+    def __init__(self, wrapped_stream, indent=4, filter_fn: Callable[[str], bool]=lambda _: True):
         self.wrapped_stream = wrapped_stream
         self.indent_str = ' ' * indent
         self.filter_fn = filter_fn
@@ -207,6 +206,7 @@ class CommandOptions:
     octoprint_host: Optional[str] = None
     octoprint_key: Optional[str] = None
     auto_start_prints: bool = False
+    debug: bool = False
 
 class FileSet:
     def __init__(self, options: CommandOptions):
@@ -313,6 +313,7 @@ parser.add_argument('-s', '--scale') # can be either "auto" or a float
 parser.add_argument('-m', '--model')
 parser.add_argument('-p', '--profile', type=str)
 parser.add_argument('-o', '--overlay', action='extend', nargs='*')
+parser.add_argument('--debug', action='store_true')
 parser.add_argument('extra', nargs='+')
 
 args = parser.parse_args()
@@ -367,6 +368,9 @@ if args.model:
 if args.profile:
     options.printer_profile = args.profile
 
+if args.debug:
+    options.debug = True
+
 if options and options.scale == 'auto':
     raise NotImplementedError("Auto-scaling is not supported yet") # TODO
 
@@ -406,10 +410,17 @@ if args.overlay:
     options.overlays = args.overlay
 
 indent_stdout = IndentStream(sys.stdout)
-filter_and_indent_stdout = IndentStream(
-    sys.stdout,
-    filter_fn=should_print_openscad_log,
-)
+
+if args.debug:
+    # No filtering in debug mode
+    filter_and_indent_stdout = indent_stdout
+    debug_output = indent_stdout
+else:
+    filter_and_indent_stdout = IndentStream(
+        sys.stdout,
+        filter_fn=should_print_openscad_log,
+    )
+    debug_output = subprocess.DEVNULL
 
 if verbs == {'setup'}:
     if CONFIG_DIR.exists():
@@ -495,7 +506,7 @@ if 'build' in verbs:
         # Can't use --quiet here since it suppresses warnings
         '-o', file_set.model,
         file_set.scad_source
-    ], stdout=subprocess.DEVNULL, stderr=filter_and_indent_stdout)
+    ], stdout=debug_output, stderr=filter_and_indent_stdout)
 
     if process_result.returncode != 0:
         raise RuntimeError(f"    Command failed with return code {process_result.returncode}")
@@ -551,7 +562,8 @@ if 'sketch' in verbs:
         '--hardwarnings',
         '--export-format', 'binstl',
         '-o', file_set.projected_model,
-        '-D', f'stl_file="{file_set.model_to_project().absolute()}";',
+        # We use json.dumps below to escape the path in case it contains backslashes or other special chars
+        '-D', f'stl_file={json.dumps(str(file_set.model_to_project().absolute()))};',
         '-D', f'x_mid={midpoints.x:.2f};',
         '-D', f'y_mid={midpoints.y:.2f};',
         '-D', f'z_mid={midpoints.z:.2f};',
@@ -560,7 +572,7 @@ if 'sketch' in verbs:
         '-D', f'z_size={sizes.z:.2f};',
         '-D', scad_code,
         os.devnull,
-    ], stdout=subprocess.DEVNULL, stderr=filter_and_indent_stdout)
+    ], stdout=debug_output, stderr=filter_and_indent_stdout)
 
     if process_result.returncode != 0:
         raise RuntimeError(f"    Command failed with return code {process_result.returncode}")
@@ -608,7 +620,7 @@ if 'slice' in verbs:
     # Here we suppress a lot of the progress messages from PrusaSlicer because
     # the loglevel directive doesn't seem to work. True errors should appear on
     # stderr where they will be displayed.
-    process_result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=indent_stdout)
+    process_result = subprocess.run(cmd, stdout=debug_output, stderr=indent_stdout)
     if process_result.returncode != 0:
         raise RuntimeError(f"    Command failed with return code {process_result.returncode}")
 
