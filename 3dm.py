@@ -212,6 +212,7 @@ class CommandOptions:
     octoprint_key: Optional[str] = None
     auto_start_prints: bool = False
     debug: bool = False
+    strict_warnings: bool = False # This will default to True in new projects though
 
 class FileSet:
     def __init__(self, options: CommandOptions):
@@ -395,13 +396,12 @@ elif infiles:
     options.model_name = single_infile.stem # Derive the model name from the STL/scad name
 
     file_set.build_dir = Path(tempfile.mkdtemp())
-    print("Build dir:", file_set.build_dir) # TODO
 
     if extension == '.stl':
         file_set.model = single_infile
     elif extension == '.scad':
         file_set.scad_source = single_infile
-        file_set.model = file_set.build_dir / "model.stl"
+        file_set.model = file_set.build_dir / f"{options.model_name}.stl"
         # TODO is this auto-add behavior a good idea?
         verbs.add('build')
     else:
@@ -493,7 +493,10 @@ if verbs == {'new'}:
     (proj_path / "build").mkdir(exist_ok=True)
 
     # Create empty 3dmake.toml if none exists
-    open(proj_path / "3dmake.toml", 'a').close()
+    toml_file = proj_path / "3dmake.toml"
+    if not toml_file.exists():
+        with open(proj_path / "3dmake.toml", 'w') as fh:
+            fh.write("strict_warnings = true\n")
 
     # Create empty main.scad if none exists
     open(proj_path / "src/main.scad", 'a').close()
@@ -510,14 +513,22 @@ if 'build' in verbs:
     if not file_set.scad_source.exists():
         raise RuntimeError(f"Source file {file_set.scad_source} does not exist")
     print("\nBuilding...")
-    process_result = subprocess.run([
-        DEPS.OPENSCAD,
-        '--hardwarnings',
+
+    cmd_options = [
         '--export-format', 'binstl',
         # Can't use --quiet here since it suppresses warnings
         '-o', file_set.model,
-        file_set.scad_source
-    ], stdout=debug_output, stderr=filter_and_indent_stdout)
+    ]
+
+    if options.strict_warnings:
+        cmd_options.append('--hardwarnings')
+
+
+    process_result = subprocess.run(
+        [DEPS.OPENSCAD] + cmd_options + [file_set.scad_source],
+        stdout=debug_output,
+        stderr=filter_and_indent_stdout
+    )
 
     if process_result.returncode != 0:
         raise RuntimeError(f"    Command failed with return code {process_result.returncode}")
