@@ -10,6 +10,7 @@ requests = "*"
 platformdirs = "*"
 mslex = {version = "*", markers = "sys_platform == 'win32'"}
 prompt_toolkit = "*"
+prompt-toolkit = "*"
 
 [dev-packages]
 pyinstaller = "*"

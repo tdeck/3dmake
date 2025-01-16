@@ -489,7 +489,7 @@ if not len(verbs):
 if not CONFIG_DIR.exists() and verbs != {'setup'}:
     print("3DMake settings and print options have not been set up on this machine.")
     if not yes_or_no("Do you want to set them up now?"):
-        exit(0)
+        sys.exit(0)
 
     verbs = {'setup'}
     infiles = []
@@ -588,7 +588,7 @@ if verbs == {'setup'}:
         print(f"with 3dmake, returning them to default settings.")
         if not yes_or_no("Do you want to do this?"):
             print("Cancelling.")
-            exit(0)
+            sys.exit(0)
 
     default_conf_dir = SCRIPT_DIR / 'default_config'
     shutil.copytree(default_conf_dir, CONFIG_DIR, dirs_exist_ok=True) # Don't need to mkdir -p as shutil will do this
@@ -661,11 +661,11 @@ if verbs == {'version'}:
     print(f"Configuration dir: {CONFIG_DIR}")
     print("Created by Troy Deck")
     print("\nThanks for trying 3Dmake!")
-    exit(0)
+    sys.exit(0)
 
 if verbs == {'help'}:
     HelpAction.print_help()
-    exit(0)
+    sys.exit(0)
 
 if 'build' in verbs:
     if not file_set.scad_source:

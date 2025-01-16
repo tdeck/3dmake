@@ -19,7 +19,7 @@ a = Analysis(
         (f'./default_config', 'default_config'),
         (f'README.md', '.'),
     ],
-    hiddenimports=[],
+    hiddenimports=['prompt-toolkit'], # For some reason pyinstaller doesn't pick this up in Windows
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
