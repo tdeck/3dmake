@@ -660,6 +660,7 @@ if verbs == {'version'}:
     print(f"Program location: {SCRIPT_BIN_PATH}")
     print(f"Configuration dir: {CONFIG_DIR}")
     print("\nThanks for trying 3Dmake!")
+    exit(0)
 
 if verbs == {'help'}:
     HelpAction.print_help()
