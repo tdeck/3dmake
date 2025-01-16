@@ -659,6 +659,7 @@ if verbs == {'version'}:
     print(f"3Dmake version {VERSION}")
     print(f"Program location: {SCRIPT_BIN_PATH}")
     print(f"Configuration dir: {CONFIG_DIR}")
+    print("Created by Troy Deck")
     print("\nThanks for trying 3Dmake!")
     exit(0)
 
