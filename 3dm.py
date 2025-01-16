@@ -15,6 +15,7 @@ import platform
 import shutil
 import json
 import re
+import textwrap
 
 from prompt_toolkit import prompt
 from platformdirs import user_config_path
@@ -163,6 +164,7 @@ INPUTLESS_VERBS = {
     'setup',
     'new',
     'version',
+    'help',
 }
 
 ISOLATED_VERBS = INPUTLESS_VERBS
@@ -417,8 +419,49 @@ def should_print_openscad_log(line: str) -> bool:
 
     return False
 
+class HelpAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        self.print_help()
+        parser.exit()
+
+    @staticmethod
+    def print_help():
+        print(textwrap.dedent('''\
+            Usage: 3dm ACTIONS... [OPTIONS]... [INPUT_FILE]
+
+            Examples:
+                3dm build
+                3dm build orient slice
+                3dm build orient slice --model cover --overlay supports
+                3dm info alpaca.stl
+                3dm preview alpaca.stl
+                3dm slice print alpaca.stl
+
+            Actions (can use multiple at once):
+                setup           Set up 3dmake for the first time, or overwrite existing settings
+                new             Create a new 3dmake project directory structure
+                build           Build the OpenSCAD model and produce an STL file
+                info            Get basic dimensional info about the model
+                orient          Auto-orient the model to minimize support
+                preview         Produce a 2-D representation of the object
+                slice           Slice the model and produce a printable gcode file
+                print           Send the sliced model to OctoPrint
+                help            Display this message
+                version         Print the 3dmake version and paths
+
+            Options:
+                --scale 1.0     Scale by a decimal factor
+                --model NAME    Choose a model in a multi-model project
+                --profile NAME  Select a printer profile
+                --overlay NAME  Apply an overlay to slicer settings; can be used multiple times
+                --view NAME     The type of preivew to produce, see the documentation for more info
+
+            Each option can be abbreviated as one letter with a single dash (e.g. -s 50% to scale)
+        '''))
+
 parser = argparse.ArgumentParser(
     prog='3dmake',
+    add_help=False,
 )
 
 parser.add_argument('-s', '--scale') # can be either "auto" or a float
@@ -426,12 +469,13 @@ parser.add_argument('-m', '--model')
 parser.add_argument('-v', '--view', type=str)
 parser.add_argument('-p', '--profile', type=str)
 parser.add_argument('-o', '--overlay', action='extend', nargs='*')
+parser.add_argument('--help', '-h', action=HelpAction, nargs=0)
 parser.add_argument('--debug', action='store_true')
-parser.add_argument('extra', nargs='+')
+parser.add_argument('actions_and_files', nargs='+')
 
 args = parser.parse_args()
 
-extras = args.extra
+extras = args.actions_and_files
 infiles = []
 while extras and '.' in extras[-1]:
     infiles.append(extras.pop())
@@ -439,7 +483,7 @@ while extras and '.' in extras[-1]:
 verbs = set([x.lower() for x in extras])
 
 if not len(verbs):
-    raise RuntimeError("Must provide a verb")
+    raise RuntimeError("Must provide an action verb")
 
 # Check that 3dmake has been set up on this machine; if not do so
 if not CONFIG_DIR.exists() and verbs != {'setup'}:
@@ -454,9 +498,9 @@ if not CONFIG_DIR.exists() and verbs != {'setup'}:
 # Check verbs and insert any implied ones
 for verb in list(verbs):
     if verb not in SUPPORTED_VERBS:
-        raise RuntimeError(f"Unknown verb '{verb}'")
+        raise RuntimeError(f"Unknown action '{verb}'")
     if verb in ISOLATED_VERBS and len(verbs) > 1:
-        raise RuntimeError(f"The verb '{verb}' can only be used on its own'")
+        raise RuntimeError(f"The action '{verb}' can only be used on its own'")
     if verb in IMPLIED_VERBS:
         verbs.add(IMPLIED_VERBS[verb])
 
@@ -497,7 +541,7 @@ if len(infiles) > 1:
     raise RuntimeError("Multiple inputs not supported yet")
 elif next(iter(verbs)) in INPUTLESS_VERBS:
     if infiles:
-        raise RuntimeError("This verb does not take an input file")
+        raise RuntimeError("This action does not take an input file")
     # Otherwise don't require an infile
 elif infiles:
     single_infile = Path(infiles[0])
@@ -616,6 +660,10 @@ if verbs == {'version'}:
     print(f"Program location: {SCRIPT_BIN_PATH}")
     print(f"Configuration dir: {CONFIG_DIR}")
     print("\nThanks for trying 3Dmake!")
+
+if verbs == {'help'}:
+    HelpAction.print_help()
+    exit(0)
 
 if 'build' in verbs:
     if not file_set.scad_source:
