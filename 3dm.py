@@ -14,6 +14,7 @@ import tomllib
 import platform
 import shutil
 import json
+import re
 
 from prompt_toolkit import prompt
 from platformdirs import user_config_path
@@ -123,6 +124,40 @@ def add_self_to_path():
             print(f'export PATH="{SCRIPT_BIN_PATH.parent}:$PATH"')
             print(f"After doing this, you must reload your shell.")
 
+def extract_time_estimates(gcode_file: Path) -> Optional[str]:
+    """
+    Tries to parse out the print time estimate comment PrusaSlicer will leave in the GCode file,
+    and converts it to a slightly nicer format for being read aloud.
+    """
+    if not gcode_file.exists():
+        return
+
+    pattern = re.compile(r'.*; estimated printing time .*? = (.+)$')
+    
+    with open(gcode_file, 'r') as fh:
+        for line in fh:
+            match_res = pattern.match(line)
+            if match_res:
+                time_str = match_res.group(1).upper()
+                # The time string in the GCode is formatted by the function get_time_dhms
+                # and will look like "10d 9h 8m 7s", but most users will be using a screen
+                # reader so we might as well replace these with words.
+
+                # We have converted time_str to uppercase specifically to prevent
+                # our replacements from being mangled by later replacements (e.g.
+                # the s in days being converted to "day seconds").
+                time_str = time_str.replace('D', ' days')
+                time_str = time_str.replace('H', ' hours')
+                time_str = time_str.replace('M', ' minutes')
+                time_str = time_str.replace('S', ' seconds')
+
+                # Now we make it even cleaner by fixing up "1 days" and the like
+                time_str = re.sub(r'\b1 days', '1 day', time_str)
+                time_str = re.sub(r'\b1 hours', '1 hour', time_str)
+                time_str = re.sub(r'\b1 minutes', '1 minute', time_str)
+                time_str = re.sub(r'\b1 seconds', '1 second', time_str)
+
+                return time_str
 
 INPUTLESS_VERBS = {
     'setup',
@@ -725,6 +760,10 @@ if 'slice' in verbs:
         raise RuntimeError(f"    Command failed with return code {process_result.returncode}")
 
     file_set.sliced_gcode = gcode_file
+
+    time_str = extract_time_estimates(file_set.sliced_gcode)
+    if time_str:
+        print(f"    Estimated print time: {time_str}")
 
 if 'print' in verbs:
     print("\nPrinting...")
