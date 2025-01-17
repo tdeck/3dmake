@@ -28,6 +28,13 @@ To start a new project in the current directory, run `3dm new`.
 
 3DMake is based on OpenSCAD, and OpenSCAD's .scad files can be edited in any text editor. There is *no need to install OpenSCAD* or to use the OpenSCAD editor. Something like Notepad++, Visual Studio Code, or even Notepad will work just fine.
 
+As a shortcut, you can use the `3dm edit-model` in your project folder to open the SCAD file in a text editor. By default, this will use your system's text editor. To configure a specific one, you can set its path in `3dmake.toml` or in your system 3dmake config directory's `defaults.toml` file. For example, to configure Notepad++ on Windows, you might add this line to your config:
+
+```
+# The triple quotes below allow your program's path to contain backslashes
+editor = '''C:\Program Files (x86)\Notepad++\notepad++.exe'''
+```
+
 ## Building, slicing and printing
 
 If you have an OpenSCAD project and you want a 3d model, you can run `3dm build`. By default, 3dm will build your main model and produce an STL file in your project's build directory (e.g. build/main.stl). This is useful if you want to send the STL file to someone, or use your own slicer (like Simplify3D) to slice it.
@@ -53,6 +60,8 @@ top_solid_min_thickness = 0.7
 ```
 
 For options that are either on or off, the value is either 1 or 0. For other options, the value is usually a number as well. If you want to edit a particular option that you have heard of, I recommend opening your printer profile and searching for words from that option name. The most commonly changed options are listed in the overlay template at the end of this README, and this is a good start when creating your own overlays.
+
+The `3dm edit-overlay` command will open an existing overlay for you in your text editor, and will create a new overlay for you if you give it an overlay name that doesn't exist. `3dm edit-profile` will similarly open a printer profile in your editor, although it isn't capable of creating new profiles for an entirely new printer.
 
 Roadmap: Making the settings easier to discover and edit will be a major focus of future 3dmake versions. It's unfortunately not very intuitive right now, but once you have a few favorite overlays configured you shouldn't need to edit too much.
 
