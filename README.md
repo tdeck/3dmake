@@ -87,10 +87,10 @@ The preview's "view" can be changed using the -v option. Here are the possible p
 
 - -v 3sil - The standard 3-silhouette composite preview
 - -v frontsil - Silhouette from the front
-- -v backsil - Silhouette from the front
-- -v leftsil - Silhouette from the front
-- -v rightsil - Silhouette from the front
-- -v topsil - Silhouette from the front
+- -v backsil - Silhouette from the back
+- -v leftsil - Silhouette from the left
+- -v rightsil - Silhouette from the right
+- -v topsil - Silhouette from the top
 
 # Working with files that aren't part of a project
 
