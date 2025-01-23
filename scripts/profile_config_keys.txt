@@ -25,49 +25,50 @@ chamber_minimal_temperature
 chamber_temperature
 
 # Bed adhesion
-disable_fan_first_layers
-first_layer_height
-first_layer_speed_over_raft
+skirts
 min_skirt_length
 skirt_distance
 skirt_height
-skirts
 brim_separation
 brim_type
 brim_width
+raft_layers
 raft_contact_distance
 raft_expansion
 raft_first_layer_density
 raft_first_layer_expansion
-raft_layers
 ; TODO this prevents warping so maybe it goes here? The Prusa docs put it here but I'm not so suree
 draft_shield
+disable_fan_first_layers
+first_layer_height
 
 # Layer height
 layer_height
 variable_layer_height
 
 # Part strength
+perimeters
 bottom_solid_layers
 bottom_solid_min_thickness
 top_solid_layers
 top_solid_min_thickness
-perimeters
 
 # Speeds
-retract_speed
-infill_speed
-external_perimeter_speed
 perimeter_speed
-deretract_speed
-first_layer_speed
-bridge_speed
-ironing_speed
 small_perimeter_speed
+external_perimeter_speed
+infill_speed
 solid_infill_speed
 top_solid_infill_speed
 support_material_speed
 support_material_interface_speed
+bridge_speed
+gap_fill_speed
+ironing_speed
+first_layer_speed
+first_layer_speed_over_raft
+retract_speed
+deretract_speed
 travel_speed
 travel_speed_z
 enable_dynamic_overhang_speeds
@@ -81,6 +82,9 @@ filament_infill_max_speed
 
 # Supports
 support_material
+support_material_pattern
+support_material_spacing
+support_material_style
 support_material_angle
 support_material_auto
 support_material_bottom_contact_distance
@@ -95,9 +99,6 @@ support_material_interface_extruder
 support_material_interface_layers
 support_material_interface_pattern
 support_material_interface_spacing
-support_material_pattern
-support_material_spacing
-support_material_style
 support_material_synchronize_layers
 support_material_threshold
 support_material_with_sheath
@@ -115,8 +116,8 @@ interface_shells
 
 # Infill
 fill_density
-fill_angle
 fill_pattern
+fill_angle
 solid_infill_below_area
 solid_infill_every_layers
 solid_infill_extruder
@@ -152,7 +153,7 @@ retract_restart_extra
 retract_restart_extra_toolchange
 only_retract_when_crossing_perimeters
 
-# Outer perimeter
+# Perimeter tweaks
 external_perimeters_first
 perimeter_generator
 only_one_perimeter_first_layer
@@ -165,7 +166,6 @@ perimeter_extruder
 extra_perimeters
 extra_perimeters_on_overhangs
 gap_fill_enabled
-gap_fill_speed
 thin_walls
 seam_position
 staggered_inner_seams
