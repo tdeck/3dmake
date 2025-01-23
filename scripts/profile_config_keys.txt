@@ -1,0 +1,436 @@
+; References:
+;   /home/troy/Downloads/PrusaSlicer/src/libslic3r/PrintConfig.cpp
+; Semicolon comments will be ignored
+; Hash comments will become section headings above ## TODO
+
+# Metadata
+notes
+printer_model
+printer_notes
+; TODO need to figure out what these are for and if they can be deleted
+print_settings_id
+printer_settings_id
+physical_printer_settings_id
+printer_variant
+printer_vendor
+
+# Temperatures
+temperature
+bed_temperature
+first_layer_temperature
+first_layer_bed_temperature
+idle_temperature
+standby_temperature_delta
+chamber_minimal_temperature
+chamber_temperature
+
+# Bed adhesion
+disable_fan_first_layers
+first_layer_height
+first_layer_speed_over_raft
+min_skirt_length
+skirt_distance
+skirt_height
+skirts
+brim_separation
+brim_type
+brim_width
+raft_contact_distance
+raft_expansion
+raft_first_layer_density
+raft_first_layer_expansion
+raft_layers
+; TODO this prevents warping so maybe it goes here? The Prusa docs put it here but I'm not so suree
+draft_shield
+
+# Layer height
+layer_height
+variable_layer_height
+
+# Part strength
+bottom_solid_layers
+bottom_solid_min_thickness
+top_solid_layers
+top_solid_min_thickness
+perimeters
+
+# Speeds
+retract_speed
+infill_speed
+external_perimeter_speed
+perimeter_speed
+deretract_speed
+first_layer_speed
+bridge_speed
+ironing_speed
+small_perimeter_speed
+solid_infill_speed
+top_solid_infill_speed
+support_material_speed
+support_material_interface_speed
+travel_speed
+travel_speed_z
+enable_dynamic_overhang_speeds
+overhang_speed_0
+overhang_speed_1
+overhang_speed_2
+overhang_speed_3
+filament_infill_max_crossing_speed
+filament_infill_max_speed
+
+
+# Supports
+support_material
+support_material_angle
+support_material_auto
+support_material_bottom_contact_distance
+support_material_bottom_interface_layers
+support_material_buildplate_only
+support_material_closing_radius
+support_material_contact_distance
+support_material_enforce_layers
+support_material_extruder
+support_material_interface_contact_loops
+support_material_interface_extruder
+support_material_interface_layers
+support_material_interface_pattern
+support_material_interface_spacing
+support_material_pattern
+support_material_spacing
+support_material_style
+support_material_synchronize_layers
+support_material_threshold
+support_material_with_sheath
+support_material_xy_spacing
+support_tree_angle
+support_tree_angle_slow
+support_tree_branch_diameter
+support_tree_branch_diameter_angle
+support_tree_branch_diameter_double_wall
+support_tree_branch_distance
+support_tree_tip_diameter
+support_tree_top_rate
+dont_support_bridges
+interface_shells
+
+# Infill
+fill_density
+fill_angle
+fill_pattern
+solid_infill_below_area
+solid_infill_every_layers
+solid_infill_extruder
+infill_anchor
+infill_anchor_max
+infill_every_layers
+infill_extruder
+infill_first
+infill_overlap
+
+# Part surface
+top_fill_pattern
+bottom_fill_pattern
+ironing
+ironing_flowrate
+ironing_spacing
+ironing_type
+fuzzy_skin
+fuzzy_skin_point_dist
+fuzzy_skin_thickness
+
+# Retraction
+wipe
+retract_before_travel
+retract_before_wipe
+retract_layer_change
+retract_length
+retract_length_toolchange
+retract_lift
+retract_lift_above
+retract_lift_below
+retract_restart_extra
+retract_restart_extra_toolchange
+only_retract_when_crossing_perimeters
+
+# Outer perimeter
+external_perimeters_first
+perimeter_generator
+only_one_perimeter_first_layer
+wall_distribution_count
+wall_transition_angle
+wall_transition_length
+wall_transition_filter_deviation
+top_one_perimeter_type
+perimeter_extruder
+extra_perimeters
+extra_perimeters_on_overhangs
+gap_fill_enabled
+gap_fill_speed
+thin_walls
+seam_position
+staggered_inner_seams
+
+# Overhangs and bridging
+overhangs
+bridge_angle
+bridge_flow_ratio
+thick_bridges
+
+# Printer calibration
+z_offset
+xy_size_compensation
+
+# Travel moves
+travel_lift_before_obstacle
+travel_max_lift
+travel_ramping_lift
+travel_slope
+avoid_crossing_curled_overhangs
+avoid_crossing_perimeters
+avoid_crossing_perimeters_max_detour
+
+# Part cooling
+cooling
+fan_always_on
+fan_below_layer_time
+slowdown_below_layer_time
+enable_dynamic_fan_speeds
+full_fan_speed_layer
+bridge_fan_speed
+; TODO these really need documentation
+overhang_fan_speed_0
+overhang_fan_speed_1
+overhang_fan_speed_2
+overhang_fan_speed_3
+
+# Extrusion and flow
+extrusion_multiplier
+extrusion_width
+external_perimeter_extrusion_width
+first_layer_extrusion_width
+infill_extrusion_width
+perimeter_extrusion_width
+solid_infill_extrusion_width
+support_material_extrusion_width
+top_infill_extrusion_width
+
+# GCode scripts
+start_filament_gcode
+start_gcode
+end_gcode
+before_layer_gcode
+layer_gcode
+between_objects_gcode
+color_change_gcode
+end_filament_gcode
+toolchange_gcode
+pause_print_gcode
+template_custom_gcode
+
+# GCode output format
+arc_fitting
+gcode_flavor
+binary_gcode
+gcode_comments
+gcode_label_objects
+gcode_resolution
+gcode_substitutions
+use_firmware_retraction
+use_relative_e_distances
+use_volumetric_e
+thumbnails
+thumbnails_format
+autoemit_temperature_commands
+remaining_times
+
+# Multi-material printing
+colorprint_heights
+mmu_segmented_region_interlocking_depth
+mmu_segmented_region_max_width
+filament_stamping_distance
+filament_stamping_loading_speed
+ooze_prevention
+filament_load_time
+filament_loading_speed
+filament_loading_speed_start
+filament_unload_time
+filament_unloading_speed
+filament_unloading_speed_start
+filament_toolchange_delay
+filament_multitool_ramming
+filament_multitool_ramming_flow
+filament_multitool_ramming_volume
+filament_ramming_parameters
+filament_cooling_final_speed
+filament_cooling_initial_speed
+filament_cooling_moves
+
+# Nozzle purge
+multimaterial_purging
+wipe_into_infill
+wipe_into_objects
+wipe_tower
+wipe_tower_bridging
+wipe_tower_brim_width
+wipe_tower_cone_angle
+wipe_tower_extra_flow
+wipe_tower_extra_spacing
+wipe_tower_extruder
+wipe_tower_no_sparse_layers
+wipe_tower_rotation_angle
+wipe_tower_width
+wipe_tower_x
+wipe_tower_y
+wiping_volumes_matrix
+wiping_volumes_use_custom_matrix
+filament_minimal_purge_on_wipe_tower
+
+# Slicing strategies
+spiral_vase
+resolution
+min_feature_size
+min_bead_width
+slice_closing_radius
+; slicing_mode is a workaround for some specific model files that are designed to work with a quirk of Simplify3D
+slicing_mode
+prefer_clockwise_movements
+
+# Filament properties
+filament_shrinkage_compensation_xy
+filament_shrinkage_compensation_z
+filament_density
+filament_diameter
+
+# Extruder design
+extrusion_axis
+single_extruder_multi_material
+single_extruder_multi_material_priming
+nozzle_diameter
+extruder_clearance_height
+extruder_clearance_radius
+extruder_offset
+extra_loading_move
+cooling_tube_length
+cooling_tube_retraction
+nozzle_high_flow
+high_current_on_filament_swap
+parking_pos_retraction
+
+# Automatic part arrangement
+duplicate_distance
+
+# Acceleration
+default_acceleration
+external_perimeter_acceleration
+first_layer_acceleration
+first_layer_acceleration_over_raft
+infill_acceleration
+perimeter_acceleration
+solid_infill_acceleration
+top_solid_infill_acceleration
+travel_acceleration
+wipe_tower_acceleration
+bridge_acceleration
+
+# Printer geometry
+bed_shape
+bed_custom_model
+bed_custom_texture
+
+# Printer physical limits
+printer_technology
+machine_max_acceleration_e
+machine_max_acceleration_extruding
+machine_max_acceleration_retracting
+machine_max_acceleration_travel
+machine_max_acceleration_x
+machine_max_acceleration_y
+machine_max_acceleration_z
+machine_max_feedrate_e
+machine_max_feedrate_x
+machine_max_feedrate_y
+machine_max_feedrate_z
+machine_max_jerk_e
+machine_max_jerk_x
+machine_max_jerk_y
+machine_max_jerk_z
+machine_min_extruding_rate
+machine_min_travel_rate
+max_fan_speed
+min_fan_speed
+max_layer_height
+min_layer_height
+max_print_height
+max_print_speed
+min_print_speed
+max_volumetric_extrusion_rate_slope_negative
+max_volumetric_extrusion_rate_slope_positive
+max_volumetric_speed
+
+# Miscellaneous
+; elefant_foot_compensation is deliberately misspelled
+elefant_foot_compensation
+; silent_mode is a Prusa printer specific thing
+silent_mode
+; complete_objects is one-at-a-time printing mode which you should probably avoid ever using
+complete_objects
+; post_process is a list of paths of post-processing scripts to run on sliced G-code
+post_process
+machine_limits_usage
+
+## HIDDEN
+; These keys are known to be irrelevant and not needed because of how 3dmake uses PrusaSlicer
+extruder_colour
+output_filename_format
+print_host
+host_type
+printhost_apikey
+printhost_cafile
+compatible_printers_condition_cummulative
+default_filament_profile
+default_print_profile
+filament_spool_weight
+
+; These seem to be duplicates of their non-filamnet key
+; TODO consider applying these when reading a profile as an override or fallback
+filament_wipe
+filament_retract_speed
+filament_deretract_speed
+filament_retract_length
+filament_retract_layer_change
+filament_retract_before_travel
+filament_retract_before_wipe
+filament_retract_length_toolchange
+filament_retract_lift
+filament_retract_lift_above
+filament_retract_lift_below
+filament_retract_restart_extra
+filament_retract_restart_extra_toolchange
+filament_max_volumetric_speed
+filament_travel_lift_before_obstacle
+filament_travel_max_lift
+filament_travel_ramping_lift
+filament_travel_slope
+
+; These are listed as obsolete in the code for v2.8.1
+clip_multipart_objects
+threads
+ensure_vertical_shell_thickness
+infill_only_where_needed
+wiping_volumes_extruders
+
+; These are extraneous things I just think shouldn't be in the printer profile
+; but they may make sense to put in overlays
+filament_vendor
+filament_type
+filament_notes
+filament_colour
+filament_abrasive
+filament_soluble
+filament_cost
+filament_settings_id
+filament_purge_multiplier
+
+; TODO Include more from the file after finishing categorization
+
+## TODO
