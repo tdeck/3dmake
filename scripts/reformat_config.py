@@ -14,6 +14,7 @@ OUTPUT_FILE = Path(sys.argv[2] if len(sys.argv) > 2 else INPUT_FILE)
 @dataclass
 class Section:
     title: str
+    hidden: bool = False
     keys: List[str] = field(default_factory=list)
 
 def load_key_ordering() -> List[Section]:
@@ -28,6 +29,9 @@ def load_key_ordering() -> List[Section]:
             if not line or line[0] == ';':
                 continue
             elif line.startswith('## HIDDEN'):
+                current_section = Section(title='HIDDEN', hidden=True)
+                results.append(current_section)
+            elif line.startswith('## TODO'):
                 break
             elif line[0] == '#':
                 current_section = Section(title=line[1:].strip())
@@ -70,6 +74,8 @@ config_lines = load_config_lines(INPUT_FILE)
 header = TOC_HEADER
 body = ''
 for section in sections:
+    if section.hidden:
+        continue
     first = True
     for key in section.keys:
         if key in config_lines:
@@ -79,4 +85,12 @@ for section in sections:
                 first = False
             body += config_lines[key]
 
-print(header + body) # Note body will begin with an empty line
+known_keys = {key for section in sections for key in section.keys}
+unknown_keys = set(config_lines.keys()).difference(known_keys)
+if unknown_keys:
+    print("Found the following unclassified keys:")
+    for k in unknown_keys:
+        print(f"    {k}")
+
+with open(OUTPUT_FILE, 'w') as fh:
+    fh.write(header + body) # Note body will begin with an empty line
