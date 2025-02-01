@@ -5,6 +5,7 @@ Thanks for trying 3dmake!
 3dmake provides the following functionality through a single command line tool:
 
 - Compiling OpenSCAD code to produce STL files
+- Describing the shape of 3D models using AI
 - Slicing STL files for your printer
 - Configuring printing options
 - Auto-orienting prints before slicing
@@ -35,6 +36,12 @@ As a shortcut, you can use the `3dm edit-model` in your project folder to open t
 editor = '''C:\Program Files (x86)\Notepad++\notepad++.exe'''
 ```
 
+## Describing models
+
+The `3dm info` command will describe a model for you. If you have not configured Gemini during the setup process, it only describes the dimensions of the model's bounding box.  If you have configured Gemini, it will render the model from multiple angles, send all the images to Gemini along with a prompt, and return a description of the model. Gemini has been asked to call out any obvious flaws in the model if they exist.
+
+Large language models and AI image processing have unpredictable shortcomings. Do not rely too strongly on these descriptions alone, although they can be a good way to pre-qualify models before printing them. 
+
 ## Building, slicing and printing
 
 If you have an OpenSCAD project and you want a 3d model, you can run `3dm build`. By default, 3dm will build your main model and produce an STL file in your project's build directory (e.g. build/main.stl). This is useful if you want to send the STL file to someone, or use your own slicer (like Simplify3D) to slice it.
@@ -62,8 +69,6 @@ top_solid_min_thickness = 0.7
 For options that are either on or off, the value is either 1 or 0. For other options, the value is usually a number as well. If you want to edit a particular option that you have heard of, I recommend opening your printer profile and searching for words from that option name. The most commonly changed options are listed in the overlay template at the end of this README, and this is a good start when creating your own overlays.
 
 The `3dm edit-overlay` command will open an existing overlay for you in your text editor, and will create a new overlay for you if you give it an overlay name that doesn't exist. `3dm edit-profile` will similarly open a printer profile in your editor, although it isn't capable of creating new profiles for an entirely new printer.
-
-Roadmap: Making the settings easier to discover and edit will be a major focus of future 3dmake versions. It's unfortunately not very intuitive right now, but once you have a few favorite overlays configured you shouldn't need to edit too much.
 
 ## Orienting models
 
