@@ -24,6 +24,7 @@ import stl.mesh
 from tweaker3 import MeshTweaker, FileHandler
 
 from version import VERSION
+from describer import describe_model
 
 if getattr(sys, 'frozen', False):
     # Special case for PyInstaller
@@ -53,6 +54,7 @@ class CommandOptions:
     debug: bool = False
     strict_warnings: bool = False # This will default to True in new projects though
     editor: Optional[str] = None
+    gemini_key: Optional[str] = None
 
 
 def get_deps() -> Dependencies:
@@ -337,8 +339,10 @@ PROJECTION_CODE = {
 }
 
 IMPLIED_VERBS = {
+    # Dollar-sign verbs are internal steps that may not print an output
     'print': 'slice',
-    'preview': 'info',  # The preview step needs model dimensions to arrange the model
+    'info': '$measure',
+    'preview': '$measure', # The preview step needs model dimensions to arrange the model
 }
 
 
@@ -827,7 +831,8 @@ if 'orient' in verbs:
         file_handler.write_mesh(mesh_objects, info, file_set.oriented_model, 'binarystl')
 
 mesh_metrics = None
-if 'info' in verbs:
+mesh = None
+if '$measure' in verbs:
     mesh = stl.mesh.Mesh.from_file(file_set.model_to_project())
     
     mesh_metrics = MeshMetrics(
@@ -836,10 +841,15 @@ if 'info' in verbs:
         zrange=(mesh.z.min(), mesh.z.max()),
     )
 
+if 'info' in verbs:
     sizes = mesh_metrics.sizes()
     mid = mesh_metrics.midpoints()
     print(f"\nMesh size: x={sizes.x:.2f}, y={sizes.y:.2f}, z={sizes.z:.2f}")
     print(f"Mesh center: x={mid.x:.2f}, y={mid.y:.2f}, z={mid.z:.2f}")
+
+    if options.gemini_key:
+        print("\nAI description:")
+        print(describe_model(mesh, options.gemini_key))
 
 if 'preview' in verbs:
     print("\nPreparing preview...")

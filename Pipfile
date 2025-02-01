@@ -11,6 +11,9 @@ platformdirs = "*"
 mslex = {version = "*", markers = "sys_platform == 'win32'"}
 prompt_toolkit = "*"
 prompt-toolkit = "*"
+vtkplotlib = "*"
+pillow = "*"
+google-generativeai = "*"
 
 [dev-packages]
 pyinstaller = "*"
