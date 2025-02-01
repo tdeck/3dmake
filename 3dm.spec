@@ -2,7 +2,7 @@
 # This file configures the PyInstaller build
 
 import platform
-
+from PyInstaller.utils.hooks import collect_submodules
 
 deps_dir = {
     'Linux': 'deps/linux',
@@ -19,7 +19,9 @@ a = Analysis(
         (f'./default_config', 'default_config'),
         (f'README.md', '.'),
     ],
-    hiddenimports=['prompt-toolkit'], # For some reason pyinstaller doesn't pick this up in Windows
+    hiddenimports=[
+        'prompt-toolkit', # For some reason pyinstaller doesn't pick this up in Windows
+    ] + collect_submodules('vtkmodules'),
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
