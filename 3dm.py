@@ -498,7 +498,7 @@ class HelpAction(argparse.Action):
                 setup           Set up 3dmake for the first time, or overwrite existing settings
                 new             Create a new 3dmake project directory structure
                 build           Build the OpenSCAD model and produce an STL file
-                info            Get basic dimensional info about the model
+                info            Get basic dimensional info about the model, and AI description if configured
                 orient          Auto-orient the model to minimize support
                 preview         Produce a 2-D representation of the object
                 slice           Slice the model and produce a printable gcode file
@@ -623,7 +623,7 @@ elif infiles:
 elif project_root:
     file_set.scad_source = project_root / "src" / f"{options.model_name}.scad"
 else:
-    raise RuntimeError("Must either specify input file or run in a 3dmake project directory")
+    raise RuntimeError("Must either specify input file or run in a 3Dmake project directory")
 
 if args.overlay:
     options.overlays = args.overlay
@@ -645,7 +645,7 @@ if verbs == {'setup'}:
     if CONFIG_DIR.exists():
         print(f"The configuration directory {CONFIG_DIR} already exists.")
         print(f"I can overwrite the configuration files and printer profiles that came")
-        print(f"with 3dmake, returning them to default settings.")
+        print(f"with 3Mmake, returning them to default settings.")
         if not yes_or_no("Do you want to do this?"):
             print("Cancelling.")
             sys.exit(0)
@@ -669,6 +669,25 @@ if verbs == {'setup'}:
     profile_name = option_select("Choose a default printer model", profile_options)
     settings_dict['printer_profile'] = profile_name
 
+    print()
+    print("3Dmake can use the Gemini AI to describe your models when you run 3dm info")
+    print("This requires you to get a free Gemini API key, and has a limit of 50 runs per day.")
+    if yes_or_no("Do you want to set up Gemini?"):
+        print("The Gemini API key is a string of text that 3Dmake needs to access the Gemini AI.")
+        print("Copy your API key from this page while logged into your Google account:")
+        print("https://aistudio.google.com/app/apikey")
+        key = prompt("What is your Gemini API key? ").strip()
+        print()
+        if key:
+            settings_dict['gemini_key'] = key
+            print("Before using the AI descriptions, you should understand that they sometimes make")
+            print("surprising mistakes, such as miscounting parts, describing things that aren't there,")
+            print("or missing obvious flaws in models. This is part of the challenge of using today's AI,")
+            print("so take care when relying on it.")
+        else:
+            print("Empty response, leaving this unconfigured for now.")
+
+    print()
     if yes_or_no("Do you want to set up an OctoPrint connection?"):
         server = prompt("What is the web address of your OctoPrint server (including http://)? ").strip()
 
