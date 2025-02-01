@@ -235,6 +235,7 @@ INPUTLESS_VERBS = CONFIGLESS_VERBS | {
     'edit-model',
     'edit-profile',
     'edit-overlay',
+    'edit-global-config',
 }
 
 ISOLATED_VERBS = INPUTLESS_VERBS
@@ -495,19 +496,20 @@ class HelpAction(argparse.Action):
                 3dm slice print alpaca.stl
 
             Actions:
-                setup           Set up 3dmake for the first time, or overwrite existing settings
-                new             Create a new 3dmake project directory structure
-                build           Build the OpenSCAD model and produce an STL file
-                info            Get basic dimensional info about the model, and AI description if configured
-                orient          Auto-orient the model to minimize support
-                preview         Produce a 2-D representation of the object
-                slice           Slice the model and produce a printable gcode file
-                print           Send the sliced model to OctoPrint
-                edit-model      Open model SCAD file in your editor (affected by -m)
-                edit-overlay    Open an overlay file in your editor (affected by -o)
-                edit-profile    Open printer profile in your editor (affected by -p)
-                help            Display this message
-                version         Print the 3dmake version and paths
+                setup               Set up 3dmake for the first time, or overwrite existing settings
+                new                 Create a new 3dmake project directory structure
+                build               Build the OpenSCAD model and produce an STL file
+                info                Get basic dimensional info about the model, and AI description if configured
+                orient              Auto-orient the model to minimize support
+                preview             Produce a 2-D representation of the object
+                slice               Slice the model and produce a printable gcode file
+                print               Send the sliced model to OctoPrint
+                edit-model          Open model SCAD file in your editor (affected by -m)
+                edit-overlay        Open an overlay file in your editor (affected by -o)
+                edit-profile        Open printer profile in your editor (affected by -p)
+                edit-global-config  Edit 3DMake user settings file (default printer, API keys, etc...)
+                help                Display this message
+                version             Print the 3dmake version and paths
 
             Options:
                 --scale 1.0     Scale by a decimal factor
@@ -743,6 +745,10 @@ if verbs == {'help'}:
 
 if verbs == {'edit-model'}:
     subprocess.run([choose_editor(options), file_set.scad_source])
+    sys.exit(0)
+
+if verbs == {'edit-global-config'}:
+    subprocess.run([choose_editor(options), CONFIG_DIR / "defaults.toml"])
     sys.exit(0)
 
 if verbs == {'edit-profile'}:
