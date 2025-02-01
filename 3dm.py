@@ -499,7 +499,7 @@ class HelpAction(argparse.Action):
                 setup               Set up 3dmake for the first time, or overwrite existing settings
                 new                 Create a new 3dmake project directory structure
                 build               Build the OpenSCAD model and produce an STL file
-                info                Get basic dimensional info about the model, and AI description if configured
+                info                Get basic dimensional info about the model, and AI description if enabled
                 orient              Auto-orient the model to minimize support
                 preview             Produce a 2-D representation of the object
                 slice               Slice the model and produce a printable gcode file
