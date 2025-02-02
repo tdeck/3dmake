@@ -52,7 +52,7 @@ As you can see, you can string together multiple actions when running 3dmake. Fo
 
 ## Configuring slicer settings
 
-3dmake is based around PrussaSlicer, but it takes care of talking to the slicer for you because PruasSlicer has accessibility issues. All of PrusaSlicer's settings are editable in 3dmake's text-based configruation files, which you can open in your favorite text editor. These files are in your 3dmake configuration folder, which you can find by running `3dm version`
+3dmake is based around PrusaSlicer, but it takes care of talking to the slicer for you because PrusaSlicer has accessibility issues. All of PrusaSlicer's settings are editable in 3dmake's text-based configruation files, which you can open in your favorite text editor. These files are in your 3dmake configuration folder, which you can find by running `3dm version`
 
 There are two kinds of files in this directory. The ones in the profiles folder are complete sets of default settings for each printer. The files in the overlays folder are smaller collectiosns of settings. If you have one printer, you'll typically stick with the same profile, but choose different overlays using the -o option of 3dmake. One overlay that comes built in is the "supports" overlay, which (as you might guess) enables automatic supports.
 
