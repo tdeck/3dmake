@@ -6,7 +6,7 @@ import html
 import textwrap
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, List, Dict, Tuple, Set
+from typing import Any, List, Dict, Tuple, Set, TextIO
 
 import numpy as np
 import vtkplotlib as vpl
@@ -14,6 +14,25 @@ import vtk
 import google.generativeai as genai
 from PIL import Image
 from stl.mesh import Mesh
+
+from .measure_action import measure_model
+from .framework import Context, pipeline_action
+
+@pipeline_action(
+    gerund='examining',
+    implied_actions=[measure_model],
+)
+def info(ctx: Context, stdout: TextIO, __):
+    sizes = ctx.mesh_metrics.sizes()
+    mid = ctx.mesh_metrics.midpoints()
+    stdout.write(f"\nMesh size: x={sizes.x:.2f}, y={sizes.y:.2f}, z={sizes.z:.2f}\n")
+    stdout.write(f"Mesh center: x={mid.x:.2f}, y={mid.y:.2f}, z={mid.z:.2f}\n")
+
+    if ctx.options.gemini_key:
+        stdout.write("\nAI description:\n")
+        stdout.write(describe_model(ctx.mesh, ctx.options.gemini_key))
+        stdout.write("\n")
+
 
 Vec = Tuple[float, float, float]
 SerializedImage = Dict[str, Any]

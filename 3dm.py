@@ -20,7 +20,6 @@ from platformdirs import user_config_path
 import requests
 
 from version import VERSION
-from describer import describe_model
 from coretypes import FileSet, CommandOptions
 from utils.editor import choose_editor
 from utils.print_config import list_printer_profiles
@@ -257,7 +256,6 @@ PROJECTION_CODE = {
 IMPLIED_VERBS = {
     # Dollar-sign verbs are internal steps that may not print an output
     'print': 'slice',
-    'info': 'measure-model',
     'preview': 'measure-model', # The preview step needs model dimensions to arrange the model
 }
 for action_name, action in actions.ALL_ACTIONS.items():
@@ -639,15 +637,8 @@ if actions.orient.name in verbs:
 if actions.measure_model.name in verbs:
     actions.measure_model(context)
 
-if 'info' in verbs:
-    sizes = context.mesh_metrics.sizes()
-    mid = context.mesh_metrics.midpoints()
-    print(f"\nMesh size: x={sizes.x:.2f}, y={sizes.y:.2f}, z={sizes.z:.2f}")
-    print(f"Mesh center: x={mid.x:.2f}, y={mid.y:.2f}, z={mid.z:.2f}")
-
-    if options.gemini_key:
-        print("\nAI description:")
-        print(describe_model(context.mesh, options.gemini_key))
+if actions.info.name in verbs:
+    actions.info(context)
 
 if 'preview' in verbs:
     print("\nPreparing preview...")

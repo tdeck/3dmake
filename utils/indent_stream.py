@@ -1,5 +1,6 @@
 import os
 import threading
+import re
 from typing import Callable
 
 class IndentStream:
@@ -25,6 +26,11 @@ class IndentStream:
                     self.wrapped_stream.flush()
 
         threading.Thread(target=_reader, daemon=True).start()
+
+    def write(self, text, *args, **kwargs):
+        for line in text.splitlines(True):
+            self.wrapped_stream.write(f"{self.indent_str}{line}", *args, **kwargs)
+        self.wrapped_stream.flush()
 
     def fileno(self):
         return self.pipe_write
