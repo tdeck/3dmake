@@ -6,7 +6,7 @@ from pathlib import Path
 
 from stl.mesh import Mesh
 
-from utils.indent_stream import IndentStream
+from utils.stream_wrappers import IndentStream
 from coretypes import CommandOptions, FileSet, MeshMetrics
 
 @dataclass(kw_only=True)
