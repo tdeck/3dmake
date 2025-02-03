@@ -47,7 +47,7 @@ class Action:
                 # I'm not sure what I should do if the internal action *does* produce output;
                 # would be good to have a heading
                 gerund_str = self.gerund or (self.name + 'ing')
-                print(f"\n{gerund_str.title()}...")
+                print(f"\n{gerund_str.capitalize()}...")
 
             indent_stream = IndentStream(sys.stdout)
             return self.impl(context, indent_stream, indent_stream if debug_mode else subprocess.DEVNULL)

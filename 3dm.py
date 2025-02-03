@@ -137,100 +137,9 @@ SUPPORTED_VERBS = {
     'print',
 } | ISOLATED_VERBS
 
-PROJECTION_CODE = {
-    # These all receive the following vars:
-    # stl_file, x_mid, y_mid, z_mid, x_size, y_size, z_size
-    # Do not use // line comments in this code as line breaks will be removed
-    '3sil': '''
-        HEIGHT = .6;
-        SPACING = 10;
-
-        module model() {
-            translate([-x_mid, -y_mid, -z_mid]) import(stl_file);
-        }
-
-        linear_extrude(HEIGHT) {
-            /* Top */
-            translate([0, y_size/2 + z_size/2 + SPACING/*z_size + SPACING */, 0]) projection() model();
-
-            /* Left */
-            translate([-x_size/2 - y_size/2 - SPACING, 0, 0]) projection() rotate([-90, 90, 0]) model();
-
-            /* Front */
-            projection() rotate([-90, 0, 0]) model();
-        }
-    ''',
-    'topsil': '''
-        HEIGHT = .6;
-        SPACING = 10;
-
-        module model() {
-            translate([-x_mid, -y_mid, -z_mid]) import(stl_file);
-        }
-
-        linear_extrude(HEIGHT) {
-            /* Top */
-            projection() model();
-        }
-    ''',
-    'leftsil': '''
-        HEIGHT = .6;
-        SPACING = 10;
-
-        module model() {
-            translate([-x_mid, -y_mid, -z_mid]) import(stl_file);
-        }
-
-        linear_extrude(HEIGHT) {
-            /* Left */
-            projection() rotate([-90, 90, 0]) model();
-        }
-    ''',
-    'rightsil': '''
-        HEIGHT = .6;
-        SPACING = 10;
-
-        module model() {
-            translate([-x_mid, -y_mid, -z_mid]) import(stl_file);
-        }
-
-        linear_extrude(HEIGHT) {
-            /* Right */
-            projection() rotate([-90, -90, 0]) model();
-        }
-    ''',
-    'frontsil': '''
-        HEIGHT = .6;
-        SPACING = 10;
-
-        module model() {
-            translate([-x_mid, -y_mid, -z_mid]) import(stl_file);
-        }
-
-        linear_extrude(HEIGHT) {
-            /* Front */
-            projection() rotate([-90, 0, 0]) model();
-        }
-    ''',
-    'backsil': '''
-        HEIGHT = .6;
-        SPACING = 10;
-
-        module model() {
-            translate([-x_mid, -y_mid, -z_mid]) import(stl_file);
-        }
-
-        linear_extrude(HEIGHT) {
-            /* Back */
-            projection() rotate([-90, 180, 0]) model();
-        }
-    '''
-}
-
 IMPLIED_VERBS = {
     # Dollar-sign verbs are internal steps that may not print an output
     'print': 'slice',
-    'preview': 'measure-model', # The preview step needs model dimensions to arrange the model
 }
 for action_name, action in actions.ALL_ACTIONS.items():
     assert len(action.implied_actions) <= 1  # TODO make multiple deps work later
@@ -564,42 +473,8 @@ if actions.measure_model.name in verbs:
 if actions.info.name in verbs:
     actions.info(context)
 
-if 'preview' in verbs:
-    print("\nPreparing preview...")
-    if options.view not in PROJECTION_CODE:
-        raise RuntimeError(f"The preview view '{options.view}' does not exist")
-
-    scad_code = PROJECTION_CODE[options.view].replace("\n", '')
-
-    file_set.projected_model = file_set.build_dir / f"{file_set.model_to_project().stem}-{options.view}.stl"
-
-    sizes = ctx.mesh_metrics.sizes()
-    midpoints = ctx.mesh_metrics.midpoints()
-
-    process_result = subprocess.run([
-        DEPS.OPENSCAD,
-        '--quiet',
-        '--hardwarnings',
-        '--export-format', 'binstl',
-        '-o', file_set.projected_model,
-        # We use json.dumps below to escape the path in case it contains backslashes or other special chars
-        '-D', f'stl_file={json.dumps(str(file_set.model_to_project().absolute()))};',
-        '-D', f'x_mid={midpoints.x:.2f};',
-        '-D', f'y_mid={midpoints.y:.2f};',
-        '-D', f'z_mid={midpoints.z:.2f};',
-        '-D', f'x_size={sizes.x:.2f};',
-        '-D', f'y_size={sizes.y:.2f};',
-        '-D', f'z_size={sizes.z:.2f};',
-        '-D', scad_code,
-        os.devnull,
-    ], stdout=debug_output, stderr=filter_and_indent_stdout)
-
-    if process_result.returncode != 0:
-        raise RuntimeError(f"    Command failed with return code {process_result.returncode}")
-
-    # Insert a projection overlay to print projections quicker
-    options.overlays.insert(0, 'preview')
-
+if actions.preview.name in verbs:
+    actions.preview(context)
 
 if 'slice' in verbs:
     if not file_set.model.exists():
