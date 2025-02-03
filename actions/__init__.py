@@ -5,7 +5,7 @@ from .framework import Context
 
 # Register and re-export all the action functions
 for loader, module_name, is_pkg in pkgutil.iter_modules(__path__):
-    if module_name.endswith('_actions'):
+    if module_name.endswith('_actions') or module_name.endswith('_action'):
         module = importlib.import_module(f"{__name__}.{module_name}")
 
         # Re-export all items that don't start with "_"

@@ -8,7 +8,6 @@ import os
 import sys
 import subprocess
 import tempfile
-import threading
 import tomllib
 import platform
 import shutil
@@ -20,7 +19,6 @@ from prompt_toolkit import prompt
 from platformdirs import user_config_path
 import requests
 import stl.mesh
-from tweaker3 import MeshTweaker, FileHandler
 
 from version import VERSION
 from describer import describe_model
@@ -28,6 +26,7 @@ from coretypes import FileSet, CommandOptions
 from utils.editor import choose_editor
 from utils.print_config import list_printer_profiles
 from utils.prompts import yes_or_no, option_select
+from utils.indent_stream import IndentStream
 import actions
 
 if getattr(sys, 'frozen', False):
@@ -269,33 +268,6 @@ DEPS = get_deps()
 CONFIG_DIR = user_config_path('3dmake', None)
 PROFILES_DIR = CONFIG_DIR / 'profiles'
 OVERLAYS_DIR = CONFIG_DIR / 'overlays'
-
-class IndentStream:
-    def __init__(self, wrapped_stream, indent=4, filter_fn: Callable[[str], bool]=lambda _: True):
-        self.wrapped_stream = wrapped_stream
-        self.indent_str = ' ' * indent
-        self.filter_fn = filter_fn
-        self.pipe_read, self.pipe_write = os.pipe()
-
-        # Start a thread to read from the pipe and forward indented output
-        self._start_reader_thread()
-
-    def _start_reader_thread(self):
-        def _reader():
-            with os.fdopen(self.pipe_read, 'r') as pipe:
-                for line in pipe:
-                    if self.filter_fn(line):
-                        # Indent each line and write to the wrapped stream
-                        self.wrapped_stream.write(f"{self.indent_str}{line}")
-                    self.wrapped_stream.flush()
-
-        threading.Thread(target=_reader, daemon=True).start()
-
-    def fileno(self):
-        return self.pipe_write
-
-    def close(self):
-        os.close(self.pipe_write)
 
 @dataclass
 class Thruple:
@@ -686,25 +658,7 @@ if 'build' in verbs:
         raise RuntimeError(f"    Command failed with return code {process_result.returncode}")
 
 if 'orient' in verbs:
-    print("\nAuto-orienting...")
-
-    file_set.oriented_model = file_set.build_dir / f"{file_set.model.stem}-oriented.stl"
-
-    # This was basically copied from Tweaker.py since it doesn't have a code-based interface
-    # to handle all meshes at once
-    file_handler = FileHandler.FileHandler()
-    mesh_objects = file_handler.load_mesh(file_set.model)
-    info = {}  # This is what Tweaker calls this; it needs a better name
-    for part, content in mesh_objects.items():
-        tweak_res = MeshTweaker.Tweak(
-            content['mesh'],
-            extended_mode=True,
-            verbose=False,
-            show_progress=False,
-        )
-        info[part] = dict(matrix=tweak_res.matrix, tweaker_stats=tweak_res)
-
-        file_handler.write_mesh(mesh_objects, info, file_set.oriented_model, 'binarystl')
+    actions.orient(context)
 
 mesh_metrics = None
 mesh = None
