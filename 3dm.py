@@ -23,7 +23,7 @@ from coretypes import FileSet, CommandOptions
 from utils.editor import choose_editor
 from utils.prompts import yes_or_no
 from utils.stream_wrappers import IndentStream, FilterPipe
-from utils.bundle_paths import SCRIPT_DIR, SCRIPT_BIN_PATH, DEPS
+from utils.bundle_paths import DEPS
 from utils.openscad import should_print_openscad_log
 import actions
 
@@ -121,47 +121,8 @@ def load_config() -> Tuple[CommandOptions, Optional[Path]]:
 
 class HelpAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
-        self.print_help()
+        actions.help(None)
         parser.exit()
-
-    @staticmethod
-    def print_help():
-        print(textwrap.dedent('''\
-            Usage: 3dm ACTIONS... [OPTIONS]... [INPUT_FILE]
-
-            Examples:
-                3dm build
-                3dm build orient slice
-                3dm build orient slice --model cover --overlay supports
-                3dm info alpaca.stl
-                3dm preview alpaca.stl
-                3dm slice print alpaca.stl
-
-            Actions:
-                setup               Set up 3dmake for the first time, or overwrite existing settings
-                new                 Create a new 3dmake project directory structure
-                build               Build the OpenSCAD model and produce an STL file
-                info                Get basic dimensional info about the model, and AI description if enabled
-                orient              Auto-orient the model to minimize support
-                preview             Produce a 2-D representation of the object
-                slice               Slice the model and produce a printable gcode file
-                print               Send the sliced model to OctoPrint
-                edit-model          Open model SCAD file in your editor (affected by -m)
-                edit-overlay        Open an overlay file in your editor (affected by -o)
-                edit-profile        Open printer profile in your editor (affected by -p)
-                edit-global-config  Edit 3DMake user settings file (default printer, API keys, etc...)
-                help                Display this message
-                version             Print the 3dmake version and paths
-
-            Options:
-                --scale 1.0     Scale by a decimal factor
-                --model NAME    Choose a model in a multi-model project
-                --profile NAME  Select a printer profile
-                --overlay NAME  Apply an overlay to slicer settings; can be used multiple times
-                --view NAME     The type of preivew to produce, see the documentation for more info
-
-            Each option can be abbreviated as one letter with a single dash (e.g. -s 50% to scale)
-        '''))
 
 parser = argparse.ArgumentParser(
     prog='3dmake',
@@ -318,16 +279,12 @@ if verbs == {'new'}:
     # Create empty main.scad if none exists
     open(proj_path / "src/main.scad", 'a').close()
 
-if verbs == {'version'}:
-    print(f"3Dmake version {VERSION}")
-    print(f"Program location: {SCRIPT_BIN_PATH}")
-    print(f"Configuration dir: {CONFIG_DIR}")
-    print("Created by Troy Deck")
-    print("\nThanks for trying 3Dmake!")
+if actions.version.name in verbs:
+    actions.version(context)
     sys.exit(0)
 
-if verbs == {'help'}:
-    HelpAction.print_help()
+if actions.help.name in verbs:
+    actions.help(None)
     sys.exit(0)
 
 if verbs == {'edit-model'}:
