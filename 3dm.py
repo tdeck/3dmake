@@ -6,17 +6,12 @@ from typing import Optional, Tuple, List, Literal, Union, Dict, Any, Callable
 import argparse
 import os
 import sys
-import subprocess
 import tempfile
 import tomllib
 import shutil
-import json
-import re
-import textwrap
 
 from prompt_toolkit import prompt
 from platformdirs import user_config_path
-import requests
 
 from version import VERSION
 from coretypes import FileSet, CommandOptions
@@ -26,41 +21,6 @@ from utils.stream_wrappers import IndentStream, FilterPipe
 from utils.bundle_paths import DEPS
 from utils.openscad import should_print_openscad_log
 import actions
-
-def extract_time_estimates(gcode_file: Path) -> Optional[str]:
-    """
-    Tries to parse out the print time estimate comment PrusaSlicer will leave in the GCode file,
-    and converts it to a slightly nicer format for being read aloud.
-    """
-    if not gcode_file.exists():
-        return
-
-    pattern = re.compile(r'.*; estimated printing time .*? = (.+)$')
-    
-    with open(gcode_file, 'r') as fh:
-        for line in fh:
-            match_res = pattern.match(line)
-            if match_res:
-                time_str = match_res.group(1).upper()
-                # The time string in the GCode is formatted by the function get_time_dhms
-                # and will look like "10d 9h 8m 7s", but most users will be using a screen
-                # reader so we might as well replace these with words.
-
-                # We have converted time_str to uppercase specifically to prevent
-                # our replacements from being mangled by later replacements (e.g.
-                # the s in days being converted to "day seconds").
-                time_str = time_str.replace('D', ' days')
-                time_str = time_str.replace('H', ' hours')
-                time_str = time_str.replace('M', ' minutes')
-                time_str = time_str.replace('S', ' seconds')
-
-                # Now we make it even cleaner by fixing up "1 days" and the like
-                time_str = re.sub(r'\b1 days', '1 day', time_str)
-                time_str = re.sub(r'\b1 hours', '1 hour', time_str)
-                time_str = re.sub(r'\b1 minutes', '1 minute', time_str)
-                time_str = re.sub(r'\b1 seconds', '1 second', time_str)
-
-                return time_str
 
 CONFIGLESS_VERBS = {
     'setup',
@@ -87,10 +47,7 @@ SUPPORTED_VERBS = {
     'print',
 } | ISOLATED_VERBS
 
-IMPLIED_VERBS = {
-    # Dollar-sign verbs are internal steps that may not print an output
-    'print': 'slice',
-}
+IMPLIED_VERBS = {}
 for action_name, action in actions.ALL_ACTIONS.items():
     assert len(action.implied_actions) <= 1  # TODO make multiple deps work later
     for dep in action.implied_actions:
@@ -236,17 +193,6 @@ if args.overlay:
 
 indent_stdout = IndentStream(sys.stdout)
 
-if args.debug:
-    # No filtering in debug mode
-    filter_and_indent_stdout = indent_stdout
-    debug_output = indent_stdout
-else:
-    filter_and_indent_stdout = FilterPipe(
-        indent_stdout,
-        filter_fn=should_print_openscad_log,
-    )
-    debug_output = subprocess.DEVNULL
-
 context = actions.Context(
     config_dir=CONFIG_DIR,
     options=options,
@@ -318,80 +264,11 @@ if actions.info.name in verbs:
 if actions.preview.name in verbs:
     actions.preview(context)
 
-if 'slice' in verbs:
-    if not file_set.model.exists():
-        raise RuntimeError("Model has not been built")
+if actions.slice.name in verbs:
+    actions.slice(context)
 
-    print("\nSlicing...")
-
-    ini_files: List[Path] = [PROFILES_DIR / f"{options.printer_profile}.ini"]
-    for overlay in options.overlays:
-        # If there is a printer-specific version of this overlay, prefer it. Otherwise
-        # use the default version
-        profile_specific_path =  OVERLAYS_DIR / options.printer_profile / f"{overlay}.ini"
-        default_path = OVERLAYS_DIR / "default" / f"{overlay}.ini"
-        if profile_specific_path.exists():
-            ini_files.append(profile_specific_path)
-        elif default_path.exists():
-            ini_files.append(default_path)
-        else:
-            raise RuntimeError(f"Could not find overlay '{overlay}' for profile '{options.printer_profile}'")
-
-    project_prefix = ''
-    if options.project_name:
-        project_prefix = f"{options.project_name}-"
-    gcode_file = file_set.build_dir / f"{project_prefix}{file_set.model_to_slice().stem}.gcode"
-    
-    cmd = [
-        DEPS.SLICER,
-        '--export-gcode',
-        '-o', gcode_file,
-        '--loglevel=1', # Log only errors
-        '--scale', str(options.scale),
-        file_set.model_to_slice()
-    ]
-    for ini_file in ini_files:
-        cmd.append('--load')
-        cmd.append(ini_file)
-
-    # Here we suppress a lot of the progress messages from PrusaSlicer because
-    # the loglevel directive doesn't seem to work. True errors should appear on
-    # stderr where they will be displayed.
-    process_result = subprocess.run(cmd, stdout=debug_output, stderr=indent_stdout)
-    if process_result.returncode != 0:
-        raise RuntimeError(f"    Command failed with return code {process_result.returncode}")
-
-    file_set.sliced_gcode = gcode_file
-
-    time_str = extract_time_estimates(file_set.sliced_gcode)
-    if time_str:
-        print(f"    Estimated print time: {time_str}")
-
-if 'print' in verbs:
-    print("\nPrinting...")
-    server_filename = file_set.sliced_gcode.name
-    with open(file_set.sliced_gcode, 'rb') as fh:
-        response = requests.post(
-            f"{options.octoprint_host}/api/files/local", # TODO folder
-            headers={
-                'X-Api-Key': options.octoprint_key,
-            },
-            files={
-                'file': (server_filename, fh, 'application/octet-stream'),
-            },
-            data={
-                'select': True,
-                'print': options.auto_start_prints,
-            },
-            verify=False, # TODO; this is needed for self-signed local servers
-        )
-
-    # TODO handle this better
-    if response.status_code == 201:
-        print(f"    File uploaded successfully as {server_filename}!")
-    else:
-        print(f"    Failed to upload. Status code: {response.status_code}")
-        print(response.text)
+if actions.print.name in verbs:
+    actions.print(context)
 
 if infiles:
     # If we're in single file mode, copy the last result to the working dir

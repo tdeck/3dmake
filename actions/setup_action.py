@@ -70,7 +70,7 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
 
         key = prompt("What is your OctoPrint application key? ").strip()
 
-        settings_dict['octoprint_server'] = server
+        settings_dict['octoprint_host'] = server
         settings_dict['octoprint_key'] = key
     
 
