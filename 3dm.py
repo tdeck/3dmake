@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
 
-
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Tuple, List, Literal, Union, Dict, Any, Callable
@@ -25,6 +24,9 @@ from tweaker3 import MeshTweaker, FileHandler
 
 from version import VERSION
 from describer import describe_model
+from coretypes import FileSet, CommandOptions
+from utils.editor import choose_editor
+import actions
 
 if getattr(sys, 'frozen', False):
     # Special case for PyInstaller
@@ -34,28 +36,10 @@ else:
     SCRIPT_DIR = Path(sys.path[0])
     SCRIPT_BIN_PATH = Path(__file__).absolute()
 
-
 @dataclass
 class Dependencies:
     OPENSCAD: Path
     SLICER: Path
-
-@dataclass(kw_only=True)
-class CommandOptions:
-    project_name: Optional[str] = None # This will be populated automatically with the project's parent dir if not overridden
-    model_name: str = "main"
-    view: str
-    printer_profile: str
-    scale: Union[float, Literal["auto"]] = 1.0
-    overlays: List[str] = field(default_factory=list)
-    octoprint_host: Optional[str] = None
-    octoprint_key: Optional[str] = None
-    auto_start_prints: bool = False
-    debug: bool = False
-    strict_warnings: bool = False # This will default to True in new projects though
-    editor: Optional[str] = None
-    gemini_key: Optional[str] = None
-
 
 def get_deps() -> Dependencies:
     os_type = platform.system()
@@ -178,16 +162,6 @@ def list_overlays() -> List[OverlayName]:
             if filename.lower().endswith(".ini"):
                 results.append(OverlayName(name=filename[:-4], profile=profile))
     return results
-
-def choose_editor(options: CommandOptions) -> str:
-    if options.editor:
-        return options.editor
-    
-    if platform.system() == 'Windows':
-        return 'notepad'
-    else:
-        # nano is an arbitrary fallback that we might improve in the future
-        return os.getenv('VISUAL') or os.getenv('EDITOR') or 'nano'
 
 def extract_time_estimates(gcode_file: Path) -> Optional[str]:
     """
@@ -379,31 +353,6 @@ class IndentStream:
 
     def close(self):
         os.close(self.pipe_write)
-
-class FileSet:
-    def __init__(self, options: CommandOptions):
-        self.build_dir: Path = Path('build') # TODO based on options
-
-        self.scad_source = Path("src") / f"{options.model_name}.scad"
-        self.model = self.build_dir / f"{options.model_name}.stl"
-
-    build_dir: Path
-    scad_source: Optional[Path]
-    model: Optional[Path]
-    oriented_model: Optional[Path] = None
-    projected_model: Optional[Path] = None
-    sliced_gcode: Optional[Path] = None
-
-    def model_to_project(self) -> Optional[Path]:
-        return self.oriented_model or self.model
-
-    def model_to_slice(self) -> Optional[Path]:
-        return self.projected_model or self.oriented_model or self.model
-
-    def final_output(self) -> Optional[Path]:
-        """ Returns the most processed output file; which will be the command's final result in single file mode. """
-        return self.sliced_gcode or self.model_to_slice()
-
 
 @dataclass
 class Thruple:
@@ -643,6 +592,8 @@ else:
     )
     debug_output = subprocess.DEVNULL
 
+context = actions.Context(options=options, files=file_set)
+
 if verbs == {'setup'}:
     if CONFIG_DIR.exists():
         print(f"The configuration directory {CONFIG_DIR} already exists.")
@@ -744,7 +695,7 @@ if verbs == {'help'}:
     sys.exit(0)
 
 if verbs == {'edit-model'}:
-    subprocess.run([choose_editor(options), file_set.scad_source])
+    actions.edit_model(context)
     sys.exit(0)
 
 if verbs == {'edit-global-config'}:
