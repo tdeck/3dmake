@@ -18,7 +18,6 @@ import textwrap
 from prompt_toolkit import prompt
 from platformdirs import user_config_path
 import requests
-import stl.mesh
 
 from version import VERSION
 from describer import describe_model
@@ -258,9 +257,13 @@ PROJECTION_CODE = {
 IMPLIED_VERBS = {
     # Dollar-sign verbs are internal steps that may not print an output
     'print': 'slice',
-    'info': '$measure',
-    'preview': '$measure', # The preview step needs model dimensions to arrange the model
+    'info': 'measure-model',
+    'preview': 'measure-model', # The preview step needs model dimensions to arrange the model
 }
+for action_name, action in actions.ALL_ACTIONS.items():
+    assert len(action.implied_actions) <= 1  # TODO make multiple deps work later
+    for dep in action.implied_actions:
+        IMPLIED_VERBS[action_name] = dep
 
 
 DEPS = get_deps()
@@ -268,33 +271,6 @@ DEPS = get_deps()
 CONFIG_DIR = user_config_path('3dmake', None)
 PROFILES_DIR = CONFIG_DIR / 'profiles'
 OVERLAYS_DIR = CONFIG_DIR / 'overlays'
-
-@dataclass
-class Thruple:
-    x: float
-    y: float
-    z: float
-
-@dataclass
-class MeshMetrics:
-    xrange: Tuple[float, float]
-    yrange: Tuple[float, float]
-    zrange: Tuple[float, float]
-
-    def sizes(self) -> Thruple:
-        return Thruple(
-            self.xrange[1] - self.xrange[0],
-            self.yrange[1] - self.yrange[0],
-            self.zrange[1] - self.zrange[0]
-        )
-
-    def midpoints(self) -> Thruple:
-        return Thruple(
-            (self.xrange[1] + self.xrange[0]) / 2,
-            (self.yrange[1] + self.yrange[0]) / 2,
-            (self.zrange[1] + self.zrange[0]) / 2,
-        )
-
 
 def load_config() -> Tuple[CommandOptions, Optional[Path]]:
     """ Returns merged options, project root """
@@ -657,29 +633,21 @@ if 'build' in verbs:
     if process_result.returncode != 0:
         raise RuntimeError(f"    Command failed with return code {process_result.returncode}")
 
-if 'orient' in verbs:
+if actions.orient.name in verbs:
     actions.orient(context)
 
-mesh_metrics = None
-mesh = None
-if '$measure' in verbs:
-    mesh = stl.mesh.Mesh.from_file(file_set.model_to_project())
-    
-    mesh_metrics = MeshMetrics(
-        xrange=(mesh.x.min(), mesh.x.max()),
-        yrange=(mesh.y.min(), mesh.y.max()),
-        zrange=(mesh.z.min(), mesh.z.max()),
-    )
+if actions.measure_model.name in verbs:
+    actions.measure_model(context)
 
 if 'info' in verbs:
-    sizes = mesh_metrics.sizes()
-    mid = mesh_metrics.midpoints()
+    sizes = context.mesh_metrics.sizes()
+    mid = context.mesh_metrics.midpoints()
     print(f"\nMesh size: x={sizes.x:.2f}, y={sizes.y:.2f}, z={sizes.z:.2f}")
     print(f"Mesh center: x={mid.x:.2f}, y={mid.y:.2f}, z={mid.z:.2f}")
 
     if options.gemini_key:
         print("\nAI description:")
-        print(describe_model(mesh, options.gemini_key))
+        print(describe_model(context.mesh, options.gemini_key))
 
 if 'preview' in verbs:
     print("\nPreparing preview...")
@@ -690,8 +658,8 @@ if 'preview' in verbs:
 
     file_set.projected_model = file_set.build_dir / f"{file_set.model_to_project().stem}-{options.view}.stl"
 
-    sizes = mesh_metrics.sizes()
-    midpoints = mesh_metrics.midpoints()
+    sizes = ctx.mesh_metrics.sizes()
+    midpoints = ctx.mesh_metrics.midpoints()
 
     process_result = subprocess.run([
         DEPS.OPENSCAD,

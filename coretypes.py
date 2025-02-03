@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Literal, Union, List
+from typing import Optional, Literal, Union, List, Tuple
 
 
 # For now this is a holding area for classes used in multiple places
@@ -46,5 +46,31 @@ class FileSet:
     def final_output(self) -> Optional[Path]:
         """ Returns the most processed output file; which will be the command's final result in single file mode. """
         return self.sliced_gcode or self.model_to_slice()
+
+@dataclass
+class Thruple:
+    x: float
+    y: float
+    z: float
+
+@dataclass
+class MeshMetrics:
+    xrange: Tuple[float, float]
+    yrange: Tuple[float, float]
+    zrange: Tuple[float, float]
+
+    def sizes(self) -> Thruple:
+        return Thruple(
+            self.xrange[1] - self.xrange[0],
+            self.yrange[1] - self.yrange[0],
+            self.zrange[1] - self.zrange[0]
+        )
+
+    def midpoints(self) -> Thruple:
+        return Thruple(
+            (self.xrange[1] + self.xrange[0]) / 2,
+            (self.yrange[1] + self.yrange[0]) / 2,
+            (self.zrange[1] + self.zrange[0]) / 2,
+        )
 
 

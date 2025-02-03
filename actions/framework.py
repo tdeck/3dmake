@@ -1,12 +1,13 @@
 import sys
 import subprocess
-
 from typing import List, TextIO, Callable, Any, Dict, Optional
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from stl.mesh import Mesh
+
 from utils.indent_stream import IndentStream
-from coretypes import CommandOptions, FileSet
+from coretypes import CommandOptions, FileSet, MeshMetrics
 
 @dataclass(kw_only=True)
 class Context:
@@ -14,6 +15,11 @@ class Context:
     options: Optional[CommandOptions]
     files: Optional[FileSet]
     explicit_overlay_arg: List[str]
+
+    # These are attached by the measure-model step
+    mesh: Optional[Mesh] = None
+    mesh_metrics: Optional[MeshMetrics] = None
+
 
 ActionName = str
 ActionFunc = Callable[[Context, TextIO, TextIO], None] # stdout, verbose stdout

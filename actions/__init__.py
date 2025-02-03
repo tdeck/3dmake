@@ -2,6 +2,7 @@ import importlib
 import pkgutil
 
 from .framework import Context
+from .framework import _action_registry as ALL_ACTIONS
 
 # Register and re-export all the action functions
 for loader, module_name, is_pkg in pkgutil.iter_modules(__path__):
