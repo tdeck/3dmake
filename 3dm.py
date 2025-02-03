@@ -26,6 +26,8 @@ from version import VERSION
 from describer import describe_model
 from coretypes import FileSet, CommandOptions
 from utils.editor import choose_editor
+from utils.print_config import list_printer_profiles
+from utils.prompts import yes_or_no, option_select
 import actions
 
 if getattr(sys, 'frozen', False):
@@ -61,29 +63,6 @@ def get_deps() -> Dependencies:
 
     return Dependencies(openscad_path, slicer_path)
 
-def yes_or_no(question: str) -> bool:
-    answer = prompt(f"{question} (y or n): ").strip()
-    return answer == 'y'
-
-def option_select(prompt_msg: str, options: List[Tuple[str, Any]], allow_none=False) -> Optional[Any]:
-    while True:
-        print(prompt_msg)
-        index_to_opts: Dict[int, Any] = {}
-        for i, (option_key, option_value) in enumerate(options):
-            index_to_opts[i + 1] = option_value
-            print(f"{i + 1}: {option_key}")
-
-        res = prompt("Choose an option number, or type AGAIN to re-print the list: ").strip()
-
-        if allow_none and res == '':
-            return None
-        if res.isdigit() and int(res) in index_to_opts:
-            return index_to_opts[int(res)]
-        elif res.lower() == 'again':
-            continue
-        else:
-            print("That is not a valid option")
-            continue
 
 def add_self_to_path():
     os_type = platform.system()
@@ -126,42 +105,6 @@ def add_self_to_path():
             print(f"this to your shell config file (e.g. {shell_config_file}):")
             print(f'export PATH="{SCRIPT_BIN_PATH.parent}:$PATH"')
             print(f"After doing this, you must reload your shell.")
-
-def list_printer_profiles()-> List[str]:
-    return [
-        file_name[:-4] # Strip extension
-        for file_name in os.listdir(CONFIG_DIR / "profiles")
-            if file_name.endswith(".ini")  # Filter for INI files
-    ]
-
-@dataclass(kw_only=True)
-class OverlayName:
-    name: str
-    profile: Optional[str] # None for default
-
-    def path(self) -> Path:
-        pdir = self.profile or 'default'
-        return CONFIG_DIR / "overlays" / pdir / f"{self.name}.ini"
-
-    def listing_name(self):
-        if self.profile:
-            return f"{self.name} for printer {self.profile}"
-        else:
-            return f"{self.name} for any printer"
-
-def list_overlays() -> List[OverlayName]:
-    results = []
-    for dirpath, _, filenames in os.walk(CONFIG_DIR / "overlays"):
-        dirname = Path(dirpath).name
-        if dirname == "default":  # .lower() is just defensive programming
-            profile = None
-        else:
-            profile = dirname
-
-        for filename in filenames:
-            if filename.lower().endswith(".ini"):
-                results.append(OverlayName(name=filename[:-4], profile=profile))
-    return results
 
 def extract_time_estimates(gcode_file: Path) -> Optional[str]:
     """
@@ -545,6 +488,7 @@ if args.debug:
 if options and options.scale == 'auto':
     raise NotImplementedError("Auto-scaling is not supported yet") # TODO
 
+file_set = None
 if options:
     file_set = FileSet(options)
 
@@ -592,7 +536,12 @@ else:
     )
     debug_output = subprocess.DEVNULL
 
-context = actions.Context(options=options, files=file_set)
+context = actions.Context(
+    config_dir=CONFIG_DIR,
+    options=options,
+    files=file_set,
+    explicit_overlay_arg=args.overlay,
+)
 
 if verbs == {'setup'}:
     if CONFIG_DIR.exists():
@@ -612,7 +561,7 @@ if verbs == {'setup'}:
         auto_start_prints=True,
     )
 
-    profile_names = list_printer_profiles()
+    profile_names = list_printer_profiles(CONFIG_DIR)
 
     profile_options = [
         (p.replace('_', ' '), p)
@@ -699,65 +648,16 @@ if verbs == {'edit-model'}:
     sys.exit(0)
 
 if verbs == {'edit-global-config'}:
-    subprocess.run([choose_editor(options), CONFIG_DIR / "defaults.toml"])
+    actions.edit_global_config(context)
     sys.exit(0)
 
 if verbs == {'edit-profile'}:
-    profiles = list_printer_profiles()
-    if options.printer_profile not in profiles:
-        # TODO offer to create a new one or copy one. Unfortunately this is a
-        # little bit complicated
-        raise RuntimeError(f"Printer profile '{options.printer_profile}' does not exist.")
-
-    subprocess.run([choose_editor(options), CONFIG_DIR / "profiles" / f"{options.printer_profile}.ini"])
+    actions.edit_profile(context)
     sys.exit(0)
 
 if verbs == {'edit-overlay'}:
-    existing_overlays = list_overlays()
-
-    overlay_file = None
-    if args.overlay and len(args.overlay) == 1:
-        overlay_name = args.overlay[0]
-    else:
-        overlay_name = prompt("Which overlay? ").strip()
-
-
-    matches = [o for o in existing_overlays if o.name == overlay_name]
-
-    if len(matches) == 0:
-        if not yes_or_no(f"No overlay called {overlay_name}, create one?"):
-            sys.exit(0)
-
-        profile_name = None
-        if yes_or_no("Limit this profile to a specific printer?"):
-            profile_options = [
-                (p.replace('_', ' '), p)
-                for p in list_printer_profiles()
-            ]
-
-            profile_name = option_select("Choose a printer", profile_options)
-
-        overlay_file = OverlayName(name=overlay_name, profile=profile_name).path()
-
-        # Copy over template to create new file
-        overlay_file.parent.mkdir(exist_ok=True)
-        shutil.copy(CONFIG_DIR / "templates" / "new_overlay.ini", overlay_file)
-
-    elif len(matches) > 1:
-        overlay_file = option_select(
-            "Select an option",
-            options=[
-                (o.listing_name(), o.path())
-                for o in matches
-            ]
-        )
-    else:
-        overlay_file = matches[0].path()
-
-    print("Overlay file:")
-
-    subprocess.run([choose_editor(options), overlay_file])
-       
+    actions.edit_overlay(context)
+    sys.exit(0)
 
 if 'build' in verbs:
     if not file_set.scad_source:

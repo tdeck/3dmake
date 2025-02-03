@@ -10,8 +10,10 @@ from coretypes import CommandOptions, FileSet
 
 @dataclass(kw_only=True)
 class Context:
-    options: CommandOptions
-    files: FileSet
+    config_dir: Path
+    options: Optional[CommandOptions]
+    files: Optional[FileSet]
+    explicit_overlay_arg: List[str]
 
 ActionName = str
 ActionFunc = Callable[[Context, TextIO, TextIO], None] # stdout, verbose stdout
@@ -35,8 +37,12 @@ class Action:
             # Isolated commands don't run in a pipeline so we don't indent their output
             return self.impl(context, sys.stdout, sys.stdout if debug_mode else subprocess.DEVNULL)
         else:
-            ing_str = self.gerund or (self.name + 'ing')
-            print(ing_str.title() + '...')
+            if not internal:
+                # I'm not sure what I should do if the internal action *does* produce output;
+                # would be good to have a heading
+                ing_str = self.gerund or (self.name + 'ing')
+                print(ing_str.title() + '...')
+
             indent_stream = IndentStream(sys.stdout)
             return self.impl(context, indent_stream, indent_stream if debug_mode else subprocess.DEVNULL)
 
