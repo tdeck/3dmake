@@ -6,8 +6,10 @@ import platform
 if getattr(sys, 'frozen', False):
     # Special case for PyInstaller
     SCRIPT_DIR = Path(sys._MEIPASS)
+    SCRIPT_BIN_PATH = Path(sys.executable).absolute()
 else:
     SCRIPT_DIR = Path(sys.path[0])
+    SCRIPT_BIN_PATH = Path(sys.argv[0]).absolute()
 
 @dataclass
 class Dependencies:
