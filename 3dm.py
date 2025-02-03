@@ -24,42 +24,16 @@ from coretypes import FileSet, CommandOptions
 from utils.editor import choose_editor
 from utils.print_config import list_printer_profiles
 from utils.prompts import yes_or_no, option_select
-from utils.indent_stream import IndentStream
+from utils.stream_wrappers import IndentStream, FilterPipe
+from utils.bundle_paths import SCRIPT_DIR, DEPS
+from utils.openscad import should_print_openscad_log
 import actions
 
 if getattr(sys, 'frozen', False):
     # Special case for PyInstaller
-    SCRIPT_DIR = Path(sys._MEIPASS)
     SCRIPT_BIN_PATH = Path(sys.executable).absolute()
 else:
-    SCRIPT_DIR = Path(sys.path[0])
     SCRIPT_BIN_PATH = Path(__file__).absolute()
-
-@dataclass
-class Dependencies:
-    OPENSCAD: Path
-    SLICER: Path
-
-def get_deps() -> Dependencies:
-    os_type = platform.system()
-
-    openscad_path = SCRIPT_DIR.joinpath(
-        {
-            'Linux': 'deps/linux/OpenSCAD.AppImage',
-            'Windows': 'deps/windows/openscad/openscad.exe',
-        }[os_type]
-    )
-
-    slicer_path = SCRIPT_DIR.joinpath(
-        {
-            'Linux': 'deps/linux/PrusaSlicer.AppImage',
-            'Windows': 'deps/windows/prusaslicer/prusa-slicer-console.exe',
-        }[os_type]
-    )
-
-
-    return Dependencies(openscad_path, slicer_path)
-
 
 def add_self_to_path():
     os_type = platform.system()
@@ -264,7 +238,6 @@ for action_name, action in actions.ALL_ACTIONS.items():
         IMPLIED_VERBS[action_name] = dep
 
 
-DEPS = get_deps()
 
 CONFIG_DIR = user_config_path('3dmake', None)
 PROFILES_DIR = CONFIG_DIR / 'profiles'
@@ -288,32 +261,6 @@ def load_config() -> Tuple[CommandOptions, Optional[Path]]:
             settings_dict['project_name'] = project_root.parts[-1]
 
     return CommandOptions(**settings_dict), project_root
-
-
-def should_print_openscad_log(line: str) -> bool:
-    """
-    Returns true if the log line matches an ERROR, WARNING, or TRACE pattern.
-
-    OpenSCAD doesn't provide a good way to filter logs on the command line so we must resort to this.
-    """
-
-    ALLOWED_PREFIXES = [ # From printutils.cc, some of these may never appear
-        'ERROR:',
-        'WARNING:',
-        'TRACE:',
-        'FONT-WARNING:',
-        'EXPORT-WARNING:',
-        'EXPORT-ERROR:',
-        'PARSER-ERROR:',
-        'ECHO:', # Logs from within OpenSCAD code; this will need better handling for multi-line echos
-    ]
-
-    # This may be inefficient but the number of log lines should be low
-    for prefix in ALLOWED_PREFIXES:
-        if line.startswith(prefix):
-            return True
-
-    return False
 
 class HelpAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
@@ -476,8 +423,8 @@ if args.debug:
     filter_and_indent_stdout = indent_stdout
     debug_output = indent_stdout
 else:
-    filter_and_indent_stdout = IndentStream(
-        sys.stdout,
+    filter_and_indent_stdout = FilterPipe(
+        indent_stdout,
         filter_fn=should_print_openscad_log,
     )
     debug_output = subprocess.DEVNULL
@@ -605,31 +552,8 @@ if verbs == {'edit-overlay'}:
     actions.edit_overlay(context)
     sys.exit(0)
 
-if 'build' in verbs:
-    if not file_set.scad_source:
-        raise RuntimeError("Cannot build without OpenSCAD source file")
-    if not file_set.scad_source.exists():
-        raise RuntimeError(f"Source file {file_set.scad_source} does not exist")
-    print("\nBuilding...")
-
-    cmd_options = [
-        '--export-format', 'binstl',
-        # Can't use --quiet here since it suppresses warnings
-        '-o', file_set.model,
-    ]
-
-    if options.strict_warnings:
-        cmd_options.append('--hardwarnings')
-
-
-    process_result = subprocess.run(
-        [DEPS.OPENSCAD] + cmd_options + [file_set.scad_source],
-        stdout=debug_output,
-        stderr=filter_and_indent_stdout
-    )
-
-    if process_result.returncode != 0:
-        raise RuntimeError(f"    Command failed with return code {process_result.returncode}")
+if actions.build.name in verbs:
+    actions.build(context)
 
 if actions.orient.name in verbs:
     actions.orient(context)
