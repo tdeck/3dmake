@@ -14,6 +14,8 @@ from utils.bundle_paths import SCRIPT_DIR, SCRIPT_BIN_PATH
 
 @isolated_action
 def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+    ''' Set up 3dmake for the first time, or overwrite existing settings '''
+
     CONFIG_DIR = ctx.config_dir
     if CONFIG_DIR.exists():
         print(f"The configuration directory {CONFIG_DIR} already exists.")

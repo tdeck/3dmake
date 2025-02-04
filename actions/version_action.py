@@ -7,6 +7,8 @@ from utils.bundle_paths import SCRIPT_DIR, SCRIPT_BIN_PATH
 
 @isolated_action
 def version(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+    ''' Print the 3dmake version and paths '''
+
     stdout.write(f"3Dmake version {VERSION}\n")
     stdout.write(f"Program location: {SCRIPT_BIN_PATH}\n")
     stdout.write(f"Configuration dir: {ctx.config_dir}\n")

@@ -8,6 +8,8 @@ from utils.openscad import should_print_openscad_log
 
 @pipeline_action
 def build(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+    ''' Build the OpenSCAD model and produce an STL file '''
+
     if not ctx.files.scad_source:
         raise RuntimeError("Cannot build without OpenSCAD source file")
     if not ctx.files.scad_source.exists():

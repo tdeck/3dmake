@@ -7,6 +7,8 @@ from .framework import Context, isolated_action
 
 @isolated_action(needs_options=False)
 def new(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+    ''' Create a new 3dmake project directory structure '''
+
     proj_dir = prompt("Choose a project directory name (press ENTER for current dir): ").strip()
     if proj_dir == '':
         proj_dir = '.'  # Current directory

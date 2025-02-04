@@ -5,6 +5,18 @@ from .framework import Context, isolated_action
 
 @isolated_action
 def help(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+    ''' Display this message ''' # This docstring is used to produce the help
+
+    # We can't do this at the top level or we'll get a circular import and break
+    from . import ALL_ACTIONS_IN_ORDER
+
+    max_action_length = max((len(a.name) for a in ALL_ACTIONS_IN_ORDER.values() if not a.internal))
+
+    action_descriptions = "\n".join([
+        f"    {a.name:<{max_action_length}}  {a.doc}"
+        for a in ALL_ACTIONS_IN_ORDER.values() if not a.internal
+    ])
+
     stdout.write(textwrap.dedent('''\
         Usage: 3dm ACTIONS... [OPTIONS]... [INPUT_FILE]
 
@@ -17,20 +29,7 @@ def help(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             3dm slice print alpaca.stl
 
         Actions:
-            setup               Set up 3dmake for the first time, or overwrite existing settings
-            new                 Create a new 3dmake project directory structure
-            build               Build the OpenSCAD model and produce an STL file
-            info                Get basic dimensional info about the model, and AI description if enabled
-            orient              Auto-orient the model to minimize support
-            preview             Produce a 2-D representation of the object
-            slice               Slice the model and produce a printable gcode file
-            print               Send the sliced model to OctoPrint
-            edit-model          Open model SCAD file in your editor (affected by -m)
-            edit-overlay        Open an overlay file in your editor (affected by -o)
-            edit-profile        Open printer profile in your editor (affected by -p)
-            edit-global-config  Edit 3DMake user settings file (default printer, API keys, etc...)
-            help                Display this message
-            version             Print the 3dmake version and paths
+        {action_descriptions}
 
         Options:
             --scale 1.0     Scale by a decimal factor
@@ -40,4 +39,4 @@ def help(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             --view NAME     The type of preivew to produce, see the documentation for more info
 
         Each option can be abbreviated as one letter with a single dash (e.g. -s 50% to scale)
-    '''))
+    ''').format(action_descriptions=action_descriptions))

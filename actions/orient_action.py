@@ -6,6 +6,8 @@ from .framework import Context, pipeline_action
 
 @pipeline_action(gerund='auto-orienting')
 def orient(ctx: Context, _, __):
+    ''' Auto-orient the model to minimize support '''
+
     ctx.files.oriented_model = ctx.files.build_dir / f"{ctx.files.model.stem}-oriented.stl"
 
     # This was basically copied from Tweaker.py since it doesn't have a code-based interface

@@ -27,6 +27,7 @@ ActionFunc = Callable[[Context, TextIO, TextIO], None] # stdout, verbose stdout
 @dataclass(kw_only=True)
 class Action:
     name: ActionName  # Must be unique
+    doc: Optional[str] = None
     gerund: Optional[str] = None # The -ing form of the name, if non-standard. E.g. "building"
 
     internal: bool = False
@@ -35,6 +36,9 @@ class Action:
     takes_input_file: bool
     implied_actions: List[ActionName] = field(default_factory=list)
     impl: ActionFunc
+
+    def __post_init__(self):
+        assert self.doc or self.internal, f"Action `{self.name}` lacks a doc string"
 
     def __call__(self, context: Context):
         debug_mode = self.needs_options and context.options.debug
@@ -61,6 +65,12 @@ _action_registry: Dict[ActionName, Action] = {}
 def _action_name(fn: Callable[..., Any]) -> str:
     return fn.__name__.replace('_', '-')
 
+def _action_doc(fn: Callable[..., Any]) -> str:
+    if fn.__doc__:
+        return fn.__doc__.strip()
+    else:
+        return None
+
 def _register_action(action: Action) -> Action:
     assert action.name not in _action_registry
     _action_registry[action.name] = action
@@ -73,6 +83,7 @@ def isolated_action(
     def wrap(func: ActionFunc) -> ActionFunc:
         return _register_action(Action(
             name=_action_name(func),
+            doc=_action_doc(func),
             isolated=True,
             takes_input_file=False,
             needs_options=needs_options,
@@ -97,6 +108,7 @@ def pipeline_action(
     def wrap(func: ActionFunc) -> ActionFunc:
         return _register_action(Action(
             name=_action_name(func),
+            doc=_action_doc(func),
             gerund=gerund,
             isolated=False,
             takes_input_file=True,

@@ -6,6 +6,8 @@ from .slice_action import slice as slice_model
 
 @pipeline_action(implied_actions=[slice_model])
 def print(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+    ''' Send the sliced model to OctoPrint '''
+
     if not ctx.options.octoprint_host or not ctx.options.octoprint_key:
         raise RuntimeError("Either octoprint_host or octoprint_key is not configured.")
 

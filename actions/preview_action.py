@@ -14,6 +14,7 @@ from utils.openscad import should_print_openscad_log
     implied_actions=[measure_model]
 )
 def preview(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+    ''' Produce a 2-D representation of the object '''
     view_name = ctx.options.view
     if view_name not in PROJECTION_CODE:
         raise RuntimeError(f"The preview view '{view_name}' does not exist")

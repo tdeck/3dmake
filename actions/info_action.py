@@ -23,6 +23,8 @@ from .framework import Context, pipeline_action
     implied_actions=[measure_model],
 )
 def info(ctx: Context, stdout: TextIO, __):
+    ''' Get basic dimensional info about the model, and AI description if enabled '''
+
     sizes = ctx.mesh_metrics.sizes()
     mid = ctx.mesh_metrics.midpoints()
     stdout.write(f"Mesh size: x={sizes.x:.2f}, y={sizes.y:.2f}, z={sizes.z:.2f}\n")

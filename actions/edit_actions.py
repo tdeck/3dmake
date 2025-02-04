@@ -10,14 +10,18 @@ from utils.prompts import yes_or_no, option_select
 
 @isolated_action(needs_options=True)
 def edit_model(ctx: Context, _, __):
+    ''' Open model SCAD file in your editor (affected by -m) '''
     subprocess.run([choose_editor(ctx.options), ctx.files.scad_source])
 
 @isolated_action(needs_options=True)
 def edit_global_config(ctx: Context, _, __):
+    ''' Edit 3DMake user settings file (default printer, API keys, etc...) '''
     subprocess.run([choose_editor(ctx.options), ctx.config_dir / "defaults.toml"])
 
 @isolated_action(needs_options=True)
 def edit_profile(ctx: Context, _, __):
+    ''' Open printer profile in your editor (affected by -p) '''
+
     profiles = list_printer_profiles(ctx.config_dir)
     if ctx.options.printer_profile not in profiles:
         # TODO offer to create a new one or copy one. Unfortunately this is a
@@ -31,6 +35,8 @@ def edit_profile(ctx: Context, _, __):
 
 @isolated_action(needs_options=True)
 def edit_overlay(ctx: Context, _, __):
+    ''' Open an overlay file in your editor (affected by -o) '''
+
     existing_overlays = list_overlays(ctx.config_dir)
 
     overlay_file = None

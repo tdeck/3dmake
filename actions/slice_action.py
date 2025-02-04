@@ -8,6 +8,7 @@ from utils.bundle_paths import DEPS
 
 @pipeline_action(gerund='slicing')
 def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+    ''' Slice the model and produce a printable gcode file '''
     if not ctx.files.model.exists():
         raise RuntimeError("Model has not been built")
 
