@@ -45,7 +45,10 @@ class FileSet:
 
     def final_output(self) -> Optional[Path]:
         """ Returns the most processed output file; which will be the command's final result in single file mode. """
-        return self.sliced_gcode or self.model_to_slice()
+        if self.sliced_gcode:
+            return self.sliced_gcode
+
+        return self.projected_model or self.oriented_model or (self.scad_source and self.model)
 
 @dataclass
 class Thruple:

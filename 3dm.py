@@ -158,6 +158,7 @@ elif infiles:
     file_set.build_dir = Path(tempfile.mkdtemp())
 
     if extension == '.stl':
+        file_set.scad_source = None
         file_set.model = single_infile
     elif extension == '.scad':
         file_set.scad_source = single_infile
