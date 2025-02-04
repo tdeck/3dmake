@@ -13,6 +13,7 @@ import shutil
 from prompt_toolkit import prompt
 from platformdirs import user_config_path
 
+import actions.help_action
 from version import VERSION
 from coretypes import FileSet, CommandOptions
 from utils.editor import choose_editor
@@ -20,38 +21,7 @@ from utils.prompts import yes_or_no
 from utils.stream_wrappers import IndentStream, FilterPipe
 from utils.bundle_paths import DEPS
 from utils.openscad import should_print_openscad_log
-import actions
-
-CONFIGLESS_VERBS = {
-    'setup',
-    'new',
-    'version',
-    'help',
-}
-
-INPUTLESS_VERBS = CONFIGLESS_VERBS | {
-    'edit-model',
-    'edit-profile',
-    'edit-overlay',
-    'edit-global-config',
-}
-
-ISOLATED_VERBS = INPUTLESS_VERBS
-
-SUPPORTED_VERBS = {
-    'info',
-    'build',
-    'orient',
-    'preview',
-    'slice',
-    'print',
-} | ISOLATED_VERBS
-
-IMPLIED_VERBS = {}
-for action_name, action in actions.ALL_ACTIONS.items():
-    assert len(action.implied_actions) <= 1  # TODO make multiple deps work later
-    for dep in action.implied_actions:
-        IMPLIED_VERBS[action_name] = dep
+from actions import ALL_ACTIONS_IN_ORDER, Context
 
 CONFIG_DIR = user_config_path('3dmake', None)
 PROFILES_DIR = CONFIG_DIR / 'profiles'
@@ -78,7 +48,7 @@ def load_config() -> Tuple[CommandOptions, Optional[Path]]:
 
 class HelpAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
-        actions.help(None)
+        actions.help_action.help(None)
         parser.exit()
 
 parser = argparse.ArgumentParser(
@@ -118,54 +88,67 @@ if not CONFIG_DIR.exists() and verbs != {'setup'}:
 
 
 # Check verbs and insert any implied ones
+verb_count = len(verbs)
+should_load_options = False
+should_accept_input_file = False
 for verb in list(verbs):
-    if verb not in SUPPORTED_VERBS:
+    action = ALL_ACTIONS_IN_ORDER.get(verb)
+
+    if not action or action.internal:
         raise RuntimeError(f"Unknown action '{verb}'")
-    if verb in ISOLATED_VERBS and len(verbs) > 1:
+
+    if action.isolated and verb_count > 1:
         raise RuntimeError(f"The action '{verb}' can only be used on its own'")
-    if verb in IMPLIED_VERBS:
-        verbs.add(IMPLIED_VERBS[verb])
+
+    if action.needs_options:
+        should_load_options = True
+    if action.takes_input_file:
+        should_accept_input_file = True
+
+    for dependency in action.implied_actions:
+        verbs.add(dependency)
 
 # Load options if necessary
-options, project_root = None, None
-if next(iter(verbs)) not in CONFIGLESS_VERBS:
+options, project_root, file_set = None, None, None
+if should_load_options:
     options, project_root = load_config()
 
-if args.scale: # TODO support x,y,z scaling
-    if args.scale.replace('.', '').isdecimal():
-        options.scale = float(args.scale)
-    elif args.scale.lower() == 'auto':
-        options.scale = 'auto'
-    else:
-        raise RuntimeError("Invalid value for --scale, must be a decimal number or auto")
+    if args.scale: # TODO support x,y,z scaling
+        if args.scale.replace('.', '').isdecimal():
+            options.scale = float(args.scale)
+        elif args.scale.lower() == 'auto':
+            options.scale = 'auto'
+        else:
+            raise RuntimeError("Invalid value for --scale, must be a decimal number or auto")
 
-if args.model:
-    options.model_name = args.model
-    if infiles:
-        raise RuntimeError("Cannot select a model name when using an input file")
+    if args.model:
+        options.model_name = args.model
+        if infiles:
+            raise RuntimeError("Cannot select a model name when using an input file")
 
-if args.profile:
-    options.printer_profile = args.profile
+    if args.view:
+        options.view = args.view
 
-if args.view:
-    options.view = args.view
+    if args.profile:
+        options.printer_profile = args.profile
 
-if args.debug:
-    options.debug = True
+    if args.overlay:
+        options.overlays = args.overlay
 
-if options and options.scale == 'auto':
-    raise NotImplementedError("Auto-scaling is not supported yet") # TODO
+    if args.debug:
+        options.debug = True
 
-file_set = None
-if options:
+    if options.scale == 'auto':
+        raise NotImplementedError("Auto-scaling is not supported yet") # TODO
+
     file_set = FileSet(options)
 
 if len(infiles) > 1:
     raise RuntimeError("Multiple inputs not supported yet")
-elif next(iter(verbs)) in INPUTLESS_VERBS:
+elif not should_accept_input_file:
     if infiles:
         raise RuntimeError("This action does not take an input file")
-    # Otherwise don't require an infile
+    # Otherwise don't go on with loading infiles and setting up the FileSet
 elif infiles:
     single_infile = Path(infiles[0])
     extension = single_infile.suffix.lower()
@@ -188,70 +171,18 @@ elif project_root:
 else:
     raise RuntimeError("Must either specify input file or run in a 3Dmake project directory")
 
-if args.overlay:
-    options.overlays = args.overlay
-
-indent_stdout = IndentStream(sys.stdout)
-
-context = actions.Context(
+context = Context(
     config_dir=CONFIG_DIR,
     options=options,
     files=file_set,
     explicit_overlay_arg=args.overlay,
 )
 
-if actions.setup.name in verbs:
-    actions.setup(context)
-    sys.exit(0)
-
-if actions.new.name in verbs:
-    actions.new(context)
-    sys.exit(0)
-
-if actions.version.name in verbs:
-    actions.version(context)
-    sys.exit(0)
-
-if actions.help.name in verbs:
-    actions.help(None)
-    sys.exit(0)
-
-if verbs == {'edit-model'}:
-    actions.edit_model(context)
-    sys.exit(0)
-
-if verbs == {'edit-global-config'}:
-    actions.edit_global_config(context)
-    sys.exit(0)
-
-if verbs == {'edit-profile'}:
-    actions.edit_profile(context)
-    sys.exit(0)
-
-if verbs == {'edit-overlay'}:
-    actions.edit_overlay(context)
-    sys.exit(0)
-
-if actions.build.name in verbs:
-    actions.build(context)
-
-if actions.orient.name in verbs:
-    actions.orient(context)
-
-if actions.measure_model.name in verbs:
-    actions.measure_model(context)
-
-if actions.info.name in verbs:
-    actions.info(context)
-
-if actions.preview.name in verbs:
-    actions.preview(context)
-
-if actions.slice.name in verbs:
-    actions.slice(context)
-
-if actions.print.name in verbs:
-    actions.print(context)
+for name, action in ALL_ACTIONS_IN_ORDER.items():
+    if name in verbs:
+        action(context)
+        if action.isolated:
+            sys.exit(0) # So we don't print Done.
 
 if infiles:
     # If we're in single file mode, copy the last result to the working dir

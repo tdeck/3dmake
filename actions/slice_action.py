@@ -6,7 +6,7 @@ from pathlib import Path
 from .framework import Context, pipeline_action
 from utils.bundle_paths import DEPS
 
-@pipeline_action
+@pipeline_action(gerund='slicing')
 def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     if not ctx.files.model.exists():
         raise RuntimeError("Model has not been built")
