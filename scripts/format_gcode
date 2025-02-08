@@ -1,0 +1,14 @@
+#! /usr/bin/env python
+# This script will format gcode in the single-line format used by PrusaSlicer's INI files
+from sys import stdin
+
+result = ''
+
+for line in stdin:
+    result += line.rstrip() + r'\n'
+
+if result.endswith(r'\n'):
+    result = result[:-2]
+
+print('=========') 
+print(result)
