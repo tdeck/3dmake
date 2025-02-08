@@ -9,10 +9,6 @@ from pathlib import Path
 from typing import Any, List, Dict, Tuple, Set, TextIO
 
 import numpy as np
-import vtkplotlib as vpl
-import vtk
-import google.generativeai as genai
-from PIL import Image
 from stl.mesh import Mesh
 
 from .measure_action import measure_model
@@ -117,6 +113,10 @@ def plot_mesh(mesh: Mesh) -> List[Any]:  # TODO type is plot
     """
     Plots the given model as the current figure.
     """
+    # Slow imports
+    import vtk
+    import vtkplotlib as vpl
+
     vpl.close()  # In case there's an open figure; close it
 
     # Add the model mesh
@@ -168,6 +168,7 @@ def plot_mesh(mesh: Mesh) -> List[Any]:  # TODO type is plot
     return plane_plots
 
 def serialize_image(image_array: np.ndarray) -> SerializedImage:
+    from PIL import Image  # Slow import
     img = Image.fromarray(image_array)
     stream = io.BytesIO()
     img.save(stream, format="png")
@@ -178,6 +179,8 @@ def get_image(plane_plots, viewpoint_name: str) -> SerializedImage: # TODO
     Returns a serialized image dict in the form that Gemini likes.
     Assumes the model has already been loaded
     """
+    import vtkplotlib as vpl  # Slow import
+
     vp = VIEWPOINTS[viewpoint_name]
 
     for pp in plane_plots:
@@ -194,6 +197,8 @@ def get_image(plane_plots, viewpoint_name: str) -> SerializedImage: # TODO
     return serialize_image(vpl.screenshot_fig(pixels=(IMAGE_PIXELS, IMAGE_PIXELS), off_screen=True))
 
 def describe_model(mesh: Mesh, gemini_api_key: str) -> str:
+    import google.generativeai as genai  # Slow import
+
     plane_plots = plot_mesh(mesh)
     images = [get_image(plane_plots, vp_name) for vp_name in VIEWPOINTS_TO_USE]
 
