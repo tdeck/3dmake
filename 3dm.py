@@ -122,9 +122,15 @@ if should_load_options:
             raise RuntimeError("Invalid value for --scale, must be a decimal number or auto")
 
     if args.model:
-        options.model_name = args.model
         if infiles:
             raise RuntimeError("Cannot select a model name when using an input file")
+
+        mod_name = args.model
+
+        # Help the user out if they accidentally put in a filename
+        if mod_name.lower().endswith('.scad'):
+            mod_name = mod_name[:-5]
+        options.model_name = mod_name
 
     if args.view:
         options.view = args.view
