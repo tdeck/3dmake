@@ -34,7 +34,7 @@ Remember the pyramid from before? Since a pyramid's bottom is square, the top an
 ## Models
 All objects should be printed in the provided orientation. The silhouettes are thicker and have a taller top layer than those produced by 3DMake, so that they will be more resilient as a reference material.
 
-- <a name="sphere-model" />**Sphere**: [original model](models/sphere.stl) [silhouette](models/sphere_topsil.stl) (note: this model will need supports)
-- <a name="pyramid-model" />**Pyramid**: [original model](models/pyramid.stl) [top silhouette](models/pyramid_topsil.stl) [front silhouette](models/pyramid_frontsil.stl)
-- <a name="doughnut-model" />**Doughnut**: [original model](models/doughnut.stl) [top silhouette](models/doughnut_topsil.stl) [front silhouette](models/doughnut_frontsil.stl)
-- <a name="-mug-model" />**Mug**: [original model](models/mug.stl) [top silhouette](models/mug_topsil.stl) [front silhouette](models/mug_frontsil.stl)
+- <a name="sphere-model"></a> **Sphere**: [original model](models/sphere.stl) [silhouette](models/sphere_topsil.stl) (note: this model will need supports)
+- <a name="pyramid-model"></a>**Pyramid**: [original model](models/pyramid.stl) [top silhouette](models/pyramid_topsil.stl) [front silhouette](models/pyramid_frontsil.stl)
+- <a name="doughnut-model"></a>**Doughnut**: [original model](models/doughnut.stl) [top silhouette](models/doughnut_topsil.stl) [front silhouette](models/doughnut_frontsil.stl)
+- <a name="-mug-model"></a>**Mug**: [original model](models/mug.stl) [top silhouette](models/mug_topsil.stl) [front silhouette](models/mug_frontsil.stl)
