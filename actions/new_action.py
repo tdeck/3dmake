@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import TextIO
+import shutil
 
 from prompt_toolkit import prompt
 
@@ -27,4 +28,10 @@ def new(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             fh.write("strict_warnings = true\n")
 
     # Create empty main.scad if none exists
-    open(proj_path / "src/main.scad", 'a').close()
+    scad_path = proj_path / "src/main.scad"
+    if not scad_path.exists():
+        shutil.copy(
+            ctx.config_dir / "templates" / "new_model.scad",
+            scad_path,
+        )
+
