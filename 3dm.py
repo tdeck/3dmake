@@ -27,6 +27,10 @@ CONFIG_DIR = user_config_path('3dmake', None)
 PROFILES_DIR = CONFIG_DIR / 'profiles'
 OVERLAYS_DIR = CONFIG_DIR / 'overlays'
 
+def error_out(message: str):
+    print(message)
+    sys.exit(1)
+
 def load_config() -> Tuple[CommandOptions, Optional[Path]]:
     """ Returns merged options, project root """
     project_root = None
@@ -75,7 +79,7 @@ while extras and '.' in extras[-1]:
 verbs = set([x.lower() for x in extras])
 
 if not len(verbs):
-    raise RuntimeError("Must provide an action verb")
+    error_out("Must provide an action verb")
 
 # Check that 3dmake has been set up on this machine; if not do so
 if not CONFIG_DIR.exists() and verbs != {'setup'}:
@@ -95,10 +99,10 @@ for verb in list(verbs):
     action = ALL_ACTIONS_IN_ORDER.get(verb)
 
     if not action or action.internal:
-        raise RuntimeError(f"Unknown action '{verb}'")
+        raise error_out(f"Unknown action '{verb}'")
 
     if action.isolated and verb_count > 1:
-        raise RuntimeError(f"The action '{verb}' can only be used on its own'")
+        raise error_out(f"The action '{verb}' can only be used on its own'")
 
     if action.needs_options:
         should_load_options = True
@@ -119,11 +123,11 @@ if should_load_options:
         elif args.scale.lower() == 'auto':
             options.scale = 'auto'
         else:
-            raise RuntimeError("Invalid value for --scale, must be a decimal number or auto")
+            raise error_out("Invalid value for --scale, must be a decimal number or auto")
 
     if args.model:
         if infiles:
-            raise RuntimeError("Cannot select a model name when using an input file")
+            raise error_out("Cannot select a model name when using an input file")
 
         mod_name = args.model
 
@@ -145,15 +149,15 @@ if should_load_options:
         options.debug = True
 
     if options.scale == 'auto':
-        raise NotImplementedError("Auto-scaling is not supported yet") # TODO
+        error_out("Auto-scaling is not supported yet") # TODO
 
     file_set = FileSet(options)
 
 if len(infiles) > 1:
-    raise RuntimeError("Multiple inputs not supported yet")
+    error_out("Multiple inputs not supported yet")
 elif not should_accept_input_file:
     if infiles:
-        raise RuntimeError("This action does not take an input file")
+        error_out("This action does not take an input file")
     # Otherwise don't go on with loading infiles and setting up the FileSet
 elif infiles:
     single_infile = Path(infiles[0])
@@ -172,11 +176,11 @@ elif infiles:
         # TODO is this auto-add behavior a good idea?
         verbs.add('build')
     else:
-        raise RuntimeError("Unsupported file formats. Supported formats are .stl and .scad")
+        error_out("Unsupported file formats. Supported formats are .stl and .scad")
 elif project_root:
     file_set.scad_source = project_root / "src" / f"{options.model_name}.scad"
 else:
-    raise RuntimeError("Must either specify input file or run in a 3Dmake project directory")
+    raise error_out("Must either specify input file or run in a 3Dmake project directory")
 
 context = Context(
     config_dir=CONFIG_DIR,
@@ -187,7 +191,13 @@ context = Context(
 
 for name, action in ALL_ACTIONS_IN_ORDER.items():
     if name in verbs:
-        action(context)
+        try:
+            action(context)
+        except Exception as e:
+            if options and options.debug:
+                raise
+            else:
+                error_out("ERORR: " + str(e))
         if action.isolated:
             sys.exit(0) # So we don't print Done.
 
