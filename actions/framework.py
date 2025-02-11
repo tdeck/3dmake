@@ -56,9 +56,6 @@ class Action:
             indent_stream = IndentStream(sys.stdout)
             return self.impl(context, indent_stream, indent_stream if debug_mode else subprocess.DEVNULL)
 
-# This is populated whenever an action is declared with one of the action decorators
-_action_registry: Dict[ActionName, Action] = {}
-
 #
 # Decorators
 #
@@ -71,24 +68,19 @@ def _action_doc(fn: Callable[..., Any]) -> str:
     else:
         return None
 
-def _register_action(action: Action) -> Action:
-    assert action.name not in _action_registry
-    _action_registry[action.name] = action
-    return action # For the caller's convenience
-
 def isolated_action(
     func: Optional[ActionFunc] = None,
     needs_options:bool = False
 ):
     def wrap(func: ActionFunc) -> ActionFunc:
-        return _register_action(Action(
+        return Action(
             name=_action_name(func),
             doc=_action_doc(func),
             isolated=True,
             takes_input_file=False,
             needs_options=needs_options,
             impl=func,
-        ))
+        )
 
     if callable(func):
         return wrap(func)
@@ -106,7 +98,7 @@ def pipeline_action(
     implied_action_names = [a.name for a in implied_actions]
 
     def wrap(func: ActionFunc) -> ActionFunc:
-        return _register_action(Action(
+        return Action(
             name=_action_name(func),
             doc=_action_doc(func),
             gerund=gerund,
@@ -116,7 +108,7 @@ def pipeline_action(
             internal=internal,
             implied_actions=implied_action_names,
             impl=func,
-        ))
+        )
 
     if callable(func):
         return wrap(func)
