@@ -180,7 +180,7 @@ elif infiles:
 elif project_root:
     file_set.scad_source = project_root / "src" / f"{options.model_name}.scad"
 else:
-    raise error_out("Must either specify input file or run in a 3Dmake project directory")
+    raise error_out("Must either specify input file or run in a 3DMake project directory")
 
 context = Context(
     config_dir=CONFIG_DIR,

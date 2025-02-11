@@ -1,8 +1,8 @@
-Thanks for trying 3dmake!
+Thanks for trying 3DMake!
 
-3dmake is a tool for designing, inspecting, and printing 3D models. Unlike most other such tools, it is designed for Blind and visually impaired people who need non-visual workflows for model design and 3D slicing.
+3DMake is a tool for designing, inspecting, and printing 3D models. Unlike most other such tools, it is designed for Blind and visually impaired people who need non-visual workflows for model design and 3D slicing.
 
-3dmake provides the following functionality through a single command line tool:
+3DMake provides the following functionality through a single command line tool:
 
 - Compiling OpenSCAD code to produce STL files
 - Describing the shape of 3D models using AI
@@ -12,16 +12,16 @@ Thanks for trying 3dmake!
 - Preparing 2-dimensional "previews" of a model's shape that are very fast to print
 - Sending sliced models directly to OctoPrint
 
-## Setting up 3Dmake
+## Setting up 3DMake
 
-To set up 3dmake, extract the release for your operating system (Windows or 64 bit Linux) and navigate to the 3dmake folder
+To set up 3DMake, extract the release for your operating system (Windows or 64 bit Linux) and navigate to the 3DMake folder
 in your terminal. Run `./3dm setup` and answer a few questions to complete the setup process.
 
-Once this is done, `3dm` should be installed so that you can run it by simply typing 3dm in your terminal from any folder. Do not delete the original directory where you extracted 3dmake.
+Once this is done, `3dm` should be installed so that you can run it by simply typing 3dm in your terminal from any folder. Do not delete the original directory where you extracted 3DMake.
 
 ## Starting a new project
 
-Although 3dmake can work with any OpenSCAD or STL files you've downloaded, it's most convenient to structure your own work in 3dmake projects. These "projects" are simply directories that are laid out in a certain way, with a src folder containing OpenSCAD code, a build folder containing outputs that 3dmake produced, and a 3dmake.toml file where you can set up different settings.
+Although 3DMake can work with any OpenSCAD or STL files you've downloaded, it's most convenient to structure your own work in 3DMake projects. These "projects" are simply directories that are laid out in a certain way, with a src folder containing OpenSCAD code, a build folder containing outputs that 3DMake produced, and a 3DMake.toml file where you can set up different settings.
 
 To start a new project in the current directory, run `3dm new`.
 
@@ -29,7 +29,7 @@ To start a new project in the current directory, run `3dm new`.
 
 3DMake is based on OpenSCAD, and OpenSCAD's .scad files can be edited in any text editor. There is *no need to install OpenSCAD* or to use the OpenSCAD editor. Something like Notepad++, Visual Studio Code, or even Notepad will work just fine.
 
-As a shortcut, you can use the `3dm edit-model` in your project folder to open the SCAD file in a text editor. By default, this will use your system's text editor. To configure a specific one, you can set its path in `3dmake.toml` or in your system 3dmake config directory's `defaults.toml` file. For example, to configure Notepad++ on Windows, you might add this line to your config:
+As a shortcut, you can use the `3dm edit-model` in your project folder to open the SCAD file in a text editor. By default, this will use your system's text editor. To configure a specific one, you can set its path in `3dmake.toml` or in your system 3DMake config directory's `defaults.toml` file. For example, to configure Notepad++ on Windows, you might add this line to your config:
 
 ```
 # The triple quotes below allow your program's path to contain backslashes
@@ -48,15 +48,15 @@ If you have an OpenSCAD project and you want a 3d model, you can run `3dm build`
 
 To build *and* slice the model, run `3dm build slice`. This will both build the model and slice it, producing an STL file and a .gcode file. The .gcode file's name will also have the project name, which makes it easier to differentiate different projects if you upload your files to OctoPrint or save them in an SD card.
 
-As you can see, you can string together multiple actions when running 3dmake. For example, if you have set up OctoPrint, you can run `3dm build slice print` and have the model built from OpenSCAD source, sliced to GCODE, and sent to your printer! In fact, you can leave out "slice" here because `print` implies that 3dmake must slice, so it will do it even if you don't tell it to. To get a full list of the actions, you can always run `3dm help`.
+As you can see, you can string together multiple actions when running 3DMake. For example, if you have set up OctoPrint, you can run `3dm build slice print` and have the model built from OpenSCAD source, sliced to GCODE, and sent to your printer! In fact, you can leave out "slice" here because `print` implies that 3DMake must slice, so it will do it even if you don't tell it to. To get a full list of the actions, you can always run `3dm help`.
 
 ## Configuring slicer settings
 
-3dmake is based around PrusaSlicer, but it takes care of talking to the slicer for you because PrusaSlicer has accessibility issues. All of PrusaSlicer's settings are editable in 3dmake's text-based configruation files, which you can open in your favorite text editor. These files are in your 3dmake configuration folder, which you can find by running `3dm version`
+3DMake is based around PrusaSlicer, but it takes care of talking to the slicer for you because PrusaSlicer has accessibility issues. All of PrusaSlicer's settings are editable in 3DMake's text-based configruation files, which you can open in your favorite text editor. These files are in your 3DMake configuration folder, which you can find by running `3dm version`
 
-There are two kinds of files in this directory. The ones in the profiles folder are complete sets of default settings for each printer. The files in the overlays folder are smaller collectiosns of settings. If you have one printer, you'll typically stick with the same profile, but choose different overlays using the -o option of 3dmake. One overlay that comes built in is the "supports" overlay, which (as you might guess) enables automatic supports.
+There are two kinds of files in this directory. The ones in the profiles folder are complete sets of default settings for each printer. The files in the overlays folder are smaller collectiosns of settings. If you have one printer, you'll typically stick with the same profile, but choose different overlays using the -o option of 3DMake. One overlay that comes built in is the "supports" overlay, which (as you might guess) enables automatic supports.
 
-You can create your own overlays by making new .ini files in the overlays/default folder. If your overlay only works on a specific printer, you can put an overlay in the overlays/PRINTER_NAME folder. For example, if you choose the printer profile prusa_i3_MK3S, you can make a special overlays/prusa_i3_MK3S/supports.ini. When you are using that printer's profile, 3dmake will use your printer-specific overlay. When you ask for supports on another printer, it will use the default overlay.
+You can create your own overlays by making new .ini files in the overlays/default folder. If your overlay only works on a specific printer, you can put an overlay in the overlays/PRINTER_NAME folder. For example, if you choose the printer profile prusa_i3_MK3S, you can make a special overlays/prusa_i3_MK3S/supports.ini. When you are using that printer's profile, 3DMake will use your printer-specific overlay. When you ask for supports on another printer, it will use the default overlay.
 
 These config files have one setting per line, with the setting name, an equals sign, and the setting value. Here are a few example lines:
 
@@ -72,13 +72,13 @@ The `3dm edit-overlay` command will open an existing overlay for you in your tex
 
 ## Orienting models
 
-Sometimes the orientation of your model on the build plate can make a big difference in printing time and amount of support needed. 3dmake has an auto-orient function that you can add to your print. It will produce an oriented STL that can then be sliced and printed.
+Sometimes the orientation of your model on the build plate can make a big difference in printing time and amount of support needed. 3DMake has an auto-orient function that you can add to your print. It will produce an oriented STL that can then be sliced and printed.
 
 For example, `3dm build orient print` will build your OpenSCAD code as is, then produce an oriented STL file (e.g. build/main-oriented.stl), and then slice and print it.
 
 ## Previews
 
-3dmake's preview functionality lets you print flat tactile "previews" of 3D models. These previews usually print in a few minutes, while printing a full model may take several hours. These previews can then be felt directly on the bed of your printer, allowing you to tweak the model or select something different to print.
+3DMake's preview functionality lets you print flat tactile "previews" of 3D models. These previews usually print in a few minutes, while printing a full model may take several hours. These previews can then be felt directly on the bed of your printer, allowing you to tweak the model or select something different to print.
 
 Of course, they contain significantly less detail than the full model. Specifically, the previews are "silhouettes" which represent the outermost outlines of an object if it were squashed against a particular plane. For example, the silhouette of a pyramid would be a triangle (when viewed from the side), or a square (when viewed from the top or bottom). This is because the silhouette is the combination of all the widest outlines of a shape when viewed from a particular direction. A sphere's silhouette would be a circle when viewed from any angle.
 
@@ -99,7 +99,7 @@ The preview's "view" can be changed using the -v option. Here are the possible p
 
 # Working with files that aren't part of a project
 
-3dmake can accept individual files to slice, orient, and preview even if they aren't part of a project. For example, you can do `3dm slice turtle.stl` or `3dm build orient print pyramid.stl`.
+3DMake can accept individual files to slice, orient, and preview even if they aren't part of a project. For example, you can do `3dm slice turtle.stl` or `3dm build orient print pyramid.stl`.
 
 ## Overlay template
 

@@ -14,7 +14,7 @@ from utils.bundle_paths import SCRIPT_DIR, SCRIPT_BIN_PATH
 
 @isolated_action
 def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
-    ''' Set up 3dmake for the first time, or overwrite existing settings '''
+    ''' Set up 3DMake for the first time, or overwrite existing settings '''
 
     CONFIG_DIR = ctx.config_dir
     if CONFIG_DIR.exists():
@@ -45,10 +45,10 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     settings_dict['printer_profile'] = profile_name
 
     print()
-    print("3Dmake can use the Gemini AI to describe your models when you run 3dm info")
+    print("3DMake can use the Gemini AI to describe your models when you run 3dm info")
     print("This requires you to get a free Gemini API key, and has a limit of 50 runs per day.")
     if yes_or_no("Do you want to set up Gemini?"):
-        print("The Gemini API key is a string of text that 3Dmake needs to access the Gemini AI.")
+        print("The Gemini API key is a string of text that 3DMake needs to access the Gemini AI.")
         print("Copy your API key from this page while logged into your Google account:")
         print("https://aistudio.google.com/app/apikey")
         key = prompt("What is your Gemini API key? ").strip()
@@ -66,7 +66,7 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     if yes_or_no("Do you want to set up an OctoPrint connection?"):
         server = prompt("What is the web address of your OctoPrint server (including http://)? ").strip()
 
-        print("You must set up an OctoPrint API key for 3dmake if you do not have one already.")
+        print("You must set up an OctoPrint API key for 3DMake if you do not have one already.")
         print("To do this, open the OctoPrint settings in your browser, navigate to Application Keys,")
         print("and manually generate a key.")
 
@@ -92,12 +92,12 @@ def add_self_to_path():
         if bin_dir.exists():
             import mslex
             # Windows requires special admin permission to create symlinks
-            # So instead we create a batch file in this directory that simply runs 3dmake
+            # So instead we create a batch file in this directory that simply runs 3DMake
             with open(bin_dir / '3dm.bat', 'w') as fh:
                 fh.write("@echo off\r\n")
                 fh.write(f"{mslex.quote(str(SCRIPT_BIN_PATH))} %*\r\n")
         else:
-            print("3dmake was not added to your PATH automatically. Consider adding this folder")
+            print("3DMake was not added to your PATH automatically. Consider adding this folder")
             print("to your PATH environment variable:")
             print(SCRIPT_BIN_PATH.parent)
             # TODO not sure whether to give a setx command or not, hopefully this is a rare case
@@ -120,7 +120,7 @@ def add_self_to_path():
             elif 'zsh' in user_shell:
                 shell_config_file = '~/.zshrc'
 
-            print("3dmake was not added to your PATH automatically. Consider adding a line like")
+            print("3DMake was not added to your PATH automatically. Consider adding a line like")
             print(f"this to your shell config file (e.g. {shell_config_file}):")
             print(f'export PATH="{SCRIPT_BIN_PATH.parent}:$PATH"')
             print(f"After doing this, you must reload your shell.")
