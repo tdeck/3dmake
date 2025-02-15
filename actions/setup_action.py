@@ -2,6 +2,7 @@ import platform
 import os
 import shutil
 import json
+import platform
 from pathlib import Path
 from typing import TextIO
 
@@ -33,6 +34,12 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         model_name='main',
         auto_start_prints=True,
     )
+
+    # For the most common platform, we pre-populate the defaults so that it makes
+    # the file easier to edit
+    if platform.system() == 'Windows':
+        settings_dict['editor'] = 'notepad'
+        settings_dict['edit_in_background'] = True
 
     profile_names = list_printer_profiles(CONFIG_DIR)
 

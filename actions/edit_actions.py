@@ -1,22 +1,43 @@
 import subprocess
 import shutil
+import platform
+import os
+from pathlib import Path
 
 from prompt_toolkit import prompt
 
 from .framework import Context, isolated_action
-from utils.editor import choose_editor
+from coretypes import CommandOptions
 from utils.print_config import list_printer_profiles, list_overlays, OverlayName
 from utils.prompts import yes_or_no, option_select
+
+def launch_editor(options: CommandOptions, file: Path) -> None:
+    background = options.edit_in_background
+    editor = options.editor
+
+    if not editor:
+        if platform.system() == 'Windows':
+            # If you change this, change the defaults populated in setup_action also
+            editor = 'notepad'
+            background = True
+        else:
+            # nano is an arbitrary fallback that we might improve in the future
+            editor = os.getenv('VISUAL') or os.getenv('EDITOR') or 'nano'
+
+    if background:
+        subprocess.Popen([editor, file])
+    else:
+        subprocess.run([editor, file])
 
 @isolated_action(needs_options=True)
 def edit_model(ctx: Context, _, __):
     ''' Open model SCAD file in your editor (affected by -m) '''
-    subprocess.run([choose_editor(ctx.options), ctx.files.scad_source])
+    launch_editor(ctx.options, ctx.files.scad_source)
 
 @isolated_action(needs_options=True)
 def edit_global_config(ctx: Context, _, __):
     ''' Edit 3DMake user settings file (default printer, API keys, etc...) '''
-    subprocess.run([choose_editor(ctx.options), ctx.config_dir / "defaults.toml"])
+    launch_editor(ctx.options, ctx.config_dir / "defaults.toml")
 
 @isolated_action(needs_options=True)
 def edit_profile(ctx: Context, _, __):
@@ -28,10 +49,10 @@ def edit_profile(ctx: Context, _, __):
         # little bit complicated
         raise RuntimeError(f"Printer profile '{ctx.options.printer_profile}' does not exist.")
 
-    subprocess.run([
-        choose_editor(ctx.options),
+    launch_editor(
+        ctx.options,
         ctx.config_dir / "profiles" / f"{ctx.options.printer_profile}.ini"
-    ])
+    )
 
 @isolated_action(needs_options=True)
 def edit_overlay(ctx: Context, _, __):
@@ -77,4 +98,4 @@ def edit_overlay(ctx: Context, _, __):
     else:
         overlay_file = matches[0].path(ctx.config_dir)
 
-    subprocess.run([choose_editor(ctx.options), overlay_file])
+    launch_editor(ctx.options, overlay_file)

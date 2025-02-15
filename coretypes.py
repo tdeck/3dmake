@@ -20,6 +20,7 @@ class CommandOptions:
     debug: bool = False
     strict_warnings: bool = False # This will default to True in new projects though
     editor: Optional[str] = None
+    edit_in_background: bool = False # This causes edit commands to open the editor in a BG process; breaks terminal editors
     gemini_key: Optional[str] = None
 
 

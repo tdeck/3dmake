@@ -16,7 +16,6 @@ from platformdirs import user_config_path
 import actions.help_action
 from version import VERSION
 from coretypes import FileSet, CommandOptions
-from utils.editor import choose_editor
 from utils.prompts import yes_or_no
 from utils.stream_wrappers import IndentStream, FilterPipe
 from utils.bundle_paths import DEPS
