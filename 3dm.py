@@ -197,6 +197,9 @@ for name, action in ALL_ACTIONS_IN_ORDER.items():
                 raise
             else:
                 error_out("ERORR: " + str(e))
+        except KeyboardInterrupt as e:
+            print("Exited.")
+            sys.exit(2)
         if action.isolated:
             sys.exit(0) # So we don't print Done.
 
