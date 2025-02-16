@@ -55,42 +55,51 @@ def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
 
     ctx.files.sliced_gcode = gcode_file
 
-    time_str = extract_time_estimates(ctx.files.sliced_gcode)
+    slicer_keys = extract_slicer_keys(gcode_file)
+
+    time_str = (
+        slicer_keys.get('estimated printing time (normal mode)')
+        or slicer_keys.get('estimated printing time (silent mode)')
+    )
     if time_str:
-        stdout.write(f"Estimated print time: {time_str}\n")
+        stdout.write(f"Estimated print time: {reformat_gcode_time(time_str)}\n")
 
-def extract_time_estimates(gcode_file: Path) -> Optional[str]:
-    """
-    Tries to parse out the print time estimate comment PrusaSlicer will leave in the GCode file,
-    and converts it to a slightly nicer format for being read aloud.
-    """
-    if not gcode_file.exists():
-        return
+    filament_used_str = slicer_keys.get('filament used [mm]')
+    if filament_used_str:
+        stdout.write(f"Filament used: {filament_used_str} mm\n")
 
-    pattern = re.compile(r'.*; estimated printing time .*? = (.+)$')
-    
+def extract_slicer_keys(gcode_file: Path) -> dict[str, str]:
+    results = {}
     with open(gcode_file, 'r') as fh:
+        # First skip lines until we get to the objects_info line, which seems to be the first config
+        # written by the slicer
+        at_config = False
         for line in fh:
-            match_res = pattern.match(line)
-            if match_res:
-                time_str = match_res.group(1).upper()
-                # The time string in the GCode is formatted by the function get_time_dhms
-                # and will look like "10d 9h 8m 7s", but most users will be using a screen
-                # reader so we might as well replace these with words.
+            if at_config or line.startswith('; objects_info ='):
+                at_config = True
+                parts = line.split(' = ', 1)
+                if len(parts) > 1:
+                    results[parts[0].lstrip(' ;')] = parts[1].rstrip('\r\n')
+    return results
 
-                # We have converted time_str to uppercase specifically to prevent
-                # our replacements from being mangled by later replacements (e.g.
-                # the s in days being converted to "day seconds").
-                time_str = time_str.replace('D', ' days')
-                time_str = time_str.replace('H', ' hours')
-                time_str = time_str.replace('M', ' minutes')
-                time_str = time_str.replace('S', ' seconds')
+def reformat_gcode_time(time_str: str) -> str:
+    # The time string in the GCode is formatted by the function get_time_dhms
+    # and will look like "10d 9h 8m 7s", but most users will be using a screen
+    # reader so we might as well replace these with words.
 
-                # Now we make it even cleaner by fixing up "1 days" and the like
-                time_str = re.sub(r'\b1 days', '1 day', time_str)
-                time_str = re.sub(r'\b1 hours', '1 hour', time_str)
-                time_str = re.sub(r'\b1 minutes', '1 minute', time_str)
-                time_str = re.sub(r'\b1 seconds', '1 second', time_str)
+    time_str = time_str.upper()
+    # We have converted time_str to uppercase specifically to prevent
+    # our replacements from being mangled by later replacements (e.g.
+    # the s in days being converted to "day seconds").
+    time_str = time_str.replace('D', ' days')
+    time_str = time_str.replace('H', ' hours')
+    time_str = time_str.replace('M', ' minutes')
+    time_str = time_str.replace('S', ' seconds')
 
-                return time_str
+    # Now we make it even cleaner by fixing up "1 days" and the like
+    time_str = re.sub(r'\b1 days', '1 day', time_str)
+    time_str = re.sub(r'\b1 hours', '1 hour', time_str)
+    time_str = re.sub(r'\b1 minutes', '1 minute', time_str)
+    time_str = re.sub(r'\b1 seconds', '1 second', time_str)
 
+    return time_str
