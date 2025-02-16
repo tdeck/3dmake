@@ -66,7 +66,7 @@ def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
 
     filament_used_str = slicer_keys.get('filament used [mm]')
     if filament_used_str:
-        stdout.write(f"Filament used: {filament_used_str} mm\n")
+        stdout.write(f"Filament used: {format_mm_length(filament_used_str)}\n")
 
 def extract_slicer_keys(gcode_file: Path) -> dict[str, str]:
     results = {}
@@ -103,3 +103,12 @@ def reformat_gcode_time(time_str: str) -> str:
     time_str = re.sub(r'\b1 seconds', '1 second', time_str)
 
     return time_str
+
+def format_mm_length(length_str: str) -> str:
+    mm = int(float(length_str))
+    if mm > 1000:
+        return f"about {mm / 1000:.2f} meters"
+    elif mm > 10:
+        return f"about {mm / 10:.1f} centimeters"
+    else:
+        return f"{mm} millimeters"
