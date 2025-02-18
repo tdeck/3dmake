@@ -37,6 +37,7 @@ def help(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             --profile NAME  Select a printer profile
             --overlay NAME  Apply an overlay to slicer settings; can be used multiple times
             --view NAME     The type of preivew to produce, see the documentation for more info
+            --interactive   For 3dm info, communicate with the LLM in interactive
 
         Each option can be abbreviated as one letter with a single dash (e.g. -s 50% to scale)
     ''').format(action_descriptions=action_descriptions))
