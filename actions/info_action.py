@@ -10,6 +10,7 @@ from typing import Any, List, Dict, Tuple, Set, TextIO
 
 import numpy as np
 from stl.mesh import Mesh
+from prompt_toolkit import prompt
 
 from .measure_action import measure_model
 from .framework import Context, pipeline_action
@@ -28,8 +29,7 @@ def info(ctx: Context, stdout: TextIO, __):
 
     if ctx.options.gemini_key:
         stdout.write("\nAI description:\n")
-        stdout.write(describe_model(ctx.mesh, ctx.options.gemini_key))
-        stdout.write("\n")
+        describe_model(ctx.mesh, ctx.options.gemini_key, stdout, ctx.options.interactive)
 
 
 Vec = Tuple[float, float, float]
@@ -196,7 +196,7 @@ def get_image(plane_plots, viewpoint_name: str) -> SerializedImage: # TODO
 
     return serialize_image(vpl.screenshot_fig(pixels=(IMAGE_PIXELS, IMAGE_PIXELS), off_screen=True))
 
-def describe_model(mesh: Mesh, gemini_api_key: str) -> str:
+def describe_model(mesh: Mesh, gemini_api_key: str, stdout: TextIO, interactive: bool) -> None:
     import google.generativeai as genai  # Slow import
 
     plane_plots = plot_mesh(mesh)
@@ -204,5 +204,24 @@ def describe_model(mesh: Mesh, gemini_api_key: str) -> str:
 
     genai.configure(api_key=gemini_api_key)
     llm = genai.GenerativeModel(LLM_NAME)
+    chat = llm.start_chat()
 
-    return llm.generate_content([PROMPT_TEXT] + images).text
+    res = chat.send_message([PROMPT_TEXT] + images)
+
+    stdout.write(res.text + "\n")
+
+    if interactive:
+        stdout.write("\nYou are in interactive mode and can ask the AI follow-up questions.")
+        stdout.write('\nTo stop asking questions, type "stop", "quit", or "exit:\n')
+
+        while True:
+            question = prompt("Q: ").strip()
+            if question == '':
+                continue
+
+            if question.lower() in ['stop', 'quit', 'exit']:
+                stdout.write("End of interaction.\n")
+                return
+
+            res = chat.send_message(question)
+            stdout.write(res.text + "\n")

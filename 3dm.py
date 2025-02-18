@@ -64,6 +64,7 @@ parser.add_argument('-m', '--model')
 parser.add_argument('-v', '--view', type=str)
 parser.add_argument('-p', '--profile', type=str)
 parser.add_argument('-o', '--overlay', action='extend', nargs='*')
+parser.add_argument('-i', '--interactive', action='store_true')
 parser.add_argument('--help', '-h', action=HelpAction, nargs=0)
 parser.add_argument('--debug', action='store_true')
 parser.add_argument('actions_and_files', nargs='+')
@@ -143,6 +144,9 @@ if should_load_options:
 
     if args.overlay:
         options.overlays = args.overlay
+
+    if args.interactive:
+        options.interactive = True
 
     if args.debug:
         options.debug = True

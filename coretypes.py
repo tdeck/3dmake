@@ -22,6 +22,7 @@ class CommandOptions:
     editor: Optional[str] = None
     edit_in_background: bool = False # This causes edit commands to open the editor in a BG process; breaks terminal editors
     gemini_key: Optional[str] = None
+    interactive: bool = False
 
 
 class FileSet:
