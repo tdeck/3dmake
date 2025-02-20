@@ -13,8 +13,11 @@ Thanks for trying 3DMake!
 - Sending sliced models directly to OctoPrint
 
 ## Setting up 3DMake
+Download the latest version of 3DMake for your operating system by following these links:
+- [Windows](https://github.com/tdeck/3dmake/releases/latest/download/3dmake_windows.zip)
+- [Linux (x86-64)](https://github.com/tdeck/3dmake/releases/latest/download/3dmake_linux.tar.gz)
 
-To set up 3DMake, extract the release for your operating system (Windows or 64 bit Linux) and navigate to the 3DMake folder
+To set up 3DMake, extract the release for your operating system and navigate to the 3DMake folder
 in your terminal. Run `./3dm setup` and answer a few questions to complete the setup process.
 
 Once this is done, `3dm` should be installed so that you can run it by simply typing 3dm in your terminal from any folder. Do not delete the original directory where you extracted 3DMake.
