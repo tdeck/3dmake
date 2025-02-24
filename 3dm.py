@@ -47,6 +47,10 @@ def load_config() -> Tuple[CommandOptions, Optional[Path]]:
         if 'project_name' not in settings_dict:
             settings_dict['project_name'] = project_root.parts[-1]
 
+    # Force library names to be lowercase to avoid confusing case issues
+    if 'libraries' in settings_dict:
+        settings_dict['libraries'] = [k.lower() for k in settings_dict['libraries']]
+
     return CommandOptions(**settings_dict), project_root
 
 class HelpAction(argparse.Action):

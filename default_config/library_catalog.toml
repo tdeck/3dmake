@@ -1,23 +1,23 @@
 [METADATA] # This is a special key, not a library
 published_at = '2025-02-24'
 
-[BOSL]
+[bosl]
 full_name = 'Belfry OpenSCAD Library'
-[[BOSL.versions]]
+[[bosl.versions]]
 version = '1.0.3'
 archive = 'https://github.com/revarbat/BOSL/archive/refs/tags/v1.0.3.zip'
 subdir = 'BOSL-1.0.3'
 
-[Round-Anything]
+[round-anything]
 full_name = 'Round Anything'
-[[Round-Anything.versions]]
+[[round-anything.versions]]
 version = '1.0.4'
 archive = 'https://github.com/Irev-Dev/Round-Anything/archive/refs/tags/1.0.4.zip'
 subdir = 'Round-Anything-1.0.4'
 
-[dotSCAD]
+[dotscad]
 full_name = 'dotSCAD'
-[[dotSCAD.versions]]
+[[dotscad.versions]]
 version = '3.3'
 archive = 'https://github.com/JustinSDK/dotSCAD/archive/refs/tags/v3.3.zip'
 subdir = 'dotSCAD-3.3/src'
