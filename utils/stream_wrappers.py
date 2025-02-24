@@ -1,6 +1,7 @@
 import os
 import threading
 import re
+import subprocess
 from typing import Callable
 
 class IndentStream:
@@ -26,6 +27,9 @@ class IndentStream:
         threading.Thread(target=_reader, daemon=True).start()
 
     def write(self, text, *args, **kwargs):
+        if self.wrapped_stream == subprocess.DEVNULL:
+            return
+
         for line in text.splitlines(True):
             self.wrapped_stream.write(f"{self.indent_str}{line}", *args, **kwargs)
         self.wrapped_stream.flush()

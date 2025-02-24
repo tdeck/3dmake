@@ -15,6 +15,7 @@ import actions.orient_action as orient_action
 import actions.preview_action as preview_action
 import actions.slice_action as slice_action
 import actions.print_action as print_action
+import actions.lib_actions as lib_actions
 
 _actions_in_order = [
     setup_action.setup,
@@ -32,6 +33,8 @@ _actions_in_order = [
     edit_actions.edit_overlay,
     edit_actions.edit_profile,
     edit_actions.edit_global_config,
+
+    lib_actions.install_libs,
 
     help_action.help,
     version_action.version,
