@@ -8,6 +8,8 @@ import tomllib
 CATALOG_FILE = 'library_catalog.toml'
 INSTALLED_LIBS_FILE = 'installed_libraries.json'
 
+# TODO make lookup of libraries in catalog and registry case-insensitive
+
 @dataclass(kw_only=True)
 class CatalogLibraryVersion:
     version: Version
@@ -53,6 +55,9 @@ class InstalledLibRegistry:
             res.libs[ilib.name] = ilib
 
         return res
+
+    def lookup(self, lib_name: str) -> InstalledLib:
+        return self.libs[lib_name]
 
     def register_install(self, lib: str, version: Version, container_dir: Path):
         ''' Adds an install to the registry in memory. '''

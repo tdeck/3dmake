@@ -3,6 +3,7 @@ from typing import TextIO, Optional
 from pathlib import Path
 import tempfile
 import zipfile
+import shutil
 
 import requests
 
@@ -22,10 +23,13 @@ def extract_zip_to_folder(zipfh: TextIO, subdir: Optional[str], outdir: Path) ->
     
     with zipfile.ZipFile(zipfh, 'r') as unzipper:
         for name in unzipper.namelist():
-            entry_path = Path(name)
-            if entry_path == subpath_obj:
-                # p.is_relative_to(p) is True, but we don't want to create this folder
+            file_info = unzipper.getinfo(name)
+
+            # Skip handling directories directly
+            if file_info.is_dir():
                 continue
+
+            entry_path = Path(name)
 
             if not entry_path.is_relative_to(subpath_obj):
                 # Note: is_relative_to is a very poorly named function, but basically it asks if
@@ -33,7 +37,12 @@ def extract_zip_to_folder(zipfh: TextIO, subdir: Optional[str], outdir: Path) ->
                 continue
 
             target_path = outdir / entry_path.relative_to(subpath_obj)
-            unzipper.extract(name, target_path)
+
+            # We can't simply use extract here, because it will append all the directories
+            # in the zip entry, so we copy it using zipfile's open method
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            with unzipper.open(name) as ifh, open(target_path, 'wb') as ofh:
+                shutil.copyfileobj(ifh, ofh)
 
 @isolated_action(needs_options=True)
 def install_libs(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
