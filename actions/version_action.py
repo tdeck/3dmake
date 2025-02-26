@@ -13,4 +13,4 @@ def version(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     stdout.write(f"Program location: {SCRIPT_BIN_PATH}\n")
     stdout.write(f"Configuration dir: {ctx.config_dir}\n")
     stdout.write("Created by Troy Deck\n")
-    stdout.write("\nThanks for trying 3Dmake!\n")
+    stdout.write("\nThanks for trying 3DMake!\n")
