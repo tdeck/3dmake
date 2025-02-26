@@ -40,6 +40,15 @@ def build(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             lib_registry.lookup(lib_name).latest_version_dir()
             for lib_name in ctx.options.libraries
     ]
+
+    for local_lib in ctx.options.local_libraries:
+        ll_path = Path(local_lib)
+        if not ll_path.is_absolute():
+            ll_path = ll_path.absolute()
+            # TODO if these paths are relative, it'll work now because of how
+            # 3dm is always run from a project root, but it may not work in the
+            # future
+        lib_include_dirs.append(ll_path)
     
     if ctx.options.debug:
         filter_stdout = stdout

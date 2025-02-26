@@ -24,6 +24,7 @@ class CommandOptions:
     gemini_key: Optional[str] = None
     interactive: bool = False
     libraries: List[str] = field(default_factory=list)
+    local_libraries: List[str] = field(default_factory=list) # Note: these should contain paths
 
 
 class FileSet:
