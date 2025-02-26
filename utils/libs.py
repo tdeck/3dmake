@@ -14,7 +14,7 @@ INSTALLED_LIBS_FILE = 'installed_libraries.json'
 class CatalogLibraryVersion:
     version: Version
     archive: str  # A URL
-    subdir: Optional[str]
+    subdir: Optional[str] = None
 
 @dataclass(kw_only=True)
 class CatalogLibrary:

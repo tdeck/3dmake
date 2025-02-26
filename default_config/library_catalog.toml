@@ -3,6 +3,8 @@ published_at = '2025-02-24'
 
 [bosl]
 full_name = 'Belfry OpenSCAD Library'
+homepage = 'https://github.com/revarbat/BOSL'
+license = 'BSD-2-Clause'
 [[bosl.versions]]
 version = '1.0.3'
 archive = 'https://github.com/revarbat/BOSL/archive/refs/tags/v1.0.3.zip'
@@ -10,6 +12,8 @@ subdir = 'BOSL-1.0.3'
 
 [round-anything]
 full_name = 'Round Anything'
+homepage = 'https://learn.cadhub.xyz/docs/round-anything/overview/'
+license = 'MIT'
 [[round-anything.versions]]
 version = '1.0.4'
 archive = 'https://github.com/Irev-Dev/Round-Anything/archive/refs/tags/1.0.4.zip'
@@ -17,6 +21,8 @@ subdir = 'Round-Anything-1.0.4'
 
 [dotscad]
 full_name = 'dotSCAD'
+homepage = 'https://github.com/JustinSDK/dotSCAD'
+license = 'LGPL-3.0'
 [[dotscad.versions]]
 version = '3.3'
 archive = 'https://github.com/JustinSDK/dotSCAD/archive/refs/tags/v3.3.zip'
@@ -24,7 +30,26 @@ subdir = 'dotSCAD-3.3/src'
 
 [constructive]
 full_name = 'Constructive Library'
+homepage = 'https://github.com/solidboredom/constructive'
+license = 'GPL-2.0 or CERN-OHL-W'
 [[constructive.versions]]
 version = '2023.02.18'
 archive = 'https://github.com/solidboredom/constructive/raw/e7352ecfa6998fae55890162c8bbc84edf30b8d6/kickstart.zip'
 subdir = 'cad_kickstart'
+
+[bolts]
+full_name = 'BOLTS'
+homepage = 'https://boltsparts.github.io'
+license = 'LGPL-2.1'
+[[bolts.versions]]
+version = '0.4.1'
+archive = 'https://github.com/tdeck/openscad_library_mirror/raw/refs/heads/main/boltsos_0.4.1.zip'
+
+[braille-chars]
+full_name = 'Braille for OpenSCAD'
+homepage = 'https://github.com/tdeck/3dmake_libraries/tree/main/braille-chars#braille-chars---braille-for-openscad'
+license = 'CC-BY'
+[[braille-chars.versions]]
+version = '1.0'
+archive = 'https://github.com/tdeck/3dmake_libraries/archive/refs/tags/braille-chars-v1.0.zip'
+subdir = '3dmake_libraries-braille-chars-v1.0/braille-chars'
