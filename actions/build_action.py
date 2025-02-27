@@ -1,8 +1,11 @@
 import os
 import subprocess
+import platform
+import sys
 from typing import TextIO
 from pathlib import Path
-import platform
+from time import time, sleep, strftime
+from datetime import timedelta
 
 from .framework import Context, pipeline_action
 from utils.bundle_paths import DEPS
@@ -17,6 +20,10 @@ def construct_OPENSCADPATH(dirs: list[Path]) -> str:
         path_sep = ':'
 
     return path_sep.join((str(d) for d in dirs))
+
+def format_build_time(seconds: float) -> str:
+    td = timedelta(seconds=int(seconds))
+    return str(td) # This does an OK job; could be better
 
 @pipeline_action
 def build(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
@@ -68,12 +75,36 @@ def build(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         cmd_options.append('--hardwarnings')
 
     envvars = dict(os.environ, OPENSCADPATH=construct_OPENSCADPATH(lib_include_dirs))
-    process_result = subprocess.run(
+
+    start_time = time()
+    subproc = subprocess.Popen(
         [DEPS.OPENSCAD] + cmd_options + [ctx.files.scad_source],
         stdout=debug_stdout,
         stderr=filter_stdout,
         env=envvars,
     )
 
-    if process_result.returncode != 0:
-        raise RuntimeError(f"    Command failed with return code {process_result.returncode}")
+    while subproc.poll() is None:
+        runtime = time() - start_time
+        # We don't want to be chewing up CPU busy-waiting, but we also don't 
+        # want to make short builds slower, so we try to strike a balance with
+        # these sleeps
+        if runtime < 1:
+            sleep(.05)
+        elif runtime < 10:
+            sleep(.1)
+        else:
+            sleep(.5)
+        # We use print here instead of stdout.write because we will overwrite
+        # the indent
+        if sys.stdout.isatty():  # Print running build time indicator in TTY
+            print("\r" + ' ' * 20, end='') # Clear the line
+            print("\r" + stdout.indent_str + "Build time " + format_build_time(runtime), end='', flush=True)
+
+    if not sys.stdout.isatty():  # Print single build time indicator in pipeline
+        print(stdout.indent_str + "Build time " + format_build_time(runtime), end='')
+
+    print() # Need a newline
+
+    if subproc.returncode != 0:
+        raise RuntimeError(f"    Command failed with return code {subproc.returncode}")
