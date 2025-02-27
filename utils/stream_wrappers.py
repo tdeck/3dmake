@@ -46,10 +46,12 @@ class IndentStream:
 
 class FilterPipe:
     ''' This pipe filters things that don't match filter_fn. '''
-    def __init__(self, wrapped_stream, filter_fn: Callable[[str], bool]):
+    def __init__(self, wrapped_stream, filter_fn: Callable[[str], bool], pad_lines_to=0):
         self.wrapped_stream = wrapped_stream
         self.pipe_read, self.pipe_write = os.pipe()
         self.filter_fn = filter_fn
+        # Pad lines to overwrite the build time in build_action
+        self.pad_lines_to = pad_lines_to
 
         # Start a thread to read from the pipe and forward indented output
         self._start_reader_thread()
@@ -60,6 +62,7 @@ class FilterPipe:
                 for line in pipe:
                     # Indent each line and write to the wrapped stream
                     if self.filter_fn(line):
+                        line = line.rstrip('\n').ljust(self.pad_lines_to) + '\n'
                         self.wrapped_stream.write(line)
                         self.wrapped_stream.flush()
 

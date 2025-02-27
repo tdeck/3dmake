@@ -56,6 +56,8 @@ def build(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             # 3dm is always run from a project root, but it may not work in the
             # future
         lib_include_dirs.append(ll_path)
+
+    tty_output_mode = sys.stdout.isatty()
     
     if ctx.options.debug:
         filter_stdout = stdout
@@ -63,6 +65,7 @@ def build(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         filter_stdout = FilterPipe(
             stdout,
             filter_fn=should_print_openscad_log,
+            pad_lines_to=20 if tty_output_mode else 0,
         )
 
     cmd_options = [
@@ -97,11 +100,14 @@ def build(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             sleep(.5)
         # We use print here instead of stdout.write because we will overwrite
         # the indent
-        if sys.stdout.isatty():  # Print running build time indicator in TTY
+        if tty_output_mode:  # Print running build time indicator in TTY
             print("\r" + ' ' * 20, end='') # Clear the line
-            print("\r" + stdout.indent_str + "Build time " + format_build_time(runtime), end='', flush=True)
+            print("\r" + stdout.indent_str + "Build time " + format_build_time(runtime), end='\r', flush=True)
+            # Note: The \r at the end here means that if OpenSCAD writes a log
+            # from the FilteredPipe thread, it'll appear at the start of the
+            # line and (most likely) overwrite the build time
 
-    if not sys.stdout.isatty():  # Print single build time indicator in pipeline
+    if not tty_output_mode:  # Print single build time indicator in pipeline
         print(stdout.indent_str + "Build time " + format_build_time(runtime), end='')
 
     print() # Need a newline
