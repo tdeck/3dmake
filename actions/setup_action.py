@@ -12,6 +12,7 @@ from .framework import Context, isolated_action
 from utils.print_config import list_printer_profiles
 from utils.prompts import yes_or_no, option_select
 from utils.bundle_paths import SCRIPT_DIR, SCRIPT_BIN_PATH
+from version import VERSION
 
 @isolated_action
 def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
@@ -42,6 +43,10 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     )
 
     add_self_to_path()
+    with open(CONFIG_DIR / ".installed_version", 'w') as fh:
+        # This is to help later versions of 3DMake which may need to migrate
+        # settings when upgrading
+        fh.write(VERSION)
 
     if DEFAULTS_TOML.exists():
         print("Your global settings were carried over from the last 3DMake version.")
