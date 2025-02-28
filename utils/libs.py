@@ -21,6 +21,8 @@ class CatalogLibrary:
     name: str
     full_name: str
     versions: list[CatalogLibraryVersion]
+    license: str
+    homepage: str
 
     def latest_version(self) -> CatalogLibraryVersion:
         return max(self.versions, key=lambda v: v.version)
@@ -36,6 +38,9 @@ class InstalledLib:
     def latest_version_dir(self) -> Path:
         # This uses the nice property of Version objects that they're hashable and comparable
         return self.version_dirs[max(self.version_dirs)]
+
+    def latest_version(self) -> Version:
+        return max(self.version_dirs)
 
     
 class InstalledLibRegistry:
@@ -110,6 +115,8 @@ def load_library_catalog(config_dir: Path) -> LibraryCatalog:
                 name=key,
                 full_name=subdict['full_name'],
                 versions=version_objs,
+                homepage=subdict["homepage"],
+                license=subdict["license"],
             )
 
     return res

@@ -45,7 +45,30 @@ def extract_zip_to_folder(zipfh: TextIO, subdir: Optional[str], outdir: Path) ->
                 shutil.copyfileobj(ifh, ofh)
 
 @isolated_action(needs_options=True)
-def install_libs(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+def list_libraries(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+    ''' Lists available OpenSCAD libraries. '''
+    catalog = load_library_catalog(ctx.config_dir)
+    registry = load_installed_libs(ctx.config_dir)
+
+    stdout.write("Available libraries:\n\n")
+
+    for library in catalog.libs.values():
+        installed = registry.libs.get(library.name)
+        if installed:
+            stdout.write(f"Library: {library.name} (version {installed.latest_version()} installed)\n")
+        else:
+            stdout.write(f"Library: {library.name}\n")
+
+        stdout.write(f"Full name: {library.full_name}\n")
+        stdout.write(f"Homepage: {library.homepage}\n")
+        stdout.write(f"License: {library.license}\n")
+        stdout.write(f"Latest version: {library.latest_version().version}\n")
+        stdout.write("\n")
+
+
+
+@isolated_action(needs_options=True)
+def install_libraries(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     ''' Ensures that all libraries needed by the current project are installed. '''
 
     # Determine which libraries are needed
@@ -55,7 +78,7 @@ def install_libs(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         stdout.write("All needed libraries are installed.\n")
 
     # Load the library catalog
-    catalog = load_library_catalog(ctx.config_dir) # TODO make catalog case insensitive
+    catalog = load_library_catalog(ctx.config_dir)
 
     for lib_name in needed_libs:
         catalog_entry = catalog.libs.get(lib_name)
