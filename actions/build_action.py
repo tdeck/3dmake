@@ -40,7 +40,7 @@ def build(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     if needed_libs:
         raise RuntimeError(
             f"Some needed libraries are not installed: {' '.join(needed_libs) }"
-            "\nRun 3dm install-libs."
+            "\nRun 3dm install-libraries."
         )
 
     lib_include_dirs = [
