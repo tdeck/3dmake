@@ -27,26 +27,17 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         print(f"customized one of the built-in profiles, your changes will be lost.")
         overwrite_old_profiles = yes_or_no("Do you want to upgrade profiles?")
 
-    def ignore_fn(directory, contents):
+    def copy_fn(src, dest):
         # When overwrite_old_profiles is false, this will ignore any file that
         # already exists
-        if overwrite_old_profiles:
-            return set()
-
-        results = set()
-        dirpath = Path(directory)
-        for name in contents:
-            path = dirpath / name
-            if path.exists() and not path.is_dir():
-                results.add(name)
-
-        return results
+        if overwrite_old_profiles or not Path(dest).exists():
+            shutil.copy2(src, dest)
 
     default_conf_dir = SCRIPT_DIR / 'default_config'
     shutil.copytree(
         default_conf_dir,
         CONFIG_DIR,
-        ignore=ignore_fn,
+        copy_function=copy_fn,
         dirs_exist_ok=True, # Don't need to mkdir -p as shutil will do this
     )
 
