@@ -16,18 +16,45 @@ from utils.bundle_paths import SCRIPT_DIR, SCRIPT_BIN_PATH
 @isolated_action
 def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     ''' Set up 3DMake for the first time, or overwrite existing settings '''
-
     CONFIG_DIR = ctx.config_dir
-    if CONFIG_DIR.exists():
+    DEFAULTS_TOML = CONFIG_DIR / "defaults.toml" 
+
+    overwrite_old_profiles = True
+    if DEFAULTS_TOML.exists():
         print(f"The configuration directory {CONFIG_DIR} already exists.")
         print(f"I can overwrite the configuration files and printer profiles that came")
-        print(f"with 3Mmake, returning them to default settings.")
-        if not yes_or_no("Do you want to do this?"):
-            print("Cancelling.")
-            return
+        print(f"with 3Mmake, which will upgrade them to the latest version. But if you")
+        print(f"customized one of the built-in profiles, your changes will be lost.")
+        overwrite_old_profiles = yes_or_no("Do you want to upgrade profiles?")
+
+    def ignore_fn(directory, contents):
+        # When overwrite_old_profiles is false, this will ignore any file that
+        # already exists
+        if overwrite_old_profiles:
+            return set()
+
+        results = set()
+        dirpath = Path(directory)
+        for name in contents:
+            path = dirpath / name
+            if path.exists() and not path.is_dir():
+                results.add(name)
+
+        return results
 
     default_conf_dir = SCRIPT_DIR / 'default_config'
-    shutil.copytree(default_conf_dir, CONFIG_DIR, dirs_exist_ok=True) # Don't need to mkdir -p as shutil will do this
+    shutil.copytree(
+        default_conf_dir,
+        CONFIG_DIR,
+        ignore=ignore_fn,
+        dirs_exist_ok=True, # Don't need to mkdir -p as shutil will do this
+    )
+
+    add_self_to_path()
+
+    if DEFAULTS_TOML.exists():
+        print("Your global settings were carried over from the last 3DMake version.")
+        return
 
     settings_dict = dict(
         view='3sil',
@@ -83,12 +110,11 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         settings_dict['octoprint_key'] = key
     
 
-    with open(CONFIG_DIR / "defaults.toml", 'w') as fh:
+    with open(DEFAULTS_TOML, 'w') as fh:
         # TODO write this properly; it's brittle
         for k, v in settings_dict.items():
             fh.write(f"{k} = {json.dumps(v)}\n")
         
-    add_self_to_path()
 
 def add_self_to_path():
     os_type = platform.system()
