@@ -58,9 +58,11 @@ As you can see, you can string together multiple actions when running 3DMake. Fo
 
 ## Configuring slicer settings
 
-3DMake is based around PrusaSlicer, but it takes care of talking to the slicer for you because PrusaSlicer has accessibility issues. All of PrusaSlicer's settings are editable in 3DMake's text-based configruation files, which you can open in your favorite text editor. These files are in your 3DMake configuration folder, which you can find by running `3dm version`
+3DMake is based around PrusaSlicer, but it takes care of talking to the slicer for you because PrusaSlicer has accessibility issues. All of PrusaSlicer's settings are editable in 3DMake's text-based configruation files, which you can open in your favorite text editor. These files are in your 3DMake configuration folder, which you can find by running `3dm version`.
 
 There are two kinds of files in this directory. The ones in the profiles folder are complete sets of default settings for each printer. The files in the overlays folder are smaller collectiosns of settings. If you have one printer, you'll typically stick with the same profile, but choose different overlays using the -o option of 3DMake. One overlay that comes built in is the "supports" overlay, which (as you might guess) enables automatic supports.
+
+You can list the available profiles by running `3dm list-profiles`, and the overlays by running `3dm list-overlays`. 3DMake comes with several built-in overlays for common materials.
 
 You can create your own overlays by making new .ini files in the overlays/default folder. If your overlay only works on a specific printer, you can put an overlay in the overlays/PRINTER_NAME folder. For example, if you choose the printer profile prusa_i3_MK3S, you can make a special overlays/prusa_i3_MK3S/supports.ini. When you are using that printer's profile, 3DMake will use your printer-specific overlay. When you ask for supports on another printer, it will use the default overlay.
 
