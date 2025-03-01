@@ -25,6 +25,7 @@ def info(ctx: Context, stdout: TextIO, __):
     sizes = ctx.mesh_metrics.sizes()
     mid = ctx.mesh_metrics.midpoints()
     stdout.write(f"Mesh size: x={sizes.x:.2f}, y={sizes.y:.2f}, z={sizes.z:.2f}\n")
+    stdout.write(f"Mesh center: x={mid.x:.2f}, y={mid.y:.2f}, z={mid.z:.2f}\n")
 
     if ctx.options.gemini_key:
         stdout.write("\nAI description:\n")
