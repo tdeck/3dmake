@@ -8,6 +8,7 @@ Thanks for trying 3DMake!
 3DMake provides the following functionality through a single command line tool:
 
 - Compiling OpenSCAD code to produce STL files
+- Downloading OpenSCAD libraries with 3DMake's library manager
 - Describing the shape of 3D models using AI
 - Slicing STL files for your printer
 - Configuring printing options
