@@ -27,7 +27,7 @@ Once this is done, `3dm` should be installed so that you can run it by simply ty
 
 ## Starting a new project
 
-Although 3DMake can work with any OpenSCAD or STL files you've downloaded, it's most convenient to structure your own work in 3DMake projects. These "projects" are simply directories that are laid out in a certain way, with a src folder containing OpenSCAD code, a build folder containing outputs that 3DMake produced, and a 3DMake.toml file where you can set up different settings.
+Although 3DMake can work with any OpenSCAD or STL files you've downloaded, it's most convenient to structure your own work in 3DMake projects. These "projects" are simply directories that are laid out in a certain way, with a src folder containing OpenSCAD code, a build folder containing outputs that 3DMake produced, and a 3dmake.toml file where you can set up different settings.
 
 To start a new project in the current directory, run `3dm new`.
 
@@ -35,7 +35,7 @@ To start a new project in the current directory, run `3dm new`.
 
 3DMake is based on OpenSCAD, and OpenSCAD's .scad files can be edited in any text editor. There is *no need to install OpenSCAD* or to use the OpenSCAD editor. Something like Notepad++, Visual Studio Code, or even Notepad will work just fine.
 
-As a shortcut, you can use the `3dm edit-model` in your project folder to open the SCAD file in a text editor. By default, this will use your system's text editor. To configure a specific one, you can set its path in `3dmake.toml` or in your system 3DMake config directory's `defaults.toml` file. For example, to configure Notepad++ on Windows, you might add this line to your config:
+As a shortcut, you can use the `3dm edit-model` in your project folder to open the SCAD file in a text editor. By default, this will use your system's text editor. To configure a specific one, you can set its path in `3dmake.toml` or in your system 3DMake configuration directory's `defaults.toml` file. For example, to configure Notepad++ on Windows, you might add this line to your config:
 
 ```
 # The triple quotes below allow your program's path to contain backslashes
@@ -58,9 +58,9 @@ As you can see, you can string together multiple actions when running 3DMake. Fo
 
 ## Configuring slicer settings
 
-3DMake is based around PrusaSlicer, but it takes care of talking to the slicer for you because PrusaSlicer has accessibility issues. All of PrusaSlicer's settings are editable in 3DMake's text-based configruation files, which you can open in your favorite text editor. These files are in your 3DMake configuration folder, which you can find by running `3dm version`.
+3DMake is based around PrusaSlicer, but it takes care of talking to the slicer for you because PrusaSlicer has accessibility issues. All of PrusaSlicer's settings are editable in 3DMake's text-based configuration files, which you can open in your favorite text editor. These files are in your 3DMake configuration folder, which you can find by running `3dm version`.
 
-There are two kinds of files in this directory. The ones in the profiles folder are complete sets of default settings for each printer. The files in the overlays folder are smaller collectiosns of settings. If you have one printer, you'll typically stick with the same profile, but choose different overlays using the -o option of 3DMake. One overlay that comes built in is the "supports" overlay, which (as you might guess) enables automatic supports.
+There are two kinds of files in this directory. The ones in the profiles folder are complete sets of default settings for each printer. The files in the overlays folder are smaller collections of settings. If you have one printer, you'll typically stick with the same profile, but choose different overlays using the -o option of 3DMake. One overlay that comes built in is the "supports" overlay, which (as you might guess) enables automatic supports.
 
 You can list the available profiles by running `3dm list-profiles`, and the overlays by running `3dm list-overlays`. 3DMake comes with several built-in overlays for common materials.
 
@@ -108,6 +108,45 @@ The preview's "view" can be changed using the -v option. Here are the possible p
 # Working with files that aren't part of a project
 
 3DMake can accept individual files to slice, orient, and preview even if they aren't part of a project. For example, you can do `3dm slice turtle.stl` or `3dm build orient print pyramid.stl`.
+
+# Using OpenSCAD libraries
+
+Libraries are collections of pre-written code that you can use in your projects. They can contain modules for useful shapes and transformations that save you a lot of time. 3DMake makes it easier to use popular OpenSCAD libraries with your project using the 3DMake library manager, which is the first package manager for OpenSCAD. You can easily libraries from the library manager to your project by adding a `libraries` line with a list of library names to your project's `3dmake.toml` file. Each 3DMake library has an all lowercase name with no spaces that uniquely identifies that library. You can get a list of available libraries and their documentation pages by running `3dm list-libraries`.
+
+For example, let's say you want to use the [Belfry OpenSCAD library](https://github.com/revarbat/BOSL/wiki) in your project. You can add this line to your 3dmake.toml file:
+
+```TOML
+libraries = ["bosl"]
+```
+
+If you want to use more than one library, make sure to put each library name in quotes, and have a comma between them. So if you want to use `bosl` and [the `braille-chars` library](https://github.com/tdeck/3dmake_libraries/tree/main/braille-chars), you'd write this:
+```TOML
+libraries = ["bosl", "braille-chars"]
+```
+
+After updating your libraries list, be sure to run `3dm install-libraries`. This will download any library that isn't already on your machine. Then, when you run `3dm build`, the libraries you selected will be available to use with the [`include` and `use` statements](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Include_Statement) in OpenSCAD. The first part of the import path will always be the library's lowercase name from your 3dmake.toml. For example, to make a pyramid using BOSL, you can do this in OpenSCAD:
+
+```OpenSCAD
+include <bosl/constants.scad>
+use <bosl/shapes.scad>
+
+pyramid(n=4, h=30, l=30);
+```
+
+You may notice that the BOSL library's documentation documents these imports in uppercase (e.g. `use <BOSL/shapes.scad>` rather than `use <bosl/shapes.scad>`. Some library authors expected their library to be used without an outer folder (e.g. dotSCAD's `use <line2d.scad>` vs the 3DMake version `use <dotscad/line2d.scad`). In order to prevent conflicts between libraries, 3DMake has standardized on always putting the library inside a folder with a lowercase name. So you may need to make small adjustments to the `include` or `use` lines when following examples library documentation.
+
+### Local libraries
+
+You can also include any folder of OpenSCAD code as a local library on your computer. This can be useful if you're developing a library you want to publish with 3DMake, or if you don't want to import files using an absolute path. To include a folder as a local library, add the path to the folder in your 3dmake.toml's `local_libraries` list like this:
+
+```TOML
+libraries = ["bosl", "braille-chars"]
+local_libraries = ['''C:\custom_openscad_shapes''']  # The three apostrophe here allow you to use backslashes in your path
+```
+
+There is no need to run `3dm install-libraries` for local libraries. When you use local libraries, OpenSCAD treats the folder you listed as if it were the same top-level folder as your project. So in the example above, if you had a file at `C:\custom_openscad_shapes\mechanical.scad`, you'd access it with `use <mechanical.scad>` or `<include mechanical.scad>`.
+
+If you come across and OpenSCAD library that you'd like to see included in 3DMake's library manager, please get in touch. I'd like to grow the list of libraries in the future.
 
 ## Overlay template
 
