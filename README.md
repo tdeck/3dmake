@@ -7,12 +7,11 @@ Thanks for trying 3DMake!
 
 3DMake provides the following functionality through a single command line tool:
 
-- Compiling OpenSCAD code to produce STL files
-- Downloading OpenSCAD libraries with 3DMake's library manager
+- Designing 3D models using the OpenSCAD language
 - Describing the shape of 3D models using AI
 - Slicing STL files for your printer
-- Configuring printing options
-- Auto-orienting prints before slicing
+- Automatically orienting models for optimal printing
+- Downloading OpenSCAD libraries with 3DMake's library manager
 - Preparing 2-dimensional "previews" of a model's shape that are very fast to print
 - Sending sliced models directly to OctoPrint
 
@@ -28,15 +27,17 @@ Once this is done, `3dm` should be installed so that you can run it by simply ty
 
 ## Starting a new project
 
-Although 3DMake can work with any OpenSCAD or STL files you've downloaded, it's most convenient to structure your own work in 3DMake projects. These "projects" are simply directories that are laid out in a certain way, with a src folder containing OpenSCAD code, a build folder containing outputs that 3DMake produced, and a 3dmake.toml file where you can set up different settings.
+Although 3DMake can work with any OpenSCAD or STL files you've downloaded, it's most convenient to structure your own work in 3DMake projects. These projects are simply directories that are laid out in a certain way, with a src folder containing OpenSCAD code, a build folder containing outputs that 3DMake produced, and a 3dmake.toml file where you can set up different settings.
 
 To start a new project in the current directory, run `3dm new`.
 
 ## Editing models
 
-3DMake is based on OpenSCAD, and OpenSCAD's .scad files can be edited in any text editor. There is *no need to install OpenSCAD* or to use the OpenSCAD editor. Something like Notepad++, Visual Studio Code, or even Notepad will work just fine.
+Model design in 3DMake is based on [OpenSCAD](https://openscad.org/), a text-based language for describing 3D models. OpenSCAD models are written in .scad files, which you can edit with any text editor. Something like Notepad++, Visual Studio Code, or even Notepad will work just fine.
 
-As a shortcut, you can use the `3dm edit-model` in your project folder to open the SCAD file in a text editor. By default, this will use your system's text editor. To configure a specific one, you can set its path in `3dmake.toml` or in your system 3DMake configuration directory's `defaults.toml` file. For example, to configure Notepad++ on Windows, you might add this line to your config:
+You can open your project's main model in a text editor with `3dm edit-model` - this will simply open the file `src/main.scad`. You can select a different model name with the `-m` option when running 3DMake; if you want to edit the "lid.scad" model, you'd run `3dm edit-model -m lid`.
+
+By default, 3DMake's edit commands use Notepad in Windows. To configure a different editor, you can set its path in the [3DMake configuration](#global-config) For example, to configure Notepad++ on Windows, you might add this line to your config:
 
 ```
 # The triple quotes below allow your program's path to contain backslashes
@@ -61,11 +62,12 @@ As you can see, you can string together multiple actions when running 3DMake. Fo
 
 3DMake is based around PrusaSlicer, but it takes care of talking to the slicer for you because PrusaSlicer has accessibility issues. All of PrusaSlicer's settings are editable in 3DMake's text-based configuration files, which you can open in your favorite text editor. These files are in your 3DMake configuration folder, which you can find by running `3dm version`.
 
-There are two kinds of files in this directory. The ones in the profiles folder are complete sets of default settings for each printer. The files in the overlays folder are smaller collections of settings. If you have one printer, you'll typically stick with the same profile, but choose different overlays using the -o option of 3DMake. One overlay that comes built in is the "supports" overlay, which (as you might guess) enables automatic supports.
+There are two kinds of slicer configuration. The first kind are printer profiles, which have a complete sets of default settings for each printer. The second kind are overlays, which are smaller and typically override a handful of settings. For example, the `supports` overlay enables supports, and the `PETG` overlay sets the appropriate temperatures for PETG printing, but they leave the other profile settings alone. 
 
-You can list the available profiles by running `3dm list-profiles`, and the overlays by running `3dm list-overlays`. 3DMake comes with several built-in overlays for common materials.
 
-You can create your own overlays by making new .ini files in the overlays/default folder. If your overlay only works on a specific printer, you can put an overlay in the overlays/PRINTER_NAME folder. For example, if you choose the printer profile prusa_i3_MK3S, you can make a special overlays/prusa_i3_MK3S/supports.ini. When you are using that printer's profile, 3DMake will use your printer-specific overlay. When you ask for supports on another printer, it will use the default overlay.
+You can list the available profiles by running `3dm list-profiles`, and the overlays by running `3dm list-overlays`. 3DMake comes with several built-in overlays for common materials. If you have one printer, you'll typically stick with the same default profile you set in `3dm setup`, but choose different overlays using the `-o` option of 3DMake. If you have more than one printer, you can choose to print with a non-default profile using the `-p` option.
+
+You can create your own overlays by making new overlay files. Simply run `3dm edit-overlay -o NEWNAME` where `NEWNAME` is replaced with the name of the overlay you want to make. If your overlay only works on a specific printer, you can tell 3DMake during this process and it will be limited to that printer. For example, if you choose the printer profile Pr's_i3_MK3S, you can make a special overlays/prusa_i3_MK3S/supports.ini. When you are using that printer's profile, 3DMake will use your printer-specific overlay. When you ask for supports on another printer, it will use the default overlay.
 
 These config files have one setting per line, with the setting name, an equals sign, and the setting value. Here are a few example lines:
 
@@ -149,52 +151,37 @@ There is no need to run `3dm install-libraries` for local libraries. When you us
 
 If you come across and OpenSCAD library that you'd like to see included in 3DMake's library manager, please get in touch. I'd like to grow the list of libraries in the future.
 
-## Overlay template
+<a name="global-config"></a>
+## Global and project configuration (defaults.toml and 3dmake.toml)
 
-You can use this template to help bootstrap a new overlay. It contains the most common options with example values. Delete any lines you don't want the overlay to modify. If you need additional control over any aspect of your print, there are additional settings to be found in the profile files.
+You can customize a lot of things about 3DMake by editing either the defaults.toml file or a project's 3dmake.toml file with a text editor. The defaults.toml file can be opened by running `3dm edit-global-config`. Both of these files can contain the same set of settings, and settings in a project's 3dmake.toml file override the global defaults in your defaults.toml file. 
 
-Lines beginning with a semicolon are comments that are ignored by the slicer.
+The table below lists possible settings, what they're for, and an example configuration line.
 
-```
-layer_height = 0.2
-nozzle_diameter = 0.4
+Setting         | Description                                   | Default value (if not set) | Example value
+----------------|-----------------------------------------------|----------------------------|-------------
+project_name    | The project's name, used to name GCODE files      | Project folder name           | `"gear clock"`
+model_name      | The project's default model name                  | `"main"`                      | `"box_lid"`
+view            | The default view to use in [previews](#Previews)  | "3sil"                        | `"topsil"`
+printer_profile | The default printer profile name                  | What you set in 3dm setup     | `"prusa_MK4"`
+scale           | Uniform scale factor when slicing the model       | `1.0`                         | `1.05`
+overlays        | Default overlays to apply when printing           | `[]` (empty list)             | `["supports"]`
+octoprint_host  | The URL of your OctoPrint instance                | What you set in 3dm setup     | `"http://192.168.1.10"`
+octoprint_key   | The OctoPrint API key (do not share this)         | What you set in 3dm setup     | `"7025A..."`
+auto_start_prints | When uploading to `3dm print`, start the print right away | `true`              | `false`
+strict_warnings | Fail `3dm build` when OpenSCAD sees a problem with your code | `false`[^1]           | `true`
+editor          | Command to open your preferred text editor        | "notepad" in Windows[^2]      | `"code"`
+edit_in_background | Exit 3DMake after starting an editor           | `true` when using Notepad, `false` otherwise     | `"false`
+gemini_key      | Your Gemini API key (do not share this)           | What you set in 3dm setup     | `"47b64..."`
+interactive     | Whether to make `3dm info` interactive by default[^3] | `false`                       | `true`
+libraries       | List of libraries to use in your project          | `[]` (empty list)             | `["bosl", "dotscad"]`
+local_libraries | List of library paths to use in project           | `[]` (empty list)             | `["/home/troy/3d/example"]`
+debug           | Output a lot more messages when running 3DMake    | `false`                       | `true`
 
-; Temperature
-temperature = 205
-bed_temperature = 60
+Some of these settings can be further overridden on the command line (for example, `-m` overrides `model_name`, and `-i` overrides `interactive)`. In fact, all of the command line options are reflected here.
 
-; Speed
-max_print_speed = 200
-infill_speed = 180
-perimeter_speed = 120
-retract_speed = 30
+[^1]: `strict_warnings` is `false` in your global config, but it's `true` for 3dmake.toml files in newly created projects. This is because if you are trying to build OpenSCAD files you downloaded directly, many of them will produce warnings and be broken by a global setting of `true`. However, setting this to `true` for your new code is a good idea.
 
-; Infill
-fill_density = 15%
-; pattern can be grid, gyroid, stars, rectilinear, triangles, etc...
-fill_pattern = grid
+[^2]: In Linux, 3DMake tries to use your existing `VISUAL` and `EDITOR` environment variables if you don't set an editor. If it finds none of those, it uses GNU Nano.
 
-; Support
-; support_material can be 1 (on) or 0 (off)
-support_material = 1
-; support_material_style can be grid, snug, or organic
-support_material_style = grid
-support_material_pattern = rectilinear
-support_material_interface_layers = 2
-support_material_interface_pattern = rectilinear
-support_material_interface_spacing = 0.2
-
-; Model strength
-; perimeters is the wall thickness, in lines
-perimeters = 2
-bottom_solid_layers = 2
-top_solid_layers = 2
-
-; Build plate adhesion
-; Skirts is the number of loops
-skirts = 1
-min_skirt_length = 100
-; brim_width is in mm
-brim_width = 3
-raft_layers = 3
-```
+[^3]: If your text editor opens a new window, you generally want this to be true so you can keep the editor open and still use 3DMake in your terminal window. However, if your editor runs in the terminal (like Vim, for example), it will be broken by this setting.
