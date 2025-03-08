@@ -1,5 +1,5 @@
 [METADATA] # This is a special key, not a library
-published_at = '2025-02-24'
+published_at = '2025-03-07'
 
 [bosl]
 full_name = 'Belfry OpenSCAD Library'
@@ -53,3 +53,7 @@ license = 'CC-BY'
 version = '1.0'
 archive = 'https://github.com/tdeck/3dmake_libraries/archive/refs/tags/braille-chars-v1.0.zip'
 subdir = '3dmake_libraries-braille-chars-v1.0/braille-chars'
+[[braille-chars.versions]]
+version = '1.1'
+archive = 'https://github.com/tdeck/3dmake_libraries/archive/refs/tags/braille-chars-v1.1.zip'
+subdir = '3dmake_libraries-braille-chars-v1.1/braille-chars'
