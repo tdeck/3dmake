@@ -1,4 +1,4 @@
-In order to benefit from the silhouette tactile previews in 3DMake, you'll need to understand what they represent. The concept is not too complicated, but it isn't always intuitive either. This document will explain silhouettes non-visually with multiple examples that increase in complexity. There are 3D models for each example solid and silhouette described in this document, and it's a good idea to print them in order to feel their geometry. Before removing each object from your print bed, feel the object and note its orientation. 
+In order to benefit from the silhouette tactile previews in 3DMake, you'll need to understand what they represent. The concept is not too complicated, but it isn't always intuitive either. This document will explain silhouettes non-visually with multiple examples that increase in complexity. There are 3D models for each example solid and silhouette described in this document, and it's a good idea to print them in order to feel their geometry.
 
 ### What is a silhouette?
 A silhouette is a visual art form that depicts the outline of a person, or other object, when viewed from a certain angle, as if the object were between the viewer and a bright light source. Any rays of light from the light source that are blocked by the object leave a black space, so those areas are completely black. Other areas of the image are completely white. That means no details of the object's side facing the viewer are visible, only surface details that are on the outer edge of the object, perpendicular to the light source, will show up.
@@ -32,9 +32,9 @@ The same is true for an bottom-up silhouette - it's the top-down silhouette flip
 Remember the pyramid from before? Since a pyramid's bottom is square, the top and bottom silhouettes are the same, since a square flipped over is still a square. That's why balancing the pyramid on its point and squishing it down produces the same silhouette.
 
 ## Models
-All objects should be printed in the provided orientation. The silhouettes are thicker and have a taller top layer than those produced by 3DMake, so that they will be more resilient as a reference material.
+All objects should be printed in the provided orientation. The silhouettes are thicker and have a taller top layer than those produced by 3DMake, so that they will be more resilient as a reference material. Models and silhouettes are labeled in braille.
 
-- <a name="sphere-model"></a> **Sphere**: [original model](models/sphere.stl) [silhouette](models/sphere_topsil.stl) (note: this model will need supports)
-- <a name="pyramid-model"></a>**Pyramid**: [original model](models/pyramid.stl) [top silhouette](models/pyramid_topsil.stl) [front silhouette](models/pyramid_frontsil.stl)
-- <a name="doughnut-model"></a>**Doughnut**: [original model](models/doughnut.stl) [top silhouette](models/doughnut_topsil.stl) [front silhouette](models/doughnut_frontsil.stl)
-- <a name="-mug-model"></a>**Mug**: [original model](models/mug.stl) [top silhouette](models/mug_topsil.stl) [front silhouette](models/mug_frontsil.stl)
+- <a name="sphere-model"></a>[Sphere with silhouette](models/sphere.stl)
+- <a name="pyramid-model"></a>[Pyramid with top and front silhouettes](models/pyramid.stl)
+- <a name="doughnut-model"></a>[Doughnut with top and front silhouettes](models/doughnut.stl)
+- <a name="-mug-model"></a>[Mug with top and front silhouettes](models/mug.stl)
