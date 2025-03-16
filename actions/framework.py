@@ -11,10 +11,10 @@ from coretypes import CommandOptions, FileSet, MeshMetrics
 
 @dataclass(kw_only=True)
 class Context:
-    config_dir: Path
-    options: Optional[CommandOptions]
-    files: Optional[FileSet]
-    explicit_overlay_arg: List[str]
+    config_dir: Path  # Directory where profiles, overlays, and global config are stored
+    options: Optional[CommandOptions]  # Merged from global defaults.toml, local 3dmake.toml, and CLI args
+    files: Optional[FileSet]  # Input files and outputs of prior steps, mutated during the run
+    explicit_overlay_arg: List[str]  # List of overlays requested on CLI, sometimes this is treated differently
 
     # These are attached by the measure-model step
     mesh: Optional[Mesh] = None
