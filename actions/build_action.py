@@ -87,6 +87,7 @@ def build(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         env=envvars,
     )
 
+    last_printed_time = None
     while subproc.poll() is None:
         runtime = time() - start_time
         # We don't want to be chewing up CPU busy-waiting, but we also don't 
@@ -101,11 +102,17 @@ def build(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         # We use print here instead of stdout.write because we will overwrite
         # the indent
         if tty_output_mode:  # Print running build time indicator in TTY
-            print("\r" + ' ' * 20, end='') # Clear the line
-            print("\r" + stdout.indent_str + "Build time " + format_build_time(runtime), end='\r', flush=True)
-            # Note: The \r at the end here means that if OpenSCAD writes a log
-            # from the FilteredPipe thread, it'll appear at the start of the
-            # line and (most likely) overwrite the build time
+            time_str = format_build_time(runtime)
+            # Our printed timestamps have a 1 second granularity; if we write out lines
+            # multiple times per second the screen reader may flood us with updates,
+            # so we don't print every single time
+            if time_str != last_printed_time:
+                last_printed_time = time_str
+                print("\r" + ' ' * 20, end='') # Clear the line
+                print("\r" + stdout.indent_str + "Build time " + time_str, end='\r', flush=True)
+                # Note: The \r at the end here means that if OpenSCAD writes a log
+                # from the FilteredPipe thread, it'll appear at the start of the
+                # line and (most likely) overwrite the build time
 
     if not tty_output_mode:  # Print single build time indicator in pipeline
         print(stdout.indent_str + "Build time " + format_build_time(runtime), end='')
