@@ -67,15 +67,22 @@ parser.add_argument('-s', '--scale') # can be either "auto" or a float
 parser.add_argument('-m', '--model')
 parser.add_argument('-v', '--view', type=str)
 parser.add_argument('-p', '--profile', type=str)
-parser.add_argument('-o', '--overlay', action='extend', nargs='*')
+parser.add_argument('-o', '--overlay', action='extend', nargs=1)
 parser.add_argument('-i', '--interactive', action='store_true')
 parser.add_argument('--help', '-h', action=HelpAction, nargs=0)
 parser.add_argument('--debug', action='store_true')
 parser.add_argument('actions_and_files', nargs='+')
 
-args = parser.parse_args()
+# We follow this strategy of using parse_known_args() rather than parse_args()
+# so that we can interleave actions_and_files with dashed options
+args, unknown_args = parser.parse_known_args()
+unknown_dashed_args = [e for e in unknown_args if e.startswith('-')]
 
-extras = args.actions_and_files
+if unknown_dashed_args:
+    error_out(f"Unknown option(s): {' '.join(unknown_dashed_args)}")
+args
+
+extras = args.actions_and_files + unknown_args
 infiles = []
 while extras and '.' in extras[-1]:
     infiles.append(extras.pop())
