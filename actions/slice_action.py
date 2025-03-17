@@ -58,6 +58,8 @@ def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
 
     slicer_keys = extract_slicer_keys(gcode_file)
 
+    stdout.write(f"Hotend temperature: {slicer_keys['temperature']} Celsius\n")
+
     time_str = (
         slicer_keys.get('estimated printing time (normal mode)')
         or slicer_keys.get('estimated printing time (silent mode)')
