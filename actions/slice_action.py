@@ -5,6 +5,7 @@ from pathlib import Path
 
 from .framework import Context, pipeline_action
 from utils.bundle_paths import DEPS
+from utils.logging import throw_subprogram_error
 
 @pipeline_action(gerund='slicing')
 def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
@@ -51,7 +52,7 @@ def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     # stderr where they will be displayed.
     process_result = subprocess.run(cmd, stdout=debug_stdout, stderr=stdout)
     if process_result.returncode != 0:
-        raise RuntimeError(f"    Command failed with return code {process_result.returncode}")
+        throw_subprogram_error('slicer', process_result.returncode, ctx.options.debug)
 
     ctx.files.sliced_gcode = gcode_file
 

@@ -8,6 +8,7 @@ from .measure_action import measure_model
 from utils.bundle_paths import DEPS
 from utils.stream_wrappers import FilterPipe
 from utils.openscad import should_print_openscad_log
+from utils.logging import throw_subprogram_error
 
 @pipeline_action(
     gerund='preparing preview',
@@ -53,7 +54,7 @@ def preview(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     ], stdout=debug_stdout, stderr=filter_stdout)
 
     if process_result.returncode != 0:
-        raise RuntimeError(f"    Command failed with return code {process_result.returncode}")
+        throw_subprogram_error('OpenSCAD', process_result.returncode, ctx.options.debug)
 
     # Insert a projection overlay to print projections quicker
     ctx.options.overlays.insert(0, 'preview')

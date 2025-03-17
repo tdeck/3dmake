@@ -12,6 +12,7 @@ from utils.bundle_paths import DEPS
 from utils.stream_wrappers import FilterPipe
 from utils.openscad import should_print_openscad_log
 from utils.libs import load_installed_libs
+from utils.logging import throw_subprogram_error
 
 def construct_OPENSCADPATH(dirs: list[Path]) -> str:
     if platform.system() == 'Windows':
@@ -120,4 +121,4 @@ def build(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     print() # Need a newline
 
     if subproc.returncode != 0:
-        raise RuntimeError(f"    Command failed with return code {subproc.returncode}")
+        throw_subprogram_error('OpenSCAD', process_result.returncode, ctx.options.debug)
