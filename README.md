@@ -20,6 +20,8 @@ Download the latest version of 3DMake for your operating system by following the
 - [Windows](https://github.com/tdeck/3dmake/releases/latest/download/3dmake_windows.zip)
 - [Linux (x86-64)](https://github.com/tdeck/3dmake/releases/latest/download/3dmake_linux.tar.gz)
 
+3DMake is a command line program, which means you need to run it from the terminal (or command prompt). If you've never used the terminal before, read the [terminal quick start guide](docs/terminal_quick_start.md).
+
 To set up 3DMake, extract the release for your operating system and navigate to the 3DMake folder
 in your terminal. Run `./3dm setup` and answer a few questions to complete the setup process.
 
