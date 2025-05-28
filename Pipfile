@@ -16,6 +16,7 @@ pillow = "*"
 google-generativeai = "*"
 vtk = "*"
 grpcio = "==1.67.1"  # Fix for grpc_wait_for_shutdown_with_timeout() error
+bambu-connect = "*"
 
 [dev-packages]
 pyinstaller = "*"

@@ -6,8 +6,15 @@ from .slice_action import slice as slice_model
 
 @pipeline_action(implied_actions=[slice_model])
 def print(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
-    ''' Send the sliced model to OctoPrint '''
+    ''' Send the sliced model to the printer. '''
 
+    if ctx.options.bambu_host:
+        _print_with_bambu(ctx, stdout, debug_stdout)
+    else
+        _print_with_octoprint(ctx, stdout, debug_stdout)
+
+
+def _print_with_octoprint(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     if not ctx.options.octoprint_host or not ctx.options.octoprint_key:
         raise RuntimeError("Either octoprint_host or octoprint_key is not configured.")
 
@@ -35,3 +42,7 @@ def print(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         stdout.write(f"Failed to upload. Status code: {response.status_code}\n")
         stdout.write(response.text or '')
         stdout.write("\n")
+
+def _print_with_bambu(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+    from bambu_connect import BambuClient
+    bambu_client = BambuClient(hostname, access_code, serial)
