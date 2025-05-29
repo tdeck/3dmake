@@ -17,6 +17,7 @@ import actions.slice_action as slice_action
 import actions.print_action as print_action
 import actions.library_actions as library_actions
 import actions.list_config_actions as list_config_actions
+import actions.image_action as image_action
 
 _actions_in_order = [
     setup_action.setup,
@@ -26,6 +27,7 @@ _actions_in_order = [
     measure_action.measure_model,
     info_action.info,
     orient_action.orient,
+    image_action.image,
     preview_action.preview,
     slice_action.slice,
     print_action.print,

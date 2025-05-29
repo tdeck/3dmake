@@ -25,6 +25,8 @@ class CommandOptions:
     interactive: bool = False
     libraries: List[str] = field(default_factory=list)
     local_libraries: List[str] = field(default_factory=list) # Note: these should contain paths
+    image_angles: List[str] = field(default_factory=lambda: ['above_front_left', 'above_front_right'])
+    colorscheme: str = "slicer_dark"
 
 
 class FileSet:
@@ -33,6 +35,7 @@ class FileSet:
 
         self.scad_source = Path("src") / f"{options.model_name}.scad"
         self.model = self.build_dir / f"{options.model_name}.stl"
+        self.rendered_images = {}
 
     build_dir: Path
     scad_source: Optional[Path]
@@ -40,6 +43,7 @@ class FileSet:
     oriented_model: Optional[Path] = None
     projected_model: Optional[Path] = None
     sliced_gcode: Optional[Path] = None
+    rendered_images = dict[str, Optional[Path]]
 
     def model_to_project(self) -> Optional[Path]:
         return self.oriented_model or self.model

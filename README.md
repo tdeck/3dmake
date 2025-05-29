@@ -164,7 +164,7 @@ Setting         | Description                                   | Default value 
 ----------------|-----------------------------------------------|----------------------------|-------------
 project_name    | The project's name, used to name GCODE files      | Project folder name           | `"gear clock"`
 model_name      | The project's default model name                  | `"main"`                      | `"box_lid"`
-view            | The default view to use in [previews](#Previews)  | "3sil"                        | `"topsil"`
+view            | The default view to use in [previews](#Previews)  | `"3sil"`                        | `"topsil"`
 printer_profile | The default printer profile name                  | What you set in 3dm setup     | `"prusa_MK4"`
 scale           | Uniform scale factor when slicing the model       | `1.0`                         | `1.05`
 overlays        | Default overlays to apply when printing           | `[]` (empty list)             | `["supports"]`
@@ -178,6 +178,8 @@ gemini_key      | Your Gemini API key (do not share this)           | What you s
 interactive     | Whether to make `3dm info` interactive by default[^3] | `false`                       | `true`
 libraries       | List of libraries to use in your project          | `[]` (empty list)             | `["bosl", "dotscad"]`
 local_libraries | List of library paths to use in project           | `[]` (empty list)             | `["/home/troy/3d/example"]`
+image_angles    | List of viewpoint angle names to use in image export | `["above_front_left", "above_front_right"] | ["top"]
+colorscheme     | Color scheme name to use in image export | `"slicer_dark"` | ["top"]
 debug           | Output a lot more messages when running 3DMake    | `false`                       | `true`
 
 Some of these settings can be further overridden on the command line (for example, `-m` overrides `model_name`, and `-i` overrides `interactive)`. In fact, all of the command line options are reflected here.
