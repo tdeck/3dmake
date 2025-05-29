@@ -17,9 +17,6 @@ import actions.help_action
 from version import VERSION
 from coretypes import FileSet, CommandOptions
 from utils.prompts import yes_or_no
-from utils.stream_wrappers import IndentStream, FilterPipe
-from utils.bundle_paths import DEPS
-from utils.openscad import should_print_openscad_log
 from actions import ALL_ACTIONS_IN_ORDER, Context
 
 CONFIG_DIR = user_config_path('3dmake', None)

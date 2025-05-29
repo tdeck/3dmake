@@ -20,6 +20,8 @@ class IndentStream:
         def _reader():
             with os.fdopen(self.pipe_read, 'r') as pipe:
                 for line in pipe:
+                    if self.wrapped_stream == subprocess.DEVNULL:
+                        continue
                     # Indent each line and write to the wrapped stream
                     self.wrapped_stream.write(f"{self.indent_str}{line}")
                     self.wrapped_stream.flush()
@@ -27,12 +29,7 @@ class IndentStream:
         threading.Thread(target=_reader, daemon=True).start()
 
     def write(self, text, *args, **kwargs):
-        if self.wrapped_stream == subprocess.DEVNULL:
-            return
-
-        for line in text.splitlines(True):
-            self.wrapped_stream.write(f"{self.indent_str}{line}", *args, **kwargs)
-        self.wrapped_stream.flush()
+        os.write(self.pipe_write, text.encode('utf-8'))
 
     def fileno(self):
         return self.pipe_write
@@ -74,3 +71,41 @@ class FilterPipe:
 
     def close(self): # TODO do I want this?
         os.close(self.pipe_write)
+
+class StoreAndForwardStream:
+    """ This class reprints everything to the wrapped stream, but also stores it in a .content string """
+    def __init__(self, wrapped_stream):
+        self.wrapped_stream = wrapped_stream
+        self.pipe_read, self.pipe_write = os.pipe()
+        self.content = ''
+        self._content_lock = threading.Lock()
+
+        # Start a thread to read from the pipe and forward output
+        self._start_reader_thread()
+
+    def _start_reader_thread(self):
+        def _reader():
+            with os.fdopen(self.pipe_read, 'r') as pipe:
+                for line in pipe:
+                    with self._content_lock:
+                        self.content += line
+
+                    if self.wrapped_stream == subprocess.DEVNULL:
+                        continue
+                    self.wrapped_stream.write(line)
+                    self.wrapped_stream.flush()
+
+        threading.Thread(target=_reader, daemon=True).start()
+
+    def write(self, text, *args, **kwargs):
+        os.write(self.pipe_write, text.encode('utf-8'))
+
+    def fileno(self):
+        return self.pipe_write
+
+    def close(self): # TODO do I want this?
+        os.close(self.pipe_write)
+
+    def flush(self):
+        # Not needed because every write flushes anyway
+        pass

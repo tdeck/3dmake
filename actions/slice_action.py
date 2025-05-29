@@ -6,6 +6,9 @@ from pathlib import Path
 from .framework import Context, pipeline_action
 from utils.bundle_paths import DEPS
 from utils.logging import throw_subprogram_error
+from utils.stream_wrappers import StoreAndForwardStream
+
+CANT_FIT_ERROR_MESSAGE = ': No outline can be derived for object\n'
 
 @pipeline_action(gerund='slicing')
 def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
@@ -47,12 +50,20 @@ def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         cmd.append('--load')
         cmd.append(ini_file)
 
+    # Unfortunately PrusaSlicer doesn't treat the specific case of a model being
+    # outside the horizontal build volume as an error, instead it simply logs an
+    # obscure note to stdout, so we need to do this hack to handle it.
+    stdout_capture_stream = StoreAndForwardStream(debug_stdout)
+
     # Here we suppress a lot of the progress messages from PrusaSlicer because
     # the loglevel directive doesn't seem to work. True errors should appear on
     # stderr where they will be displayed.
-    process_result = subprocess.run(cmd, stdout=debug_stdout, stderr=stdout)
+    process_result = subprocess.run(cmd, stdout=stdout_capture_stream, stderr=stdout)
     if process_result.returncode != 0:
         throw_subprogram_error('slicer', process_result.returncode, ctx.options.debug)
+
+    if CANT_FIT_ERROR_MESSAGE in stdout_capture_stream.content:
+        raise RuntimeError(f"Could not fit the object outline on the build surface")
 
     ctx.files.sliced_gcode = gcode_file
 
