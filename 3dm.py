@@ -225,9 +225,16 @@ for name, action in ALL_ACTIONS_IN_ORDER.items():
 
 if infiles:
     # If we're in single file mode, copy the last result to the working dir
-    output = file_set.final_output()
-    if output:
-        shutil.copy(file_set.final_output(), Path('.'))
-        print(f"Result is {file_set.final_output().name}")
+    outputs = file_set.final_outputs()
+    if outputs:
+        for file in outputs:
+            shutil.copy(file, Path('.'))
+
+        if len(outputs) == 1:
+            print(f"Result is in {outputs[0].name}")
+        else:
+            print(f"Result files:")
+            for file in outputs:
+                print(f"    {file.name}")
 
 print("Done.")

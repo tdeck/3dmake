@@ -25,7 +25,7 @@ class CommandOptions:
     interactive: bool = False
     libraries: List[str] = field(default_factory=list)
     local_libraries: List[str] = field(default_factory=list) # Note: these should contain paths
-    image_angles: List[str] = field(default_factory=lambda: ['above_front_left', 'above_front_right'])
+    image_angles: List[str] = field(default_factory=lambda: ['above_front_left', 'above_front', 'above_front_right'])
     colorscheme: str = "slicer_dark"
 
 
@@ -43,7 +43,7 @@ class FileSet:
     oriented_model: Optional[Path] = None
     projected_model: Optional[Path] = None
     sliced_gcode: Optional[Path] = None
-    rendered_images = dict[str, Optional[Path]]
+    rendered_images: dict[str, Optional[Path]]
 
     def model_to_project(self) -> Optional[Path]:
         return self.oriented_model or self.model
@@ -51,12 +51,15 @@ class FileSet:
     def model_to_slice(self) -> Optional[Path]:
         return self.projected_model or self.oriented_model or self.model
 
-    def final_output(self) -> Optional[Path]:
+    def final_outputs(self) -> list[Path]:
         """ Returns the most processed output file; which will be the command's final result in single file mode. """
         if self.sliced_gcode:
-            return self.sliced_gcode
+            return [self.sliced_gcode]
 
-        return self.projected_model or self.oriented_model or (self.scad_source and self.model)
+        if self.rendered_images:
+            return list(self.rendered_images.values())
+
+        return [self.projected_model or self.oriented_model or (self.scad_source and self.model)]
 
 @dataclass
 class Thruple:
