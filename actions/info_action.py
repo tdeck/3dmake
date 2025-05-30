@@ -18,7 +18,7 @@ from .framework import Context, pipeline_action
     gerund='examining',
     implied_actions=[measure_model],
 )
-def info(ctx: Context, stdout: TextIO, __):
+def info(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     ''' Get basic info about the model, and AI description if enabled '''
 
     sizes = ctx.mesh_metrics.sizes()
@@ -28,7 +28,7 @@ def info(ctx: Context, stdout: TextIO, __):
 
     if ctx.options.gemini_key:
         stdout.write("\nAI description:\n")
-        describe_model(ctx.mesh, ctx.options.gemini_key, stdout, ctx.options.interactive)
+        describe_model(ctx.mesh, ctx.options.gemini_key, stdout, debug_stdout, ctx.options.interactive)
 
 
 SerializedImage = Dict[str, Any]
@@ -38,7 +38,7 @@ MODEL_COLOR = 'orange'
 PLANE_SIZE = 300
 PLANE_OPACITY = .2
 IMAGE_PIXELS = 768
-LLM_NAME = "gemini-1.5-pro"
+LLM_NAME = 'gemini-2.0-flash'
 
 VIEWPOINTS_TO_USE = [
     'above_front_left',
@@ -61,7 +61,15 @@ def serialize_image(img: 'PIL.Image') -> SerializedImage:
     img.save(stream, format="png")
     return {'mime_type':'image/png', 'data': base64.b64encode(stream.getvalue()).decode('utf-8')}
 
-def describe_model(mesh: Mesh, gemini_api_key: str, stdout: TextIO, interactive: bool) -> None:
+def print_token_stats(
+    res: 'google.generativeai.types.GenerateContentResponse',
+    stream: TextIO,
+):
+    stream.write(f"Prompt tokens: {res.usage_metadata.prompt_token_count}\n")
+    stream.write(f"Candidates tokens: {res.usage_metadata.candidates_token_count}\n")
+    stream.write(f"Total tokens: {res.usage_metadata.total_token_count}\n")
+
+def describe_model(mesh: Mesh, gemini_api_key: str, stdout: TextIO, debug_stdout: TextIO, interactive: bool) -> None:
     import google.generativeai as genai  # Slow import
 
     renderer = MeshRenderer(mesh)
@@ -77,8 +85,8 @@ def describe_model(mesh: Mesh, gemini_api_key: str, stdout: TextIO, interactive:
     chat = llm.start_chat()
 
     res = chat.send_message([PROMPT_TEXT] + images)
-
     stdout.write(res.text + "\n")
+    print_token_stats(res, debug_stdout)
 
     if interactive:
         stdout.write("\nYou are in interactive mode and can ask the AI follow-up questions.")
@@ -95,3 +103,4 @@ def describe_model(mesh: Mesh, gemini_api_key: str, stdout: TextIO, interactive:
 
             res = chat.send_message(question)
             stdout.write(res.text + "\n")
+            print_token_stats(res, debug_stdout)
