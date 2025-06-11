@@ -7,6 +7,7 @@ from .framework import Context, pipeline_action
 from utils.bundle_paths import DEPS
 from utils.logging import throw_subprogram_error
 from utils.stream_wrappers import StoreAndForwardStream
+from utils.print_config import read_config_values
 
 CANT_FIT_ERROR_MESSAGE = ': No outline can be derived for object\n'
 
@@ -49,6 +50,13 @@ def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     for ini_file in ini_files:
         cmd.append('--load')
         cmd.append(ini_file)
+
+    config_dict = read_config_values(ini_files)
+    if '3dm_bed_center' in config_dict:
+        # This is a hack I had to add because PrusaSlicer CLI doesn't handle
+        # centering on irregular beds for some reason (see trello NUSi3wvK)
+        cmd.append('--center')
+        cmd.append(config_dict['3dm_bed_center'])
 
     # Unfortunately PrusaSlicer doesn't treat the specific case of a model being
     # outside the horizontal build volume as an error, instead it simply logs an

@@ -40,3 +40,18 @@ def list_overlays(config_dir: Path) -> List[OverlayName]:
                 results.append(OverlayName(name=filename[:-4], profile=profile))
     return results
 
+
+def read_config_values(ini_files: list[Path]) -> dict[str, str]:
+    result = {}
+    for path in ini_files:
+        with open(path, 'r') as fh:
+            for line in fh:
+                trimmed = line.strip()
+                if not trimmed:
+                    continue
+                if trimmed[0] == '#' or trimmed[0] == ';':
+                    continue # Comment
+                k, v = trimmed.split('=', 1)
+                result[k.strip()] = v.strip()
+
+    return result

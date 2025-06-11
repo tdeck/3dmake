@@ -334,6 +334,7 @@ bridge_acceleration
 
 # Printer geometry
 bed_shape
+3dm_bed_center
 bed_custom_model
 bed_custom_texture
 
