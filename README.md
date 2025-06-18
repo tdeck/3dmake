@@ -178,7 +178,7 @@ gemini_key      | Your Gemini API key (do not share this)           | What you s
 interactive     | Whether to make `3dm info` interactive by default[^3] | `false`                       | `true`
 libraries       | List of libraries to use in your project          | `[]` (empty list)             | `["bosl", "dotscad"]`
 local_libraries | List of library paths to use in project           | `[]` (empty list)             | `["/home/troy/3d/example"]`
-image_angles    | List of viewpoint angle names to use in image export | `["above_front_left", "above_front_right"] | `["top"]`
+image_angles    | List of viewpoint angle names to use in image export | `["above_front_left", "above_front_right"]` | `["top"]`
 colorscheme     | Color scheme name to use in image export | `"slicer_dark"` | `["top"]`
 debug           | Output a lot more messages when running 3DMake    | `false`                       | `true`
 
