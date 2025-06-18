@@ -61,34 +61,33 @@ def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     # Unfortunately PrusaSlicer doesn't treat the specific case of a model being
     # outside the horizontal build volume as an error, instead it simply logs an
     # obscure note to stdout, so we need to do this hack to handle it.
-    stdout_capture_stream = StoreAndForwardStream(debug_stdout)
+    with StoreAndForwardStream(debug_stdout) as stdout_capture_stream:
+        # Here we suppress a lot of the progress messages from PrusaSlicer because
+        # the loglevel directive doesn't seem to work. True errors should appear on
+        # stderr where they will be displayed.
+        process_result = subprocess.run(cmd, stdout=stdout_capture_stream, stderr=stdout)
+        if process_result.returncode != 0:
+            throw_subprogram_error('slicer', process_result.returncode, ctx.options.debug)
 
-    # Here we suppress a lot of the progress messages from PrusaSlicer because
-    # the loglevel directive doesn't seem to work. True errors should appear on
-    # stderr where they will be displayed.
-    process_result = subprocess.run(cmd, stdout=stdout_capture_stream, stderr=stdout)
-    if process_result.returncode != 0:
-        throw_subprogram_error('slicer', process_result.returncode, ctx.options.debug)
+        if CANT_FIT_ERROR_MESSAGE in stdout_capture_stream.content:
+            raise RuntimeError(f"Could not fit the object outline on the build surface")
 
-    if CANT_FIT_ERROR_MESSAGE in stdout_capture_stream.content:
-        raise RuntimeError(f"Could not fit the object outline on the build surface")
+        ctx.files.sliced_gcode = gcode_file
 
-    ctx.files.sliced_gcode = gcode_file
+        slicer_keys = extract_slicer_keys(gcode_file)
 
-    slicer_keys = extract_slicer_keys(gcode_file)
+        stdout.write(f"Hotend temperature: {slicer_keys['temperature']} Celsius\n")
 
-    stdout.write(f"Hotend temperature: {slicer_keys['temperature']} Celsius\n")
+        time_str = (
+            slicer_keys.get('estimated printing time (normal mode)')
+            or slicer_keys.get('estimated printing time (silent mode)')
+        )
+        if time_str:
+            stdout.write(f"Estimated print time: {reformat_gcode_time(time_str)}\n")
 
-    time_str = (
-        slicer_keys.get('estimated printing time (normal mode)')
-        or slicer_keys.get('estimated printing time (silent mode)')
-    )
-    if time_str:
-        stdout.write(f"Estimated print time: {reformat_gcode_time(time_str)}\n")
-
-    filament_used_str = slicer_keys.get('filament used [mm]')
-    if filament_used_str:
-        stdout.write(f"Filament used: {format_mm_length(filament_used_str)}\n")
+        filament_used_str = slicer_keys.get('filament used [mm]')
+        if filament_used_str:
+            stdout.write(f"Filament used: {format_mm_length(filament_used_str)}\n")
 
 def extract_slicer_keys(gcode_file: Path) -> dict[str, str]:
     results = {}

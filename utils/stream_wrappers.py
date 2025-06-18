@@ -3,6 +3,7 @@ import threading
 import re
 import subprocess
 from typing import Callable
+import time
 
 class IndentStream:
     """
@@ -79,14 +80,27 @@ class StoreAndForwardStream:
         self.pipe_read, self.pipe_write = os.pipe()
         self.content = ''
         self._content_lock = threading.Lock()
+        self._should_stop = False
+        self._stopped = False
 
         # Start a thread to read from the pipe and forward output
         self._start_reader_thread()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, _, __, ___):
+        self.close()
+        return False # Don't suppress exceptions
 
     def _start_reader_thread(self):
         def _reader():
             with os.fdopen(self.pipe_read, 'r') as pipe:
                 for line in pipe:
+                    if self._should_stop:
+                        self._stopped = True
+                        return
+
                     with self._content_lock:
                         self.content += line
 
@@ -98,13 +112,22 @@ class StoreAndForwardStream:
         threading.Thread(target=_reader, daemon=True).start()
 
     def write(self, text, *args, **kwargs):
+        if not self.pipe_write:
+            raise RuntimeError("Stream wrapper closed on write")
         os.write(self.pipe_write, text.encode('utf-8'))
 
     def fileno(self):
         return self.pipe_write
 
-    def close(self): # TODO do I want this?
+    def close(self):
+        self._should_stop = True
+        os.write(self.pipe_write, b"\n") # Write a line just to wake up the thread
         os.close(self.pipe_write)
+        self.pipe_write = None
+
+        while not self._stopped:
+            time.sleep(.01)
+
 
     def flush(self):
         # Not needed because every write flushes anyway
