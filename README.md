@@ -173,13 +173,13 @@ octoprint_key   | The OctoPrint API key (do not share this)         | What you s
 auto_start_prints | When uploading to `3dm print`, start the print right away | `true`              | `false`
 strict_warnings | Fail `3dm build` when OpenSCAD sees a problem with your code | `false`[^1]           | `true`
 editor          | Command to open your preferred text editor        | "notepad" in Windows[^2]      | `"code"`
-edit_in_background | Exit 3DMake after starting an editor           | `true` when using Notepad, `false` otherwise     | `"false`
+edit_in_background | Exit 3DMake after starting an editor           | `true` when using Notepad, `false` otherwise     | `false`
 gemini_key      | Your Gemini API key (do not share this)           | What you set in 3dm setup     | `"47b64..."`
 interactive     | Whether to make `3dm info` interactive by default[^3] | `false`                       | `true`
 libraries       | List of libraries to use in your project          | `[]` (empty list)             | `["bosl", "dotscad"]`
 local_libraries | List of library paths to use in project           | `[]` (empty list)             | `["/home/troy/3d/example"]`
-image_angles    | List of viewpoint angle names to use in image export | `["above_front_left", "above_front_right"] | ["top"]
-colorscheme     | Color scheme name to use in image export | `"slicer_dark"` | ["top"]
+image_angles    | List of viewpoint angle names to use in image export | `["above_front_left", "above_front_right"] | `["top"]`
+colorscheme     | Color scheme name to use in image export | `"slicer_dark"` | `["top"]`
 debug           | Output a lot more messages when running 3DMake    | `false`                       | `true`
 
 Some of these settings can be further overridden on the command line (for example, `-m` overrides `model_name`, and `-i` overrides `interactive)`. In fact, all of the command line options are reflected here.
