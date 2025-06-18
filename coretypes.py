@@ -24,9 +24,13 @@ class CommandOptions:
     # Libraries
     libraries: List[str] = field(default_factory=list)
     local_libraries: List[str] = field(default_factory=list) # Note: these should contain paths
+
+    print_mode: str = 'octoprint' # Options are "octoprint" and "bambu_lan"
+
     # Octoprint
     octoprint_host: Optional[str] = None
     octoprint_key: Optional[str] = None
+
     # Bambu labs
     bambu_host: Optional[str] = None
     bambu_serial_number: Optional[str] = None
