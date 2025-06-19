@@ -110,6 +110,33 @@ The preview's "view" can be changed using the -v option. Here are the possible p
 - -v rightsil - Silhouette from the right
 - -v topsil - Silhouette from the top
 
+# Producing images of models
+
+The `3dm image` command allows you to make images of your models. These images will automatically be scaled to center the model and zoom in, and the model will sit on a grid indicating the x-y plane. The images will show the model when viewed from a particular angle, and these angles have names for your convenience. You select the angle by adding the `-a` option to the 3dm command, for example `3dm image -a front`.
+
+The possible angle names are below (you can generate multiple images at once by using multiple -a options):
+
+- `-a front` - Camera faces in the +x direction
+- `-a back` - Camera faces in the -x direction
+- `-a left` - Camera faces in the +y direction
+- `-a right` - Camera faces in the -y direction
+- `-a top` - Camera faces in the -z directoin
+- `-a bottom` - Camera faces in the +z direction
+- `-a above_front` - Camera faces in the +x, -z direction (looking down at an angle)
+- `-a above_front_left` - Camrea faces in the +x. +y, -z direction (looking down at the front left corner)
+- `-a above_front_right` - Camera faces in the -x, +y, -z direction (looking down at the front right corner)
+- `-a above_back_left` - Camera faces in the 
+
+The `3dm image` command places your images in the build directory with names indicating the model and view angle. For example, for the "main" model, images might be called "main-above_front_left.png", and "main-above_front_right.png".
+
+The command also supports different color schemes for the model, background, and grid. This can be set with the `--colorscheme` option which has these possible values:
+
+- `--colorscheme slicer_light` - Orange model. light gray background, green and blue grid lines
+- `--colorscheme slicer_dark` - Orange model, almost black background, green and blue grid lines
+- `--colorscheme light_on_dark` -White model, dark gray background, light gray grid lines
+
+Default color scheme and angles can also be set in your 3dm config files.
+
 # Working with files that aren't part of a project
 
 3DMake can accept individual files to slice, orient, and preview even if they aren't part of a project. For example, you can do `3dm slice turtle.stl` or `3dm build orient print pyramid.stl`.
