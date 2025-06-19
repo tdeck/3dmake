@@ -17,6 +17,7 @@ a = Analysis(
     datas=[
         (f'./{deps_dir}', deps_dir),
         (f'./default_config', 'default_config'),
+        (f'./assets', 'assets'),
         (f'README.md', '.'),
     ],
     hiddenimports=[

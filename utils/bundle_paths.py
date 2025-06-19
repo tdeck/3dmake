@@ -37,4 +37,4 @@ def get_deps() -> Dependencies:
     return Dependencies(openscad_path, slicer_path)
 
 DEPS = get_deps()
-BAMBU_3MF_TEMPLATE_PATH = SCRIPT_DIR / 'template.gcode.3mf'
+BAMBU_3MF_TEMPLATE_PATH = SCRIPT_DIR / 'assets/template.gcode.3mf'
