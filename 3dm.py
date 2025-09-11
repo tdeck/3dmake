@@ -112,7 +112,7 @@ for verb in list(verbs):
         raise error_out(f"Unknown action '{verb}'")
 
     if action.isolated and verb_count > 1:
-        raise error_out(f"The action '{verb}' can only be used on its own'")
+        raise error_out(f"The action '{verb}' can only be used on its own")
 
     if action.needs_options:
         should_load_options = True
