@@ -14,8 +14,6 @@ class CommandOptions:
     printer_profile: str
     scale: Union[float, Literal["auto"]] = 1.0
     overlays: List[str] = field(default_factory=list)
-    octoprint_host: Optional[str] = None
-    octoprint_key: Optional[str] = None
     auto_start_prints: bool = False
     debug: bool = False
     strict_warnings: bool = False # This will default to True in new projects though
@@ -23,10 +21,21 @@ class CommandOptions:
     edit_in_background: bool = False # This causes edit commands to open the editor in a BG process; breaks terminal editors
     gemini_key: Optional[str] = None
     interactive: bool = False
+    # Libraries
     libraries: List[str] = field(default_factory=list)
     local_libraries: List[str] = field(default_factory=list) # Note: these should contain paths
-    image_angles: List[str] = field(default_factory=lambda: ['above_front_left', 'above_front', 'above_front_right'])
-    colorscheme: str = "slicer_dark"
+
+    print_mode: str = 'octoprint' # Options are "octoprint" and "bambu_lan"
+
+    # Octoprint
+    octoprint_host: Optional[str] = None
+    octoprint_key: Optional[str] = None
+
+    # Bambu labs
+    bambu_host: Optional[str] = None
+    bambu_serial_number: Optional[str] = None
+    bambu_access_code: Optional[str] = None
+
 
 
 class FileSet:
