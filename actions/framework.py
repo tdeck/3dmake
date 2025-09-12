@@ -6,7 +6,7 @@ from pathlib import Path
 
 from stl.mesh import Mesh
 
-from utils.stream_wrappers import IndentStream
+from utils.stream_wrappers import IndentStream, DEVNULL
 from coretypes import CommandOptions, FileSet, MeshMetrics
 
 @dataclass(kw_only=True)
@@ -45,7 +45,7 @@ class Action:
 
         if self.isolated:
             # Isolated commands don't run in a pipeline so we don't indent their output
-            return self.impl(context, sys.stdout, sys.stdout if debug_mode else subprocess.DEVNULL)
+            return self.impl(context, sys.stdout, sys.stdout if debug_mode else DEVNULL)
         else:
             if not self.internal:
                 # I'm not sure what I should do if the internal action *does* produce output;
@@ -53,8 +53,8 @@ class Action:
                 gerund_str = self.gerund or (self.name + 'ing')
                 print(f"\n{gerund_str.capitalize()}...")
 
-            indent_stream = IndentStream(sys.stdout)
-            return self.impl(context, indent_stream, indent_stream if debug_mode else subprocess.DEVNULL)
+            with IndentStream(sys.stdout) as indent_stream:
+                return self.impl(context, indent_stream, indent_stream if debug_mode else DEVNULL)
 
 #
 # Decorators

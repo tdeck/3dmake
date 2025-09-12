@@ -38,7 +38,7 @@ MODEL_COLOR = 'orange'
 PLANE_SIZE = 300
 PLANE_OPACITY = .2
 IMAGE_PIXELS = 768
-LLM_NAME = 'gemini-2.0-flash'
+LLM_NAME = 'gemini-2.5-pro'
 
 VIEWPOINTS_TO_USE = [
     'above_front_left',
