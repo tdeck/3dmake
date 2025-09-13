@@ -202,6 +202,7 @@ strict_warnings | Fail `3dm build` when OpenSCAD sees a problem with your code |
 editor          | Command to open your preferred text editor        | "notepad" in Windows[^2]      | `"code"`
 edit_in_background | Exit 3DMake after starting an editor           | `true` when using Notepad, `false` otherwise     | `false`
 gemini_key      | Your Gemini API key (do not share this)           | What you set in 3dm setup     | `"47b64..."`
+llm_name        | The name of the gemini model to use               | Depends on 3dmake version     | `"gemini-2.5-pro"`
 interactive     | Whether to make `3dm info` interactive by default[^3] | `false`                       | `true`
 libraries       | List of libraries to use in your project          | `[]` (empty list)             | `["bosl", "dotscad"]`
 local_libraries | List of library paths to use in project           | `[]` (empty list)             | `["/home/troy/3d/example"]`

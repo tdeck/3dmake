@@ -28,7 +28,14 @@ def info(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
 
     if ctx.options.gemini_key:
         stdout.write("\nAI description:\n")
-        describe_model(ctx.mesh, ctx.options.gemini_key, stdout, debug_stdout, ctx.options.interactive)
+        describe_model(
+            mesh=ctx.mesh,
+            gemini_api_key=ctx.options.gemini_key,
+            llm_name=ctx.options.llm_name,
+            stdout=stdout,
+            debug_stdout=debug_stdout,
+            interactive=ctx.options.interactive,
+        )
 
 
 SerializedImage = Dict[str, Any]
@@ -38,7 +45,6 @@ MODEL_COLOR = 'orange'
 PLANE_SIZE = 300
 PLANE_OPACITY = .2
 IMAGE_PIXELS = 768
-LLM_NAME = 'gemini-2.5-pro'
 
 VIEWPOINTS_TO_USE = [
     'above_front_left',
@@ -69,7 +75,14 @@ def print_token_stats(
     stream.write(f"Candidates tokens: {res.usage_metadata.candidates_token_count}\n")
     stream.write(f"Total tokens: {res.usage_metadata.total_token_count}\n")
 
-def describe_model(mesh: Mesh, gemini_api_key: str, stdout: TextIO, debug_stdout: TextIO, interactive: bool) -> None:
+def describe_model(
+    mesh: Mesh,
+    gemini_api_key: str,
+    llm_name: str,
+    stdout: TextIO,
+    debug_stdout: TextIO,
+    interactive: bool,
+) -> None:
     import google.generativeai as genai  # Slow import
 
     renderer = MeshRenderer(mesh)
@@ -81,7 +94,7 @@ def describe_model(mesh: Mesh, gemini_api_key: str, stdout: TextIO, debug_stdout
     ]
 
     genai.configure(api_key=gemini_api_key)
-    llm = genai.GenerativeModel(LLM_NAME)
+    llm = genai.GenerativeModel(llm_name)
     chat = llm.start_chat()
 
     res = chat.send_message([PROMPT_TEXT] + images)

@@ -19,7 +19,6 @@ class CommandOptions:
     strict_warnings: bool = False # This will default to True in new projects though
     editor: Optional[str] = None
     edit_in_background: bool = False # This causes edit commands to open the editor in a BG process; breaks terminal editors
-    gemini_key: Optional[str] = None
     interactive: bool = False
     # Libraries
     libraries: List[str] = field(default_factory=list)
@@ -36,6 +35,9 @@ class CommandOptions:
     bambu_serial_number: Optional[str] = None
     bambu_access_code: Optional[str] = None
 
+    # LLM config
+    gemini_key: Optional[str] = None
+    llm_name: str = 'gemini-2.5-pro'
 
 
 class FileSet:
