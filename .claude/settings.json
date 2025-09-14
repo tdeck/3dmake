@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(deps)",
+      "Read(dist)",
+      "Read(build)"
+    ]
+  }
+}
