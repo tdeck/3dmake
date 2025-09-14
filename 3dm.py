@@ -122,6 +122,18 @@ for verb in list(verbs):
     for dependency in action.implied_actions:
         verbs.add(dependency)
 
+# Validate last_in_chain constraints
+action_names_in_order = list(ALL_ACTIONS_IN_ORDER.keys())
+requested_actions_in_order = [name for name in action_names_in_order if name in verbs]
+
+for i, action_name in enumerate(requested_actions_in_order):
+    action = ALL_ACTIONS_IN_ORDER[action_name]
+    if action.last_in_chain:
+        # Check if there are any later actions in the internal ordering
+        later_actions = requested_actions_in_order[i+1:]
+        if later_actions:
+            error_out(f"Action '{action_name}' cannot be followed by other actions. Found: {', '.join(later_actions)}")
+
 # Load options if necessary
 options, project_root, file_set = None, None, None
 if should_load_options:

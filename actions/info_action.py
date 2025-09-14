@@ -17,6 +17,7 @@ from .framework import Context, pipeline_action
 @pipeline_action(
     gerund='examining',
     implied_actions=[measure_model],
+    last_in_chain=True,
 )
 def info(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     ''' Get basic info about the model, and AI description if enabled '''

@@ -34,6 +34,7 @@ class Action:
     isolated: bool  # True means the verb can't be run with other verbs
     needs_options: bool
     takes_input_file: bool
+    last_in_chain: bool = False  # True means no later actions in internal ordering can be executed
     implied_actions: List[ActionName] = field(default_factory=list)
     impl: ActionFunc
 
@@ -92,6 +93,7 @@ def pipeline_action(
     gerund:Optional[str] = None,
     implied_actions: List[Action] = [],
     internal = False,  # Note: It would be better to call @internal_action for internal actions!
+    last_in_chain: bool = False,
 ):
     # This is a little convenience thing we do so that the caller of pipeline_actions
     # needs to specify actions that actually exist, and we save them from calling .name
@@ -106,6 +108,7 @@ def pipeline_action(
             takes_input_file=True,
             needs_options=True,
             internal=internal,
+            last_in_chain=last_in_chain,
             implied_actions=implied_action_names,
             impl=func,
         )

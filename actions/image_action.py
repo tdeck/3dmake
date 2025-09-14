@@ -17,6 +17,7 @@ COLORSCHEMES = {
 
 @pipeline_action(
     gerund='imaging',
+    last_in_chain=True,
     implied_actions=[measure_model],
 )
 def image(ctx: Context, stdout: TextIO, __):
