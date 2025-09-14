@@ -14,6 +14,7 @@ prompt-toolkit = "*"
 vtkplotlib = "*"
 pillow = "*"
 google-generativeai = "*"
+openai = "*"
 vtk = "*"
 grpcio = "==1.67.1"  # Fix for grpc_wait_for_shutdown_with_timeout() error
 paho-mqtt = "*"

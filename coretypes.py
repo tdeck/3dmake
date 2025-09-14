@@ -37,6 +37,7 @@ class CommandOptions:
 
     # LLM config
     gemini_key: Optional[str] = None
+    openrouter_key: Optional[str] = None
     llm_name: str = 'gemini-2.5-pro'
 
 
