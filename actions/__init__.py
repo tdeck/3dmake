@@ -39,8 +39,8 @@ _actions_in_order = [
     edit_actions.edit_model,
     edit_actions.edit_overlay,
     edit_actions.edit_profile,
-    edit_actions.edit_global_config,
     edit_gcode_action.edit_gcode,
+    edit_actions.edit_global_config,
 
     library_actions.list_libraries,
     library_actions.install_libraries,

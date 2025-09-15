@@ -81,7 +81,7 @@ def update_profile_gcode_value(profile_path: Path, key: str, new_gcode: str) -> 
 
 @isolated_action(needs_options=True)
 def edit_gcode(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
-    """Edit GCODE settings from printer profile with multi-line support"""
+    """Edit GCODE scripts in printer profile (affected by -p)"""
 
     # Check that the printer profile exists
     profiles = list_printer_profiles(ctx.config_dir)
