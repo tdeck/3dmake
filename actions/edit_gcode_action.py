@@ -3,9 +3,9 @@ from pathlib import Path
 from typing import TextIO
 
 from .framework import Context, isolated_action
-from .edit_actions import launch_editor
 from utils.print_config import read_config_values, list_printer_profiles
 from utils.prompts import option_select
+from utils.editor import launch_editor
 
 EXCLUDED_SETTINGS = {'binary_gcode'}  # These aren't actually gcode
 
@@ -112,13 +112,10 @@ def edit_gcode(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
 
     # Get current value and unescape it
     current_escaped = config_values.get(selected_key, "")
-    print("Current escaped", current_escaped) # TODO debug
     current_unescaped = unescape_gcode(current_escaped)
-    print("Current unescaped", current_unescaped) # TODO debug
 
     # Create temporary file for editing
     with tempfile.NamedTemporaryFile(mode='w+', suffix='.gcode', delete=True, encoding='utf-8') as temp_file:
-        print("Tmp file", temp_file.name) # TODO debug
         temp_file.write(current_unescaped)
         temp_file.flush()
         temp_path = Path(temp_file.name)

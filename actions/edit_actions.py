@@ -1,36 +1,14 @@
-import subprocess
 import shutil
-import platform
-import os
 from pathlib import Path
+from typing import TextIO
 
 from prompt_toolkit import prompt
 
 from .framework import Context, isolated_action
-from coretypes import CommandOptions
 from utils.print_config import list_printer_profiles, list_overlays, OverlayName
 from utils.prompts import yes_or_no, option_select
-
-def launch_editor(options: CommandOptions, file: Path, blocking: bool = False) -> None:
-    background = options.edit_in_background
-    editor = options.editor
-
-    if not editor:
-        if platform.system() == 'Windows':
-            # If you change this, change the defaults populated in setup_action also
-            editor = 'notepad'
-            background = True
-        else:
-            # nano is an arbitrary fallback that we might improve in the future
-            editor = os.getenv('VISUAL') or os.getenv('EDITOR') or 'nano'
-
-    # Use shell=True to handle editor commands with arguments
-    cmd = f'{editor} "{file}"'
-
-    if background and not blocking:
-        subprocess.Popen(cmd, shell=True)
-    else:
-        subprocess.run(cmd, shell=True)
+from utils.editor import launch_editor
+from utils.prompt import ensure_custom_prompt_exists
 
 @isolated_action(needs_options=True)
 def edit_model(ctx: Context, _, __):
@@ -102,3 +80,17 @@ def edit_overlay(ctx: Context, _, __):
         overlay_file = matches[0].path(ctx.config_dir)
 
     launch_editor(ctx.options, overlay_file)
+
+@isolated_action(needs_options=True)
+def edit_prompt(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+    """Edit the AI prompt used by the info command"""
+
+    # Ensure the prompt file exists (creates with default if needed)
+    prompt_file = ensure_custom_prompt_exists(ctx.config_dir)
+
+    if not prompt_file.exists():
+        stdout.write(f"Created new prompt file at {prompt_file}\n")
+    else:
+        stdout.write(f"Editing existing prompt file at {prompt_file}\n")
+
+    launch_editor(ctx.options, prompt_file)

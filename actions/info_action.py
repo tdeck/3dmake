@@ -13,6 +13,7 @@ from prompt_toolkit import prompt
 
 from .measure_action import measure_model
 from .framework import Context, pipeline_action
+from utils.prompt import get_ai_prompt
 
 @pipeline_action(
     gerund='examining',
@@ -37,6 +38,7 @@ def info(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             stdout=stdout,
             debug_stdout=debug_stdout,
             interactive=ctx.options.interactive,
+            prompt_text=get_ai_prompt(ctx.config_dir),
         )
 
 
@@ -56,13 +58,6 @@ VIEWPOINTS_TO_USE = [
     'top',
     'bottom',
 ]
-PROMPT_TEXT = textwrap.dedent('''\
-    You are reviewing a rendered STL file of a 3D model that has one or more parts. These images show the model in that file rendered from multiple different angles. The orange color of the part(s) is arbitrarily chosen for the render, do not mention that the parts are orange.. Part(s) are shown on a ground plane with 10mm grid markings; the plane is not part of the model. These images are all from the same model file and depict the same exact part(s) in the same arrangement, but viewed from different angles.
-
-    Describe the shape of the part(s) so that someone who is blind can understand them. Do not describe the model's color, the specific image viewpoints, or anything else about how you are viewing the shapes. Only describe the physical objects themselves.
-
-    Sometimes models may have obvious defects or mistakes. If this model has such defects, be sure to mention them. If there are no noticeable defects, do not mention defects at all.'''
-)
 
 def serialize_image(img: 'PIL.Image') -> SerializedImage:
     stream = io.BytesIO()
@@ -85,11 +80,12 @@ def describe_model(
     stdout: TextIO,
     debug_stdout: TextIO,
     interactive: bool,
+    prompt_text: str,
 ) -> None:
     if openrouter_api_key:
-        describe_model_openrouter(mesh, openrouter_api_key, llm_name, stdout, debug_stdout, interactive)
+        describe_model_openrouter(mesh, openrouter_api_key, llm_name, stdout, debug_stdout, interactive, prompt_text)
     elif gemini_api_key:
-        describe_model_gemini(mesh, gemini_api_key, llm_name, stdout, debug_stdout, interactive)
+        describe_model_gemini(mesh, gemini_api_key, llm_name, stdout, debug_stdout, interactive, prompt_text)
 
 def describe_model_gemini(
     mesh: Mesh,
@@ -98,6 +94,7 @@ def describe_model_gemini(
     stdout: TextIO,
     debug_stdout: TextIO,
     interactive: bool,
+    prompt_text: str,
 ) -> None:
     import google.generativeai as genai  # Slow import
     debug_stdout.write(f"Using Gemini model {llm_name}\n")
@@ -114,7 +111,7 @@ def describe_model_gemini(
     llm = genai.GenerativeModel(llm_name)
     chat = llm.start_chat()
 
-    res = chat.send_message([PROMPT_TEXT] + images)
+    res = chat.send_message([prompt_text] + images)
     stdout.write(res.text + "\n")
     print_gemini_token_stats(res, debug_stdout)
 
@@ -142,6 +139,7 @@ def describe_model_openrouter(
     stdout: TextIO,
     debug_stdout: TextIO,
     interactive: bool,
+    prompt_text: str,
 ) -> None:
     from openai import OpenAI  # Slow import
     debug_stdout.write(f"Using OpenRouter model {llm_name}\n")
@@ -156,7 +154,7 @@ def describe_model_openrouter(
 
     client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=openrouter_api_key)
 
-    content = [{"type": "text", "text": PROMPT_TEXT}]
+    content = [{"type": "text", "text": prompt_text}]
     for img_data in images:
         content.append({
             "type": "image_url",
