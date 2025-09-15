@@ -9,7 +9,7 @@ import actions.help_action as help_action
 import actions.version_action as version_action
 import actions.edit_actions as edit_actions
 import actions.build_action as build_action
-import actions.measure_action as measure_action
+import actions.mesh_actions as mesh_actions
 import actions.info_action as info_action
 import actions.orient_action as orient_action
 import actions.preview_action as preview_action
@@ -25,7 +25,8 @@ _actions_in_order = [
     new_action.new,
 
     build_action.build,
-    measure_action.measure_model,
+    mesh_actions.load_mesh,
+    mesh_actions.measure_mesh,
     info_action.info,
     orient_action.orient,
     image_action.image,

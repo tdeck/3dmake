@@ -11,13 +11,13 @@ from utils.renderer import MeshRenderer, VIEWPOINTS
 from stl.mesh import Mesh
 from prompt_toolkit import prompt
 
-from .measure_action import measure_model
+from .mesh_actions import measure_mesh
 from .framework import Context, pipeline_action
 from utils.prompt import get_ai_prompt
 
 @pipeline_action(
     gerund='examining',
-    implied_actions=[measure_model],
+    implied_actions=[measure_mesh],
     last_in_chain=True,
 )
 def info(ctx: Context, stdout: TextIO, debug_stdout: TextIO):

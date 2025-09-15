@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 from utils.renderer import VIEWPOINTS, MeshRenderer, ColorScheme
 from utils.logging import check_if_value_in_options
-from .measure_action import measure_model
+from .mesh_actions import load_mesh
 from .framework import Context, pipeline_action
 
 WIDTH = 1080
@@ -18,7 +18,7 @@ COLORSCHEMES = {
 @pipeline_action(
     gerund='imaging',
     last_in_chain=True,
-    implied_actions=[measure_model],
+    implied_actions=[load_mesh],
 )
 def image(ctx: Context, stdout: TextIO, __):
     ''' Exports one or more rendered images of the model '''

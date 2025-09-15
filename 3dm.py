@@ -102,7 +102,15 @@ if not CONFIG_DIR.exists() and verbs != {'setup'}:
     infiles = []
 
 
-# Check verbs and insert any implied ones
+# Check verbs and insert any implied ones (recursively)
+def add_implied_actions(verb_name, mutable_verbs_set):
+    action = ALL_ACTIONS_IN_ORDER.get(verb_name)
+    if action:
+        for dependency in action.implied_actions:
+            if dependency not in mutable_verbs_set:
+                mutable_verbs_set.add(dependency)
+                add_implied_actions(dependency, mutable_verbs_set)
+
 verb_count = len(verbs)
 should_load_options = False
 should_accept_input_file = False
@@ -120,8 +128,8 @@ for verb in list(verbs):
     if action.takes_input_file:
         should_accept_input_file = True
 
-    for dependency in action.implied_actions:
-        verbs.add(dependency)
+    # Add implied actions recursively
+    add_implied_actions(verb, verbs)
 
 # Validate last_in_chain constraints
 action_names_in_order = list(ALL_ACTIONS_IN_ORDER.keys())

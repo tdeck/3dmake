@@ -14,11 +14,9 @@ def get_ai_prompt(config_dir: Path) -> str:
     custom_prompt_file = config_dir / "prompt.txt"
 
     if custom_prompt_file.exists():
-        print("Using prompt from file") # TODO debug
         with open(custom_prompt_file, 'r', encoding='utf-8') as fh:
             return fh.read().strip()
 
-    print("Using defualt prompt") # TODO debug
     return DEFAULT_AI_PROMPT
 
 def ensure_custom_prompt_exists(config_dir: Path) -> Path:

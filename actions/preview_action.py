@@ -4,7 +4,7 @@ import json
 from typing import TextIO
 
 from .framework import Context, pipeline_action
-from .measure_action import measure_model
+from .mesh_actions import measure_mesh
 from utils.bundle_paths import DEPS
 from utils.stream_wrappers import FilterPipe
 from utils.openscad import should_print_openscad_log
@@ -12,7 +12,7 @@ from utils.logging import throw_subprogram_error
 
 @pipeline_action(
     gerund='preparing preview',
-    implied_actions=[measure_model]
+    implied_actions=[measure_mesh]
 )
 def preview(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     ''' Produce a 2-D representation of the object '''
