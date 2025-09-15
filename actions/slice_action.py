@@ -35,9 +35,13 @@ def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             raise RuntimeError(f"Could not find overlay '{overlay}' for profile '{profile}'")
 
     project_prefix = ''
+    copies_suffix = ''
     if ctx.options.project_name:
         project_prefix = f"{ctx.options.project_name}-"
-    gcode_file = ctx.files.build_dir / f"{project_prefix}{ctx.files.model_to_slice().stem}.gcode"
+    if ctx.options.copies > 1:
+        copies_suffix = f'-x{ctx.options.copies}'
+
+    gcode_file = ctx.files.build_dir / f"{project_prefix}{ctx.files.model_to_slice().stem}{copies_suffix}.gcode"
     
     cmd = [
         DEPS.SLICER,
@@ -45,8 +49,13 @@ def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         '-o', gcode_file,
         '--loglevel=1', # Log only errors
         '--scale', str(ctx.options.scale),
-        ctx.files.model_to_slice()
     ]
+
+    # Add duplicate option if more than 1 copy requested
+    if ctx.options.copies > 1:
+        cmd.extend(['--duplicate', str(ctx.options.copies)])
+
+    cmd.append(ctx.files.model_to_slice())
     for ini_file in ini_files:
         cmd.append('--load')
         cmd.append(ini_file)

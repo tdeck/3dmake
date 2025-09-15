@@ -14,6 +14,7 @@ class CommandOptions:
     model_name: str = "main"
     view: str
     printer_profile: str
+    copies: int = 1
     scale: Union[float, Literal["auto"]] = 1.0
     overlays: List[str] = field(default_factory=list)
     auto_start_prints: bool = False
@@ -44,7 +45,7 @@ class CommandOptions:
     openrouter_key: Optional[str] = None
     llm_name: str = 'gemini-2.5-pro'
 
-   # Image rendering
+    # Image rendering
     image_angles: List[str] = field(default_factory=lambda: ['above_front_left', 'above_front', 'above_front_right'])
     colorscheme: str = "slicer_dark"
 

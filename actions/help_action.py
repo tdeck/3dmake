@@ -38,8 +38,9 @@ def help(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             --overlay NAME      Apply an overlay to slicer settings; can be used multiple times
             --view NAME         The type of preivew to produce, see the documentation for more info
             --angle NAME        The viewpoint (e.g. "top") used for an image export, can be used multiple times
-            --colorscheme NAME  The name of the color used for an image export
+            --copies NUM        Number of copies to print (default: 1)
             --interactive       For 3dm info, start an interactive chat with the AI
+            --colorscheme NAME  The name of the color used for an image export (short name)
 
-        Each option can be abbreviated as one letter with a single dash (e.g. -s 50% to scale)
+        Most options can be abbreviated as one letter with a single dash (e.g. -s 50% to scale)
     ''').format(action_descriptions=action_descriptions))
