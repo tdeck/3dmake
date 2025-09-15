@@ -206,8 +206,8 @@ llm_name        | The name of the gemini model to use               | Depends on
 interactive     | Whether to make `3dm info` interactive by default[^3] | `false`                       | `true`
 libraries       | List of libraries to use in your project          | `[]` (empty list)             | `["bosl", "dotscad"]`
 local_libraries | List of library paths to use in project           | `[]` (empty list)             | `["/home/troy/3d/example"]`
-image_angles    | List of viewpoint angle names to use in image export | `["above_front_left", "above_front_right"]` | `["top"]`
-colorscheme     | Color scheme name to use in image export | `"slicer_dark"` | `["top"]`
+image_angles    | List of viewpoint angle names to use in image export | `["above_front_left", "above_front", "above_front_right"]` | `["top"]`
+colorscheme     | Color scheme name to use in image export | `"slicer_dark"` | `"slicer_light"`
 debug           | Output a lot more messages when running 3DMake    | `false`                       | `true`
 
 Some of these settings can be further overridden on the command line (for example, `-m` overrides `model_name`, and `-i` overrides `interactive)`. In fact, all of the command line options are reflected here.
