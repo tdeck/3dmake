@@ -10,6 +10,7 @@ import tempfile
 import tomllib
 import shutil
 
+from packaging.version import Version
 from prompt_toolkit import prompt
 from platformdirs import user_config_path
 
@@ -138,6 +139,15 @@ for i, action_name in enumerate(requested_actions_in_order):
 options, project_root, file_set = None, None, None
 if should_load_options:
     options, project_root = load_config()
+
+    # Check minimum version requirement if specified in project config
+    if options.min_3dmake_version and project_root:
+        current_version = Version(VERSION)
+        min_required_version = Version(str(options.min_3dmake_version)) # Str in case they put a float in
+
+        if current_version < min_required_version:
+            error_out(f"This project requires 3DMake version {options.min_3dmake_version} or newer. "
+                     f"Current version is {VERSION}. Please update 3DMake to continue.")
 
     if args.scale: # TODO support x,y,z scaling
         if args.scale.replace('.', '').isdecimal():

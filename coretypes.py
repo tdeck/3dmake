@@ -8,6 +8,8 @@ from typing import Optional, Literal, Union, List, Tuple
 
 @dataclass(kw_only=True)
 class CommandOptions:
+    min_3dmake_version: Optional[str] = None # This really only makes sense in project .toml files
+
     project_name: Optional[str] = None # This will be populated automatically with the project's parent dir if not overridden
     model_name: str = "main"
     view: str
@@ -20,10 +22,12 @@ class CommandOptions:
     editor: Optional[str] = None
     edit_in_background: bool = False # This causes edit commands to open the editor in a BG process; breaks terminal editors
     interactive: bool = False
+
     # Libraries
     libraries: List[str] = field(default_factory=list)
     local_libraries: List[str] = field(default_factory=list) # Note: these should contain paths
 
+    # Printer connection mode
     print_mode: str = 'octoprint' # Options are "octoprint" and "bambu_lan"
 
     # Octoprint
