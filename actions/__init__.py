@@ -18,6 +18,7 @@ import actions.print_action as print_action
 import actions.library_actions as library_actions
 import actions.list_config_actions as list_config_actions
 import actions.image_action as image_action
+import actions.edit_gcode_action as edit_gcode_action
 
 _actions_in_order = [
     setup_action.setup,
@@ -39,6 +40,7 @@ _actions_in_order = [
     edit_actions.edit_overlay,
     edit_actions.edit_profile,
     edit_actions.edit_global_config,
+    edit_gcode_action.edit_gcode,
 
     library_actions.list_libraries,
     library_actions.install_libraries,

@@ -11,7 +11,7 @@ from coretypes import CommandOptions
 from utils.print_config import list_printer_profiles, list_overlays, OverlayName
 from utils.prompts import yes_or_no, option_select
 
-def launch_editor(options: CommandOptions, file: Path) -> None:
+def launch_editor(options: CommandOptions, file: Path, blocking: bool = False) -> None:
     background = options.edit_in_background
     editor = options.editor
 
@@ -24,10 +24,13 @@ def launch_editor(options: CommandOptions, file: Path) -> None:
             # nano is an arbitrary fallback that we might improve in the future
             editor = os.getenv('VISUAL') or os.getenv('EDITOR') or 'nano'
 
-    if background:
-        subprocess.Popen([editor, file])
+    # Use shell=True to handle editor commands with arguments
+    cmd = f'{editor} "{file}"'
+
+    if background and not blocking:
+        subprocess.Popen(cmd, shell=True)
     else:
-        subprocess.run([editor, file])
+        subprocess.run(cmd, shell=True)
 
 @isolated_action(needs_options=True)
 def edit_model(ctx: Context, _, __):
