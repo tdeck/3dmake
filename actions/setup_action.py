@@ -3,8 +3,9 @@ import os
 import shutil
 import json
 import platform
+import tomllib
 from pathlib import Path
-from typing import TextIO
+from typing import TextIO, Dict, Any
 
 from prompt_toolkit import prompt
 
@@ -14,16 +15,64 @@ from utils.prompts import yes_or_no, option_select
 from utils.bundle_paths import SCRIPT_DIR, SCRIPT_BIN_PATH
 from version import VERSION
 
+def get_default_settings() -> Dict[str, Any]:
+    """Get the default settings for initial setup"""
+    settings = dict(
+        view='3sil',
+        model_name='main',
+        auto_start_prints=True,
+    )
+
+    # For the most common platform, we pre-populate the defaults so that it makes
+    # the file easier to edit
+    if platform.system() == 'Windows':
+        settings['editor'] = 'notepad'
+        settings['edit_in_background'] = True
+
+    return settings
+
+def load_existing_settings(defaults_toml_path: Path) -> Dict[str, Any]:
+    """Load existing settings from defaults.toml if it exists"""
+    if defaults_toml_path.exists():
+        with open(defaults_toml_path, 'rb') as fh:
+            return tomllib.load(fh)
+    return {}
+
+# TODO Consider merging these with existing prompt functions
+def prompt_with_current(question: str, current_value: Any = None) -> str:
+    """Prompt with current value shown and option to keep it"""
+    if current_value is not None:
+        result = prompt(f"{question}, or press ENTER to keep current value ({current_value}): ").strip()
+        if not result:
+            return current_value
+        return result
+    else:
+        return prompt(f"{question}: ").strip()
+
+def option_select_with_current(question: str, options, current_value: str = None):
+    """Option select with current value shown and option to keep it"""
+    if current_value is not None:
+        print(f"{question}, or press ENTER to keep current value ({current_value}):")
+        result = option_select("", options, allow_none=True)
+        if result is None:
+            return current_value
+        return result
+    else:
+        return option_select(question, options)
+
 @isolated_action
 def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     ''' Set up 3DMake for the first time, or overwrite existing settings '''
     CONFIG_DIR = ctx.config_dir
-    DEFAULTS_TOML = CONFIG_DIR / "defaults.toml" 
+    DEFAULTS_TOML = CONFIG_DIR / "defaults.toml"
+
+    # Load existing settings if they exist
+    existing_settings = load_existing_settings(DEFAULTS_TOML)
 
     overwrite_old_profiles = True
     if DEFAULTS_TOML.exists():
         print(f"The configuration directory {CONFIG_DIR} already exists.")
-        print(f"I can overwrite the configuration files and printer profiles that came")
+        print(f"I can overwrite the printer profiles and overlays that came")
         print(f"with 3Mmake, which will upgrade them to the latest version. But if you")
         print(f"customized one of the built-in profiles, your changes will be lost.")
         overwrite_old_profiles = yes_or_no("Do you want to upgrade profiles?")
@@ -48,21 +97,9 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         # settings when upgrading
         fh.write(VERSION)
 
-    if DEFAULTS_TOML.exists():
-        print("Your global settings were carried over from the last 3DMake version.")
-        return
-
-    settings_dict = dict(
-        view='3sil',
-        model_name='main',
-        auto_start_prints=True,
-    )
-
-    # For the most common platform, we pre-populate the defaults so that it makes
-    # the file easier to edit
-    if platform.system() == 'Windows':
-        settings_dict['editor'] = 'notepad'
-        settings_dict['edit_in_background'] = True
+    # Start with defaults, then overlay existing settings
+    settings_dict = get_default_settings()
+    settings_dict.update(existing_settings)
 
     profile_names = list_printer_profiles(CONFIG_DIR)
 
@@ -71,17 +108,24 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         for p in profile_names
     ]
 
-    profile_name = option_select("Choose a default printer model", profile_options)
+    profile_name = option_select_with_current("Choose a printer model", profile_options, settings_dict.get('printer_profile'))
     settings_dict['printer_profile'] = profile_name
 
     print()
     print("3DMake can use the Gemini AI to describe your models when you run 3dm info")
     print("This requires you to get a free Gemini API key, and has a limit of 50 runs per day.")
-    if yes_or_no("Do you want to set up Gemini?"):
+    current_has_gemini = bool(settings_dict.get('gemini_key'))
+    if current_has_gemini:
+        gemini_question = "Do you want to change your Gemini configuration?"
+    else:
+        gemini_question = "Do you want to set up Gemini?"
+
+    if yes_or_no(gemini_question):
         print("The Gemini API key is a string of text that 3DMake needs to access the Gemini AI.")
         print("Copy your API key from this page while logged into your Google account:")
         print("https://aistudio.google.com/app/apikey")
-        key = prompt("What is your Gemini API key? ").strip()
+        current_key = settings_dict.get('gemini_key')
+        key = prompt_with_current("What is your Gemini API key?", current_key)
         print()
         if key:
             settings_dict['gemini_key'] = key
@@ -93,14 +137,22 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             print("Empty response, leaving this unconfigured for now.")
 
     print()
-    if yes_or_no("Do you want to set up an OctoPrint connection?"):
-        server = prompt("What is the web address of your OctoPrint server (including http://)? ").strip()
+    current_has_octoprint = bool(settings_dict.get('octoprint_host'))
+    if current_has_octoprint:
+        octoprint_question = "Do you want to change your OctoPrint configuration?"
+    else:
+        octoprint_question = "Do you want to set up an OctoPrint connection?"
+
+    if yes_or_no(octoprint_question):
+        current_host = settings_dict.get('octoprint_host')
+        server = prompt_with_current("What is the web address of your OctoPrint server (including http://)?", current_host)
 
         print("You must set up an OctoPrint API key for 3DMake if you do not have one already.")
         print("To do this, open the OctoPrint settings in your browser, navigate to Application Keys,")
         print("and manually generate a key.")
 
-        key = prompt("What is your OctoPrint application key? ").strip()
+        current_key = settings_dict.get('octoprint_key')
+        key = prompt_with_current("What is your OctoPrint application key?", current_key)
 
         settings_dict['octoprint_host'] = server
         settings_dict['octoprint_key'] = key
