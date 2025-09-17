@@ -21,6 +21,8 @@ paho-mqtt = "*"
 
 [dev-packages]
 pyinstaller = "*"
+pytest = "*"
+pexpect = '*'
 
 [requires]
 python_version = "3.13"
