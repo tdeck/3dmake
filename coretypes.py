@@ -80,7 +80,12 @@ class FileSet:
         if self.rendered_images:
             return list(self.rendered_images.values())
 
-        return [self.projected_model or self.oriented_model or (self.scad_source and self.model)]
+        res = self.projected_model or self.oriented_model or (self.scad_source and self.model)
+
+        if res:
+            return [res]
+        else:
+            return []
 
 @dataclass
 class Thruple:
