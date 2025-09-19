@@ -1,4 +1,3 @@
-
 import os
 import tempfile
 import subprocess
@@ -6,10 +5,12 @@ import sys
 import re
 import shutil
 import json
+import pytest
+import pexpect
 from pathlib import Path
 from contextlib import contextmanager
-import pexpect
 from platformdirs import user_config_path
+from typing import Any
 
 
 def test_3dm_setup():
@@ -76,7 +77,6 @@ def test_3dm_build_input_file():
         # Set up configuration
         populate_config()
 
-        # Create temporary working directory
         with tempfile.TemporaryDirectory() as work_dir:
             work_path = Path(work_dir)
             test_scad = Path(__file__).parent / "tests" / "pyramid.scad"
@@ -116,6 +116,35 @@ def test_3dm_slice_input_file():
 
             # Verify GCODE file has content
             assert expected_gcode.stat().st_size > 0, "GCODE file is empty"
+
+def test_3dm_info_input_file():
+    gemini_key = os.environ.get('GEMINI_TEST_KEY')
+    settings = {}
+    if gemini_key:
+        settings['gemini_key'] = gemini_key
+
+    with isolated_3dmake_env() as config_dir:
+        # Set up configuration
+        populate_config(settings)
+
+        with tempfile.TemporaryDirectory() as work_dir:
+            work_path = Path(work_dir)
+            stl_path = Path(__file__).parent / "tests" / "hexagon.stl"
+
+            result = run_3dmake(['info', str(stl_path)], cwd=work_path)
+            assert result.returncode == 0
+
+            assert "Mesh size: x=20.00, y=17.32, z=20.00" in result.stdout
+            assert "Mesh center: x=0.00, y=0.00, z=10.00" in result.stdout
+
+            if gemini_key:
+                assert "AI description:" in result.stdout
+                # Should have some actual description text after the header
+                # Even the dumb model should identify this as a hexagon
+                assert "hexagon" in result.stdout
+            else:
+                pytest.skip('No GEMINI_TEST_KEY env var - skipping full test of 3dm info')
+
 
 #
 # Utility functions
@@ -158,8 +187,8 @@ def get_config_dir() -> Path:
     return user_config_path('3dmake', None)
 
 
-def populate_config() -> None:
-    """ This must be called within a isolated_3dmake_env() block. """
+def populate_config(overrides: dict[str, Any] = {}) -> dict[str, Any]:
+    """ This must be called within a isolated_3dmake_env() block. Returns populated settings. """
     # Get the config directory (should be our isolated temp dir)
     config_dir = get_config_dir()
     script_dir = Path(__file__).parent
@@ -179,11 +208,14 @@ def populate_config() -> None:
         'model_name': 'main',
         'auto_start_prints': False,  # Don't auto-start in tests
         'printer_profile': 'prusa_mini',  # Use a common profile for testing
+        'llm_name': 'gemini-2.5-flash-lite',
     }
+    minimal_settings.update(overrides)
 
     with open(defaults_toml, 'w') as fh:
         for key, value in minimal_settings.items():
             fh.write(f"{key} = {json.dumps(value)}\n")
+    return minimal_settings
 
 
 def run_3dmake(args, cwd=None) -> subprocess.CompletedProcess:
