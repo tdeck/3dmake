@@ -193,6 +193,27 @@ You can customize the prompt that gets sent to the AI model using the `3dm edit-
 
 Once you create an OpenRouter account, you will get an API key. You can then run `3dm edit-global-config` and add an `openrouter_key = "..."` line with your API key. You must also set `llm_name` to an OpenRouter model name. [You can find the names of available OpenRouter models here in the OpenRouter documentation](https://openrouter.ai/models). When you have an `openrouter_key` set in your configuration, 3DMake will always use OpenRouter. OpenRouter does support Gemini models, but the model names are different between OpenRouter and Gemini. In particular, the OpenRouter names for Gemini models start with `google/` like `google/gemini-2.5-flash` instead of just `gemini-2.5.flash`. Be careful of these differences if you switch often between OpenRouter and Gemini.
 
+## Bambu labs printer support
+This is new functionality that hasn't been thoroughly tested. Please email troy [at] visitorlabs.com with any feedback if you try this; it would be much appreciated!
+
+### How to set up your printer
+
+The printer must be placed in LAN only mode and in developer mode from the network settings menu on the device's touchscreen. On this screen, you will see the printer's IP address (something like "10.1.2.3") and access code, which is a short string of letters and numbers. You will need both of these. You will also need the printer's serial number. [This document explains how to find the serial number.](https://wiki.bambulab.com/en/general/find-sn)
+
+When your printer is in LAN only mode, you will not be able to print form the Bambu cloud.
+
+### How to set up 3Dmake
+You'll need to edit your 3Dmake configuration to add several lines. Run `3dm edit-global-config`. Add these lines to the end of the file, and edit them to reflect your printer's settings:
+
+```
+print_mode = 'bambu_lan'
+bambu_host = 'EDITME'
+bambu_access_code = 'EDITME'
+bambu_serial_number = 'EDITME'
+```
+
+Save your global config, and `3dm print` should attempt to send prints to this printer.
+
 <a name="global-config"></a>
 ## Global and project configuration (defaults.toml and 3dmake.toml)
 
