@@ -18,11 +18,11 @@ class IndentStream:
         self.wrapped_stream = wrapped_stream
         self.indent_str = ' ' * indent
         self.pipe_read, self.pipe_write = os.pipe()
+        self._should_stop = False
+        self._stopped = False
 
         # Start a thread to read from the pipe and forward indented output
         self._start_reader_thread()
-        self._should_stop = False
-        self._stopped = False
 
     def __enter__(self):
         return self
