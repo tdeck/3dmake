@@ -80,7 +80,7 @@ def update_profile_gcode_value(profile_path: Path, key: str, new_gcode: str) -> 
         fh.writelines(lines)
 
 @isolated_action(needs_options=True)
-def edit_gcode(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+def edit_profile_gcode(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     """Edit GCODE scripts in printer profile (affected by -p)"""
 
     # Check that the printer profile exists
