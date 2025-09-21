@@ -180,6 +180,19 @@ There is no need to run `3dm install-libraries` for local libraries. When you us
 
 If you come across and OpenSCAD library that you'd like to see included in 3DMake's library manager, please get in touch. I'd like to grow the list of libraries in the future.
 
+## Advanced AI options
+Google Gemini is the easiest way to get started with AI model descriptions for free, but advanced users may want to try different AI models or edit the prompt that 3DMake uses. This can be done by editing 3DMake's configuration files.
+
+### Changing the prompt
+You can customize the prompt that gets sent to the AI model using the `3dm edit-prompt` command. The first time you run this command, you'll start with a text file containing the default prompt. The AI will always get the same images of the model from the same set of camera angles, so it's a good idea to keep some text explaining what the images are.
+
+### Changing the model
+3DMake has a default Gemini model it uses, which is the best image description model available to users of Gemini's free tier. If you want to change it, you can set the `llm_name` configuration key to one of Google's model variant names. [Here is Google's official documentation for the model variants](https://ai.google.dev/gemini-api/docs/models). Example model variant names are `gemini-2.5-pro` and `gemini-2.5-flash`.
+
+3DMake also supports a system called [OpenRouter](https://openrouter.ai/) that allows you to use many different large language models from different companies. You should know that OpenRouter is a paid service (although the cost is very low for describing the occasional 3D model), and the developer of 3DMake has no relationship with them.
+
+Once you create an OpenRouter account, you will get an API key. You can then run `3dm edit-global-config` and add an `openrouter_key = "..."` line with your API key. You must also set `llm_name` to an OpenRouter model name. [You can find the names of available OpenRouter models here in the OpenRouter documentation](https://openrouter.ai/models). When you have an `openrouter_key` set in your configuration, 3DMake will always use OpenRouter. OpenRouter does support Gemini models, but the model names are different between OpenRouter and Gemini. In particular, the OpenRouter names for Gemini models start with `google/` like `google/gemini-2.5-flash` instead of just `gemini-2.5.flash`. Be careful of these differences if you switch often between OpenRouter and Gemini.
+
 <a name="global-config"></a>
 ## Global and project configuration (defaults.toml and 3dmake.toml)
 
@@ -195,18 +208,24 @@ view            | The default view to use in [previews](#Previews)  | `"3sil"`  
 printer_profile | The default printer profile name                  | What you set in 3dm setup     | `"prusa_MK4"`
 scale           | Uniform scale factor when slicing the model       | `1.0`                         | `1.05`
 overlays        | Default overlays to apply when printing           | `[]` (empty list)             | `["supports"]`
+print_mode      | How to connect to the printer (for 3dm print)     | `"octoprint"`                 | `"bambu-lan"`
 octoprint_host  | The URL of your OctoPrint instance                | What you set in 3dm setup     | `"http://192.168.1.10"`
 octoprint_key   | The OctoPrint API key (do not share this)         | What you set in 3dm setup     | `"7025A..."`
+bambu_host      | The Bambu Labs printer hostname / IP address      | none                          | `"10.168.2.3"`
+bambu_access_code | The access code for your Bambu printer          | none                          | `"abcd1234"`
+bambu_serial_number | The serial number of your Bambu printer       | none                          | `"1234ABCDEF..."`
 auto_start_prints | When uploading to `3dm print`, start the print right away | `true`              | `false`
 strict_warnings | Fail `3dm build` when OpenSCAD sees a problem with your code | `false`[^1]           | `true`
 editor          | Command to open your preferred text editor        | "notepad" in Windows[^2]      | `"code"`
 edit_in_background | Exit 3DMake after starting an editor           | `true` when using Notepad, `false` otherwise     | `false`
 gemini_key      | Your Gemini API key (do not share this)           | What you set in 3dm setup     | `"47b64..."`
-llm_name        | The name of the gemini model to use               | Depends on 3dmake version     | `"gemini-2.5-pro"`
+llm_name        | The name of the gemini or OpenRouter model to use | Depends on 3dmake version     | `"gemini-2.5-pro"`
+openrouter_key  | Your OpenRouter API key (takes priority over Gemini | none | `"sk-or-v1-1234..."`
 interactive     | Whether to make `3dm info` interactive by default[^3] | `false`                       | `true`
 libraries       | List of libraries to use in your project          | `[]` (empty list)             | `["bosl", "dotscad"]`
 local_libraries | List of library paths to use in project           | `[]` (empty list)             | `["/home/troy/3d/example"]`
 image_angles    | List of viewpoint angle names to use in image export | `["above_front_left", "above_front", "above_front_right"]` | `["top"]`
+copies          | Number of copies of the model to create when slicing | `1` | `3`
 colorscheme     | Color scheme name to use in image export | `"slicer_dark"` | `"slicer_light"`
 debug           | Output a lot more messages when running 3DMake    | `false`                       | `true`
 
