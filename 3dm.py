@@ -114,7 +114,7 @@ def add_implied_actions(verb_name, mutable_verbs_set):
 
 verb_count = len(verbs)
 should_load_options = False
-should_accept_input_file = False
+needs_project_files = False
 for verb in list(verbs):
     action = ALL_ACTIONS_IN_ORDER.get(verb)
 
@@ -126,8 +126,8 @@ for verb in list(verbs):
 
     if action.needs_options:
         should_load_options = True
-    if action.takes_input_file:
-        should_accept_input_file = True
+    if action.uses_project_files:
+        needs_project_files = True
 
     # Add implied actions recursively
     add_implied_actions(verb, verbs)
@@ -208,11 +208,10 @@ if should_load_options:
 
 if len(infiles) > 1:
     error_out("Multiple inputs not supported yet")
-elif not should_accept_input_file:
-    if infiles:
-        error_out("This action does not take an input file")
-    # Otherwise don't go on with loading infiles and setting up the FileSet
 elif infiles:
+    if not needs_project_files:
+        error_out("This action does not take an input file")
+
     single_infile = Path(infiles[0])
     extension = single_infile.suffix.lower()
 
@@ -230,6 +229,8 @@ elif infiles:
         verbs.add('build')
     else:
         error_out("Unsupported file formats. Supported formats are .stl and .scad")
+elif not needs_project_files:
+    pass # Skip setting up the project root since we shouldn't need it
 elif project_root:
     file_set.scad_source = project_root / "src" / f"{options.model_name}.scad"
 else:

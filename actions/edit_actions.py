@@ -10,7 +10,7 @@ from utils.prompts import yes_or_no, option_select
 from utils.editor import launch_editor
 from utils.prompt import ensure_custom_prompt_exists
 
-@isolated_action(needs_options=True)
+@isolated_action(needs_options=True, uses_project_files=True)
 def edit_model(ctx: Context, _, __):
     ''' Open model SCAD file in your editor (affected by -m) '''
     launch_editor(ctx.options, ctx.files.scad_source)

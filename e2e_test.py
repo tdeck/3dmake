@@ -238,7 +238,7 @@ def test_3dm_edit_model():
             result = run_3dmake(['edit-model'], cwd=work_path)
 
             assert result.returncode == 0, f"Edit failed: {result.stderr}"
-            assert 'LAUNCH EDITOR src/main.scad' in result.stdout
+            assert re.match(r'LAUNCH EDITOR.*src/main.scad', result.stdout)
 
 
 def test_library_dependencies():

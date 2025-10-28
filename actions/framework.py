@@ -33,7 +33,7 @@ class Action:
     internal: bool = False
     isolated: bool  # True means the verb can't be run with other verbs
     needs_options: bool
-    takes_input_file: bool
+    uses_project_files: bool
     last_in_chain: bool = False  # True means no later actions in internal ordering can be executed
     implied_actions: List[ActionName] = field(default_factory=list)
     impl: ActionFunc
@@ -71,14 +71,15 @@ def _action_doc(fn: Callable[..., Any]) -> str:
 
 def isolated_action(
     func: Optional[ActionFunc] = None,
-    needs_options:bool = False
+    needs_options:bool = False,
+    uses_project_files:bool = False,
 ):
     def wrap(func: ActionFunc) -> ActionFunc:
         return Action(
             name=_action_name(func),
             doc=_action_doc(func),
             isolated=True,
-            takes_input_file=False,
+            uses_project_files=uses_project_files,
             needs_options=needs_options,
             impl=func,
         )
@@ -105,7 +106,7 @@ def pipeline_action(
             doc=_action_doc(func),
             gerund=gerund,
             isolated=False,
-            takes_input_file=True,
+            uses_project_files=True,
             needs_options=True,
             internal=internal,
             last_in_chain=last_in_chain,
