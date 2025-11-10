@@ -11,8 +11,21 @@ from utils.editor import launch_editor
 from utils.prompt import ensure_custom_prompt_exists
 
 @isolated_action(needs_options=True, uses_project_files=True)
-def edit_model(ctx: Context, _, __):
+def edit_model(ctx: Context, stdout, __):
     ''' Open model SCAD file in your editor (affected by -m) '''
+    if not ctx.files.scad_source.exists():
+        parent_dir = ctx.files.scad_source.parent
+        if not parent_dir.is_dir():
+            raise RuntimeError(
+                f"The model directory {parent_dir} does not exist. \n"
+                "This looks like an incorrectly formatted project."
+            )
+
+        # Some editors might not like being asked to open a file that does not
+        # exist, so we just make one
+        stdout.write("Model file does not exist; creating an empty model.\n")
+        ctx.files.scad_source.touch()
+
     launch_editor(ctx.options, ctx.files.scad_source)
 
 @isolated_action(needs_options=True)
