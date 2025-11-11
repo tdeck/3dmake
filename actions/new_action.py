@@ -35,6 +35,8 @@ def new(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             scad_path,
         )
 
-    stdout.write("Project created.\n")
-    if proj_dir != '.':
+    if proj_dir == '.':
+        stdout.write("Project created in the current directory.\n")
+    else:
+        stdout.write("Project created.\n")
         stdout.write(f'To enter the project directory, type "cd {proj_dir}".\n')
