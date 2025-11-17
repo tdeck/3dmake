@@ -23,6 +23,7 @@ def launch_editor(options: CommandOptions, file: Path, blocking: bool = False) -
     # around a weird bug on Windows, where the Python process will
     # see its own AppData/Local dir sanboxed to another location (but
     # where this won't happen to subprocesses we launch in the shell)
+    # See this bug: https://github.com/python/cpython/issues/122057
     resolved_file = file.resolve(strict=False)
 
     # Use shell=True to handle editor commands with arguments
