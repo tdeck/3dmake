@@ -1,9 +1,12 @@
 import subprocess
 import platform
 import os
+from time import time
 from pathlib import Path
 
 from coretypes import CommandOptions
+
+MIN_BLOCKING_SECONDS = 0.5
 
 def launch_editor(options: CommandOptions, file: Path, blocking: bool = False) -> None:
     """Launch the configured editor to edit a file"""
@@ -32,4 +35,11 @@ def launch_editor(options: CommandOptions, file: Path, blocking: bool = False) -
     if background and not blocking:
         subprocess.Popen(cmd, shell=True)
     else:
+        start_time = time()
         subprocess.run(cmd, shell=True)
+        elapsed = time() - start_time
+        # In case we need a write->edit->read workflow and the editor
+        # command doesn't actually block, we can detect that it ended
+        # too early and ask the user to press a key when they finished.
+        if blocking and elapsed < MIN_BLOCKING_SECONDS:
+            input("Press ENTER when finished editing:")
