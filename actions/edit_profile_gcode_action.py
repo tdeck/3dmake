@@ -115,9 +115,12 @@ def edit_profile_gcode(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     current_unescaped = unescape_gcode(current_escaped)
 
     # Create temporary file for editing
-    with tempfile.NamedTemporaryFile(mode='w+', suffix='.gcode', delete=True, encoding='utf-8') as temp_file:
+    # We must close the file and manually clean it up to work around the way
+    # Windows locks open files
+    temp_file = tempfile.NamedTemporaryFile(mode='w+', suffix='.gcode', encoding='utf-8', delete=False)
+    try:
         temp_file.write(current_unescaped)
-        temp_file.flush()
+        temp_file.close()
         temp_path = Path(temp_file.name)
 
         # Launch editor
@@ -132,3 +135,5 @@ def edit_profile_gcode(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         update_profile_gcode_value(profile_path, selected_key, edited_content)
 
         stdout.write(f"Updated {selected_key} in profile '{ctx.options.printer_profile}'\n")
+    finally:
+        pass # TODO temp_path.unlink()
