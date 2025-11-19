@@ -41,9 +41,14 @@ def load_config() -> Tuple[CommandOptions, Optional[Path]]:
         with open("./3dmake.toml", 'rb') as fh:
             settings_dict.update(tomllib.load(fh))
         project_root = Path().absolute()
+    elif Path('../3dmake.toml').exists():
+        print("Using 3DMake project in parent directory...")
+        with open("../3dmake.toml", 'rb') as fh:
+            settings_dict.update(tomllib.load(fh))
+        project_root = Path('..').absolute()
 
-        if 'project_name' not in settings_dict:
-            settings_dict['project_name'] = project_root.parts[-1]
+    if project_root and 'project_name' not in settings_dict:
+        settings_dict['project_name'] = project_root.parts[-1]
 
     # Force library names to be lowercase to avoid confusing case issues
     if 'libraries' in settings_dict:

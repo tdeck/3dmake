@@ -121,4 +121,4 @@ def build(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     print() # Need a newline
 
     if subproc.returncode != 0:
-        throw_subprogram_error('OpenSCAD', process_result.returncode, ctx.options.debug)
+        throw_subprogram_error('OpenSCAD', subproc.returncode, ctx.options.debug)
