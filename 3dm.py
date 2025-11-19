@@ -45,7 +45,7 @@ def load_config() -> Tuple[CommandOptions, Optional[Path]]:
         print("Using 3DMake project in parent directory...")
         with open("../3dmake.toml", 'rb') as fh:
             settings_dict.update(tomllib.load(fh))
-        project_root = Path('..').absolute()
+        project_root = Path('..').resolve()
 
     if project_root and 'project_name' not in settings_dict:
         settings_dict['project_name'] = project_root.parts[-1]
@@ -209,7 +209,7 @@ if should_load_options:
     if options.scale == 'auto':
         error_out("Auto-scaling is not supported yet") # TODO
 
-    file_set = FileSet(options)
+    file_set = FileSet(options, project_root)
 
 if len(infiles) > 1:
     error_out("Multiple inputs not supported yet")
