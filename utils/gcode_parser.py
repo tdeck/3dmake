@@ -1,15 +1,7 @@
-#!/usr/bin/env python3
-"""
-Parse G-code to extract filament usage statistics by feature type.
-Similar to what PrusaSlicer GUI shows.
-"""
-
 import re
 from pathlib import Path
 from dataclasses import dataclass
-from typing import Dict
 
-# Pre-compile regex patterns for better performance
 E_PATTERN = re.compile(r'E(-?\d*\.?\d+)')
 X_PATTERN = re.compile(r'X(-?\d*\.?\d+)')
 Y_PATTERN = re.compile(r'Y(-?\d*\.?\d+)')
@@ -22,8 +14,11 @@ class FeatureStats:
     time_seconds: float = 0.0
     moves: int = 0
 
-def parse_gcode_stats(gcode_path: Path) -> Dict[str, FeatureStats]:
-    """Parse G-code file and return filament usage by feature type"""
+def parse_gcode_stats(gcode_path: Path) -> dict[str, FeatureStats]:
+    """
+    Parse G-code file and return filament usage by feature type
+    Mostly Claude code so may have unknown bugs.
+    """
 
     stats = {}
     current_type = "Unknown"
@@ -128,40 +123,3 @@ def parse_gcode_stats(gcode_path: Path) -> Dict[str, FeatureStats]:
 
     return stats
 
-def print_stats_table(stats: Dict[str, FeatureStats]):
-    """Print statistics in a table format similar to PrusaSlicer GUI"""
-
-    total_length = sum(stat.length_mm for stat in stats.values())
-    total_time = sum(stat.time_seconds for stat in stats.values())
-
-    print(f"{'Feature type':<25} {'Time':<10} {'Percentage':<12} {'Used filament':<15}")
-    print("-" * 65)
-
-    for feature_type, stat in sorted(stats.items()):
-        time_str = f"{int(stat.time_seconds//60)}m {int(stat.time_seconds%60)}s"
-        percentage = (stat.length_mm / total_length * 100) if total_length > 0 else 0
-        filament_str = f"{stat.length_mm/10:.1f}cm {stat.length_mm/1000*2.4:.2f}g"  # Rough PLA density estimate
-
-        print(f"{feature_type:<25} {time_str:<10} {percentage:>6.1f}% {filament_str:<15}")
-
-    print("-" * 65)
-    total_time_str = f"{int(total_time//60)}m {int(total_time%60)}s"
-    total_filament_str = f"{total_length/10:.1f}cm {total_length/1000*2.4:.2f}g"
-    print(f"{'Total':<25} {total_time_str:<10} {'100.0%':<12} {total_filament_str:<15}")
-
-def main():
-    import sys
-    if len(sys.argv) != 2:
-        print("Usage: python parse_gcode_stats.py <gcode_file>")
-        sys.exit(1)
-
-    gcode_path = Path(sys.argv[1])
-    if not gcode_path.exists():
-        print(f"Error: {gcode_path} not found")
-        sys.exit(1)
-
-    stats = parse_gcode_stats(gcode_path)
-    print_stats_table(stats)
-
-if __name__ == "__main__":
-    main()

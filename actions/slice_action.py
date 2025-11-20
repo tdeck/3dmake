@@ -8,8 +8,10 @@ from utils.bundle_paths import DEPS
 from utils.logging import throw_subprogram_error
 from utils.stream_wrappers import StoreAndForwardStream
 from utils.print_config import read_config_values
+from utils.gcode_parser import parse_gcode_stats, FeatureStats
 
 CANT_FIT_ERROR_MESSAGE = ': No outline can be derived for object\n'
+MAX_CALCULATED_FILAMENT_DEVIATION_MM = 10
 
 @pipeline_action(gerund='slicing')
 def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
@@ -98,6 +100,16 @@ def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         if filament_used_str:
             stdout.write(f"Filament used: {format_mm_length(filament_used_str)}\n")
 
+        # Sanity check computed stats
+        computed_feature_stats = parse_gcode_stats(gcode_file)
+        computed_length = sum((f.length_mm for f in computed_feature_stats.values()))
+
+        if abs(computed_length - float(filament_used_str)) > MAX_CALCULATED_FILAMENT_DEVIATION_MM:
+            stdout.write("NOTE: 3DMake has detected that stats below may not be reliable.\n");
+
+        # Print computed stats
+        print_detailed_stats(computed_feature_stats, stdout)
+
 def extract_slicer_keys(gcode_file: Path) -> dict[str, str]:
     results = {}
     with open(gcode_file, 'r') as fh:
@@ -142,3 +154,12 @@ def format_mm_length(length_str: str) -> str:
         return f"about {mm / 10:.1f} centimeters"
     else:
         return f"{mm} millimeters"
+
+def print_detailed_stats(stats: dict[str, FeatureStats], stdout: TextIO) -> None:
+    stdout.write("Extrusion stats (longest time first):\n")
+    sorted_by_time = sorted(stats.items(), key=lambda pair: pair[1].time_seconds, reverse=True)
+    for name, value in sorted_by_time:
+        if value.length_mm < 1 or value.time_seconds < 5:
+            # Hide very small features so user doesn't have to listen to them
+            continue
+        stdout.write(f"    {name}\t{value.time_seconds:.0f} seconds ({value.length_mm:.0f} mm)\n")
