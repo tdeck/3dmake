@@ -11,6 +11,9 @@ from utils.print_config import read_config_values
 from utils.gcode_parser import parse_gcode_stats, FeatureStats
 
 CANT_FIT_ERROR_MESSAGE = ': No outline can be derived for object\n'
+STATUS_LINE_REGEX = re.compile(r'^\d+ => ')
+PRINT_WARNING_REGEX = re.compile(r'^(print(?:_object)?) warning:')
+
 MAX_CALCULATED_FILAMENT_DEVIATION_MM = 10
 
 @pipeline_action(gerund='slicing')
@@ -77,6 +80,23 @@ def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         # the loglevel directive doesn't seem to work. True errors should appear on
         # stderr where they will be displayed.
         process_result = subprocess.run(cmd, stdout=stdout_capture_stream, stderr=stdout)
+
+        # Pass through any warnings
+        warning_state = False
+        saw_warnings = False
+        for line in stdout_capture_stream.content.splitlines():
+            # Here we do the best we can to pass through only print warning lines.
+            # The difficulty is that such warning lines can be multiple lines long,
+            # and don't all start with the warning marker. So instead, when we see one,
+            # we carry on passing through until we see the next normal status line
+            # message. This is an imperfect heuristic in that it may let too much through.
+            if STATUS_LINE_REGEX.match(line):
+                warning_state = False
+            elif warning_state or PRINT_WARNING_REGEX.match(line):
+                stdout.write(line + "\n")
+                warning_state = True
+                saw_warnings = True
+
         if process_result.returncode != 0:
             throw_subprogram_error('slicer', process_result.returncode, ctx.options.debug)
 
@@ -86,6 +106,9 @@ def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         ctx.files.sliced_gcode = gcode_file
 
         slicer_keys = extract_slicer_keys(gcode_file)
+
+        if saw_warnings:
+            stdout.write("\n") # Just some extra space for readability
 
         stdout.write(f"Hotend temperature: {slicer_keys['temperature']} Celsius\n")
 
