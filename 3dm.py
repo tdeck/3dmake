@@ -246,6 +246,7 @@ context = Context(
     options=options,
     files=file_set,
     explicit_overlay_arg=args.overlay,
+    single_file_mode=bool(infiles),
 )
 
 for name, action in ALL_ACTIONS_IN_ORDER.items():

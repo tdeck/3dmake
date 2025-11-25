@@ -15,6 +15,7 @@ class Context:
     options: Optional[CommandOptions]  # Merged from global defaults.toml, local 3dmake.toml, and CLI args
     files: Optional[FileSet]  # Input files and outputs of prior steps, mutated during the run
     explicit_overlay_arg: List[str]  # List of overlays requested on CLI, sometimes this is treated differently
+    single_file_mode: bool = False  # True when running with an input file (not in a project)
 
     # These are attached by the measure-model step
     mesh: Optional[Mesh] = None

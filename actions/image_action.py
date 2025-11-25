@@ -1,5 +1,6 @@
 from typing import TextIO
 from dataclasses import dataclass
+from pathlib import Path
 
 from utils.renderer import VIEWPOINTS, MeshRenderer, ColorScheme
 from utils.logging import check_if_value_in_options
@@ -39,3 +40,23 @@ def image(ctx: Context, stdout: TextIO, __):
             img.save(fh, format="png")
 
         ctx.files.rendered_images[angle] = filename
+
+    # Print the generated image paths (but not in single-file mode, where 3dm.py will handle it)
+    if not ctx.single_file_mode:
+        cwd = Path.cwd()
+        image_files = list(ctx.files.rendered_images.values())
+
+        # Convert to relative paths if inside working directory
+        display_paths = []
+        for file in image_files:
+            if file.is_relative_to(cwd):
+                display_paths.append(file.relative_to(cwd))
+            else:
+                display_paths.append(file)
+
+        if len(display_paths) == 1:
+            stdout.write(f"Image saved to {display_paths[0]}\n")
+        else:
+            stdout.write(f"Images saved:\n")
+            for path in display_paths:
+                stdout.write(f"    {path}\n")
