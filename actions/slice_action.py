@@ -119,15 +119,18 @@ def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         if time_str:
             stdout.write(f"Estimated print time: {reformat_gcode_time(time_str)}\n")
 
-        filament_used_str = slicer_keys.get('filament used [mm]')
-        if filament_used_str:
-            stdout.write(f"Filament used: {format_mm_length(filament_used_str)}\n")
+        # NOTE: We need to change this parsing logic if we support multi-extruder prints
+        filament_used_mm_str = slicer_keys.get('filament used [mm]')
+        if filament_used_mm_str:
+            filament_used_grams_str = slicer_keys.get('total filament used [g]')
+            weight_str = '' if not filament_used_grams_str else f" ({filament_used_grams_str} grams)"
+            stdout.write(f"Filament used: {format_mm_length(filament_used_mm_str)}{weight_str}\n")
 
         # Sanity check computed stats
         computed_feature_stats = parse_gcode_stats(gcode_file)
         computed_length = sum((f.length_mm for f in computed_feature_stats.values()))
 
-        if abs(computed_length - float(filament_used_str)) > MAX_CALCULATED_FILAMENT_DEVIATION_MM:
+        if abs(computed_length - float(filament_used_mm_str)) > MAX_CALCULATED_FILAMENT_DEVIATION_MM:
             stdout.write("NOTE: 3DMake has detected that stats below may not be reliable.\n");
 
         # Print computed stats
