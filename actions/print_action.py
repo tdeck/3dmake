@@ -96,7 +96,7 @@ def _upload_to_bambu_printer(ctx: Context, file: Path) -> None:
     ftp_client.prot_p()
 
     with open(file, 'rb') as fh:
-        session.storbinary(f"STOR {file.name}", fh)
+        ftp_client.storbinary(f"STOR {file.name}", fh)
 
     ftp_client.quit()
 
