@@ -48,6 +48,7 @@ class CommandOptions:
     # Image rendering
     image_angles: List[str] = field(default_factory=lambda: ['above_front_left', 'above_front', 'above_front_right'])
     colorscheme: str = "slicer_dark"
+    image_size: str = "1080x720"
 
 
 class FileSet:

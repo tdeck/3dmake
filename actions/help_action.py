@@ -41,6 +41,7 @@ def help(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             --copies NUM        Number of copies to print (default: 1)
             --interactive       For 3dm info, start an interactive chat with the AI
             --colorscheme NAME  The name of the color used for an image export (short name)
+            --image-size WxH    Image dimensions in pixels (e.g., 1920x1080, default: 1080x720)
 
         Most options can be abbreviated as one letter with a single dash (e.g. -s 50% to scale)
     ''').format(action_descriptions=action_descriptions))

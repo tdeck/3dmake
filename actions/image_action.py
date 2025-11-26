@@ -1,14 +1,12 @@
 from typing import TextIO
 from dataclasses import dataclass
 from pathlib import Path
+import re
 
 from utils.renderer import VIEWPOINTS, MeshRenderer, ColorScheme
 from utils.logging import check_if_value_in_options
 from .mesh_actions import load_mesh
 from .framework import Context, pipeline_action
-
-WIDTH = 1080
-HEIGHT = 720
 
 COLORSCHEMES = {
     'slicer_light': ColorScheme('orange', '#ccc', 'green', 'blue'),
@@ -28,6 +26,19 @@ def image(ctx: Context, stdout: TextIO, __):
     for angle in ctx.options.image_angles:
         check_if_value_in_options('viewpoint angle', angle, VIEWPOINTS)
 
+    # Validate and parse image size
+    size_match = re.match(r'^(\d+)x(\d+)$', ctx.options.image_size)
+    if not size_match:
+        raise ValueError(f"Invalid image size: '{ctx.options.image_size}'. Expected format: WIDTHxHEIGHT (e.g., 1920x1080)")
+
+    width = int(size_match.group(1))
+    height = int(size_match.group(2))
+
+    # Suppress VTK warnings unless in debug mode
+    if not ctx.options.debug:
+        import vtk
+        vtk.vtkObject.GlobalWarningDisplayOff()
+
     renderer = MeshRenderer(ctx.mesh, colors=COLORSCHEMES[ctx.options.colorscheme])
 
     for angle in ctx.options.image_angles:
@@ -35,7 +46,7 @@ def image(ctx: Context, stdout: TextIO, __):
         viewpoint = VIEWPOINTS[angle]
 
         filename = ctx.files.build_dir / f"{ctx.files.model_to_slice().stem}-{angle}.png"
-        img = renderer.get_image(viewpoint, WIDTH, HEIGHT)
+        img = renderer.get_image(viewpoint, width, height)
         with open(filename , 'wb') as fh:
             img.save(fh, format="png")
 

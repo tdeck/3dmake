@@ -75,6 +75,7 @@ parser.add_argument('-a', '--angle', action="extend", nargs=1)
 parser.add_argument('-i', '--interactive', action='store_true')
 parser.add_argument('-c', '--copies', type=int, default=1)
 parser.add_argument('--colorscheme', type=str)
+parser.add_argument('--image-size', type=str)
 parser.add_argument('--help', '-h', action=HelpAction, nargs=0)
 parser.add_argument('--debug', action='store_true')
 parser.add_argument('actions_and_files', nargs='+')
@@ -196,6 +197,9 @@ if should_load_options:
 
     if args.colorscheme:
         options.colorscheme = args.colorscheme
+
+    if args.image_size:
+        options.image_size = args.image_size
 
     if args.copies:
         options.copies = args.copies
