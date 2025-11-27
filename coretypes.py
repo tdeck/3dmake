@@ -48,19 +48,22 @@ class CommandOptions:
     # Image rendering
     image_angles: List[str] = field(default_factory=lambda: ['above_front_left', 'above_front', 'above_front_right'])
     colorscheme: str = "slicer_dark"
+    image_size: str = "1080x720"
 
 
 class FileSet:
-    def __init__(self, options: CommandOptions):
-        self.build_dir: Path = Path('build') # TODO based on options
-
-        self.scad_source = Path("src") / f"{options.model_name}.scad"
-        self.model = self.build_dir / f"{options.model_name}.stl"
+    def __init__(self, options: CommandOptions, project_root: Optional[Path]):
+        if project_root:
+            self.build_dir = project_root / "build"
+            self.scad_source = project_root / "src" / f"{options.model_name}.scad"
+            self.model = self.build_dir / f"{options.model_name}.stl"
         self.rendered_images = {}
 
-    build_dir: Path
-    scad_source: Optional[Path]
-    model: Optional[Path]
+    # This will only stay null if not initialized properly or not needed
+    build_dir: Optional[Path] = None
+    scad_source: Optional[Path] = None
+    model: Optional[Path] = None
+
     oriented_model: Optional[Path] = None
     projected_model: Optional[Path] = None
     sliced_gcode: Optional[Path] = None

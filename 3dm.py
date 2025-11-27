@@ -40,9 +40,14 @@ def load_config() -> Tuple[CommandOptions, Optional[Path]]:
         with open("./3dmake.toml", 'rb') as fh:
             settings_dict.update(tomllib.load(fh))
         project_root = Path().absolute()
+    elif Path('../3dmake.toml').exists():
+        print("Using 3DMake project in parent directory...")
+        with open("../3dmake.toml", 'rb') as fh:
+            settings_dict.update(tomllib.load(fh))
+        project_root = Path('..').resolve()
 
-        if 'project_name' not in settings_dict:
-            settings_dict['project_name'] = project_root.parts[-1]
+    if project_root and 'project_name' not in settings_dict:
+        settings_dict['project_name'] = project_root.parts[-1]
 
     # Force library names to be lowercase to avoid confusing case issues
     if 'libraries' in settings_dict:
@@ -69,6 +74,7 @@ parser.add_argument('-a', '--angle', action="extend", nargs=1)
 parser.add_argument('-i', '--interactive', action='store_true')
 parser.add_argument('-c', '--copies', type=int, default=1)
 parser.add_argument('--colorscheme', type=str)
+parser.add_argument('--image-size', type=str)
 parser.add_argument('--help', '-h', action=HelpAction, nargs=0)
 parser.add_argument('--debug', action='store_true')
 parser.add_argument('actions_and_files', nargs='+')
@@ -191,6 +197,9 @@ if should_load_options:
     if args.colorscheme:
         options.colorscheme = args.colorscheme
 
+    if args.image_size:
+        options.image_size = args.image_size
+
     if args.copies:
         options.copies = args.copies
 
@@ -203,7 +212,7 @@ if should_load_options:
     if options.scale == 'auto':
         error_out("Auto-scaling is not supported yet") # TODO
 
-    file_set = FileSet(options)
+    file_set = FileSet(options, project_root)
 
 if len(infiles) > 1:
     error_out("Multiple inputs not supported yet")
@@ -240,6 +249,7 @@ context = Context(
     options=options,
     files=file_set,
     explicit_overlay_arg=args.overlay,
+    single_file_mode=bool(infiles),
 )
 
 for name, action in ALL_ACTIONS_IN_ORDER.items():
