@@ -2,11 +2,9 @@ import shutil
 from pathlib import Path
 from typing import TextIO
 
-from prompt_toolkit import prompt
-
 from .framework import Context, isolated_action
 from utils.print_config import list_printer_profiles, list_overlays, OverlayName
-from utils.prompts import yes_or_no, option_select
+from utils.prompts import yes_or_no, option_select, prompt
 from utils.editor import launch_editor
 from utils.prompt import ensure_custom_prompt_exists
 

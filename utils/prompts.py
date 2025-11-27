@@ -1,5 +1,18 @@
-from typing import List, Tuple, Any, Optional
-from prompt_toolkit import prompt
+from typing import List, Tuple, Any, Optional, Dict
+import sys
+
+def prompt(message: str) -> str:
+    if sys.stdin.isatty():
+        try:
+            # Import prompt_toolkit only when needed to avoid terminal type errors at import time
+            from prompt_toolkit import prompt as prompt_toolkit_prompt
+            return prompt_toolkit_prompt(message)
+        except (OSError, Exception):
+            # Fall back to input() if prompt_toolkit fails
+            # (e.g., wrong terminal type when running through bash/testing)
+            return input(message)
+    else:
+        return input(message)
 
 def yes_or_no(question: str) -> bool:
     answer = prompt(f"{question} (y or n): ").strip()

@@ -9,11 +9,11 @@ from typing import Any, List, Dict, Tuple, Set, TextIO, Optional
 from utils.renderer import MeshRenderer, VIEWPOINTS
 
 from stl.mesh import Mesh
-from prompt_toolkit import prompt
 
 from .mesh_actions import measure_mesh
 from .framework import Context, pipeline_action
 from utils.prompt import get_ai_prompt
+from utils.prompts import prompt
 
 @pipeline_action(
     gerund='examining',

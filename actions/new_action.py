@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import TextIO
 import shutil
 
-from prompt_toolkit import prompt
+from utils.prompts import prompt
 
 from .framework import Context, isolated_action
 

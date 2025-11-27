@@ -11,16 +11,15 @@ import tomllib
 import shutil
 
 from packaging.version import Version
-from prompt_toolkit import prompt
 from platformdirs import user_config_path
 
 import actions.help_action
 from version import VERSION
 from coretypes import FileSet, CommandOptions
-from utils.prompts import yes_or_no
+from utils.prompts import yes_or_no, prompt
 from actions import ALL_ACTIONS_IN_ORDER, Context
 
-CONFIG_DIR = user_config_path('3dmake', None)
+CONFIG_DIR = Path(os.environ['3DMAKE_CONFIG_DIR']) if '3DMAKE_CONFIG_DIR' in os.environ else user_config_path('3dmake', None)
 PROFILES_DIR = CONFIG_DIR / 'profiles'
 OVERLAYS_DIR = CONFIG_DIR / 'overlays'
 

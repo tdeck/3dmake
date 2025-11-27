@@ -7,11 +7,9 @@ import tomllib
 from pathlib import Path
 from typing import TextIO, Dict, Any
 
-from prompt_toolkit import prompt
-
 from .framework import Context, isolated_action
 from utils.print_config import list_printer_profiles
-from utils.prompts import yes_or_no, option_select
+from utils.prompts import yes_or_no, option_select, prompt
 from utils.bundle_paths import SCRIPT_DIR, SCRIPT_BIN_PATH
 from version import VERSION
 

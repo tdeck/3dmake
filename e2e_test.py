@@ -7,6 +7,7 @@ import shutil
 import json
 import pytest
 import pexpect
+from pexpect.popen_spawn import PopenSpawn
 from pathlib import Path
 from contextlib import contextmanager
 from platformdirs import user_config_path
@@ -24,56 +25,52 @@ def test_3dm_setup():
 
         # Start interactive setup
         script_dir = Path(__file__).parent
-        cmd = f"{sys.executable} {script_dir / '3dm.py'} setup"
+        cmd = [sys.executable, str(script_dir / '3dm.py'), 'setup']
 
-        child = pexpect.spawn(cmd, timeout=30)
+        child = PopenSpawn(cmd, timeout=30, encoding='utf-8')
 
-        try:
-            # Look for printer selection prompt
-            child.expect(r'Choose a printer model', timeout=3)
-            child.expect(r'Choose an option number', timeout=3)
+        # Look for printer selection prompt
+        child.expect(r'Choose a printer model', timeout=3)
+        child.expect(r'Choose an option number', timeout=3)
 
-            # Look for Prusa Mini option and select it
-            output_so_far = child.before.decode()
-            print("Printer selection prompt received")
+        # Look for Prusa Mini option and select it
+        output_so_far = child.before
+        print("Printer selection prompt received")
 
-            # Find which number corresponds to Prusa Mini
-            lines = output_so_far.split('\n')
-            mini_option = None
-            for line in lines:
-                match = re.search(r'(\d+): prusa mini', line, re.IGNORECASE)
-                if match:
-                    mini_option = match.group(1)
-                    break
+        # Find which number corresponds to Prusa Mini
+        lines = output_so_far.split('\n')
+        mini_option = None
+        for line in lines:
+            match = re.search(r'(\d+): prusa mini', line, re.IGNORECASE)
+            if match:
+                mini_option = match.group(1)
+                break
 
-            assert mini_option, f"Option for prusa mini not found. Options:\n{output_so_far}"
-            child.sendline(mini_option)
+        assert mini_option, f"Option for prusa mini not found. Options:\n{output_so_far}"
+        child.sendline(mini_option)
 
-            # Skip Gemini setup
-            child.expect(r'Do you want to.*Gemini', timeout=10)
-            child.sendline('n')
+        # Skip Gemini setup
+        child.expect(r'Do you want to.*Gemini', timeout=10)
+        child.sendline('n')
 
-            # Skip OctoPrint setup
-            child.expect(r'Do you want to.*OctoPrint', timeout=10)
-            child.sendline('n')
+        # Skip OctoPrint setup
+        child.expect(r'Do you want to.*OctoPrint', timeout=10)
+        child.sendline('n')
 
-            # Wait for completion
-            child.expect(pexpect.EOF, timeout=10)
+        # Wait for completion
+        child.expect(pexpect.EOF, timeout=10)
 
-            # Ensure process has terminated and exit status is available
-            child.wait()
+        # Ensure process has terminated and exit status is available
+        child.wait()
 
-            print(child.before.decode()) # TODO debug
-            # Verify setup completed successfully
-            assert child.exitstatus == 0, f"Setup failed with exit code: {child.exitstatus}"
+        print(child.before) # TODO debug
+        # Verify setup completed successfully
+        assert child.exitstatus == 0, f"Setup failed with exit code: {child.exitstatus}"
 
-            # Verify config directory was created
-            assert config_dir.exists(), "Config directory should exist after setup"
-            defaults_file = config_dir / "defaults.toml"
-            assert defaults_file.exists(), "defaults.toml should exist after setup"
-
-        finally:
-            child.close()
+        # Verify config directory was created
+        assert config_dir.exists(), "Config directory should exist after setup"
+        defaults_file = config_dir / "defaults.toml"
+        assert defaults_file.exists(), "defaults.toml should exist after setup"
 
 
 def test_3dm_new():
@@ -84,33 +81,30 @@ def test_3dm_new():
             work_path = Path(work_dir)
 
             script_dir = Path(__file__).parent
-            cmd = f"{sys.executable} {script_dir / '3dm.py'} new"
+            cmd = [sys.executable, str(script_dir / '3dm.py'), 'new']
 
-            child = pexpect.spawn(cmd, cwd=str(work_path), timeout=30)
+            child = PopenSpawn(cmd, cwd=str(work_path), timeout=30, encoding='utf-8')
 
-            try:
-                child.expect(r'Choose a project directory name', timeout=3)
-                child.sendline('test_project')
+            child.expect(r'Choose a project directory name', timeout=3)
+            child.sendline('test_project')
 
-                child.expect(pexpect.EOF, timeout=10)
-                child.wait()
+            child.expect(pexpect.EOF, timeout=10)
+            child.wait()
 
-                assert child.exitstatus == 0, f"New command failed with exit code: {child.exitstatus}"
+            assert child.exitstatus == 0, f"New command failed with exit code: {child.exitstatus}"
 
-                project_path = work_path / "test_project"
-                expected_files = [
-                    "3dmake.toml",
-                    "src/main.scad",
-                    "build/",
-                ]
+            project_path = work_path / "test_project"
+            expected_files = [
+                "3dmake.toml",
+                "src/main.scad",
+                "build/",
+            ]
 
-                for expected_file in expected_files:
-                    file_path = project_path / expected_file
-                    assert file_path.exists(), f"Expected file not created: {file_path}"
+            for expected_file in expected_files:
+                file_path = project_path / expected_file
+                assert file_path.exists(), f"Expected file not created: {file_path}"
+                if file_path.is_file():
                     assert file_path.stat().st_size > 0, f"File is empty: {file_path}"
-
-            finally:
-                child.close()
 
 
 def test_3dm_build_input_file():
@@ -344,26 +338,23 @@ def isolated_3dmake_env():
         temp_config_path = Path(temp_dir)
         print(f"Temporary 3dmake config dir: {temp_config_path}")
 
-        # Set XDG_CONFIG_HOME to point to our temp directory
-        # This makes platformdirs.user_config_path('3dmake', None) return temp_dir/3dmake
-        old_xdg_config_home = os.environ.get('XDG_CONFIG_HOME')
-        os.environ['XDG_CONFIG_HOME'] = str(temp_config_path)
+        old_3dmake_config_dir = os.environ.get('3DMAKE_CONFIG_DIR')
+
+        actual_config_dir = temp_config_path / '3dmake'
+        os.environ['3DMAKE_CONFIG_DIR'] = str(actual_config_dir)
 
         try:
-            # The actual 3dmake config will be at temp_dir/3dmake
-            actual_config_dir = temp_config_path / '3dmake'
             yield actual_config_dir
         finally:
-            # Restore original environment
-            if old_xdg_config_home is not None:
-                os.environ['XDG_CONFIG_HOME'] = old_xdg_config_home
+            if old_3dmake_config_dir is not None:
+                os.environ['3DMAKE_CONFIG_DIR'] = old_3dmake_config_dir
             else:
-                os.environ.pop('XDG_CONFIG_HOME', None)
+                os.environ.pop('3DMAKE_CONFIG_DIR', None)
 
 
 def get_config_dir() -> Path:
-    """Get the current 3dmake config directory (respects XDG_CONFIG_HOME)"""
-    return user_config_path('3dmake', None)
+    """Get the current 3dmake config directory"""
+    return Path(os.environ['3DMAKE_CONFIG_DIR']) if '3DMAKE_CONFIG_DIR' in os.environ else user_config_path('3dmake', None)
 
 
 def populate_config(overrides: dict[str, Any] = {}) -> dict[str, Any]:
