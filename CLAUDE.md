@@ -25,6 +25,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Testing appears to be manual through the CLI interface
 - Sample projects exist in `troys_local_sample_poject/` for testing
 
+## Coding Style
+
+### Comments
+- Avoid obvious comments that merely restate what the code does
+- Only add comments when they explain *why* something is done or provide non-obvious context
+- Examples of comments to avoid:
+  - `# Load existing cache if it exists` (obvious from the code)
+  - `# Check if we need to fetch` (obvious from the conditional)
+  - `# Update cache with new timestamp` (obvious from the assignment)
+- Prefer clear variable names and simple code structure over explanatory comments
+- Docstrings should be concise and focus on the function's purpose, not implementation details
+
 ## Architecture Overview
 
 ### Core Architecture

@@ -3,6 +3,7 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Tuple, List, Literal, Union, Dict, Any, Callable
+from concurrent.futures import ThreadPoolExecutor
 import argparse
 import os
 import sys
@@ -17,6 +18,7 @@ import actions.help_action
 from version import VERSION
 from coretypes import FileSet, CommandOptions
 from utils.prompts import yes_or_no, prompt
+from utils.update_check import newer_3dmake_version, DOWNLOAD_URL
 from actions import ALL_ACTIONS_IN_ORDER, Context
 
 CONFIG_DIR = Path(os.environ['3DMAKE_CONFIG_DIR']) if '3DMAKE_CONFIG_DIR' in os.environ else user_config_path('3dmake', None)
@@ -252,33 +254,45 @@ context = Context(
     single_file_mode=bool(infiles),
 )
 
-for name, action in ALL_ACTIONS_IN_ORDER.items():
-    if name in verbs:
+with ThreadPoolExecutor(max_workers=1) as executor:
+    try:
+        update_check_future = executor.submit(newer_3dmake_version, CONFIG_DIR, VERSION)
+
+        for name, action in ALL_ACTIONS_IN_ORDER.items():
+            if name in verbs:
+                try:
+                    action(context)
+                except Exception as e:
+                    if options and options.debug:
+                        raise
+                    else:
+                        error_out("ERORR: " + str(e))
+                except KeyboardInterrupt as e:
+                    print("Exited.")
+                    sys.exit(2)
+                if action.isolated:
+                    sys.exit(0)
+
+        if infiles:
+            outputs = file_set.final_outputs()
+            if outputs:
+                for file in outputs:
+                    shutil.copy(file, Path('.'))
+
+                if len(outputs) == 1:
+                    print(f"Result is in {outputs[0].name}")
+                else:
+                    print(f"Result files:")
+                    for file in outputs:
+                        print(f"    {file.name}")
+        print("Done.")
+
+    finally:
         try:
-            action(context)
-        except Exception as e:
-            if options and options.debug:
-                raise
-            else:
-                error_out("ERORR: " + str(e))
-        except KeyboardInterrupt as e:
-            print("Exited.")
-            sys.exit(2)
-        if action.isolated:
-            sys.exit(0) # So we don't print Done.
-
-if infiles:
-    # If we're in single file mode, copy the last result to the working dir
-    outputs = file_set.final_outputs()
-    if outputs:
-        for file in outputs:
-            shutil.copy(file, Path('.'))
-
-        if len(outputs) == 1:
-            print(f"Result is in {outputs[0].name}")
-        else:
-            print(f"Result files:")
-            for file in outputs:
-                print(f"    {file.name}")
-
-print("Done.")
+            new_version = update_check_future.result(timeout=3)
+            if args.debug:
+                print(f"Version check result '{new_version}'")
+            if new_version:
+                print(f"A newer version of 3DMake is available at {DOWNLOAD_URL}")
+        except TimeoutError:
+            pass
