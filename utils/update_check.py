@@ -13,7 +13,7 @@ from packaging.version import Version, InvalidVersion
 UPDATE_CHECK_INTERVAL = timedelta(hours=24)
 FETCH_TIMEOUT_S = 2
 VERSION_CHECK_URL = "https://blindmakers.net/3dmake_version.json"
-DOWNLOAD_URL = "https://github.com/tdeck/3dmake/releases/latest"
+DOWNLOAD_URL = "https://blindmakers.net/3dmake"
 UPDATE_CACHE_FILE = "update_check.json"
 
 

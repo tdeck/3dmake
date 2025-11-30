@@ -290,9 +290,8 @@ with ThreadPoolExecutor(max_workers=1) as executor:
     finally:
         try:
             new_version = update_check_future.result(timeout=3)
-            if args.debug:
-                print(f"Version check result '{new_version}'")
             if new_version:
                 print(f"A newer version of 3DMake is available at {DOWNLOAD_URL}")
+                print(f"You are running version {VERSION}. The latest is {new_version}.")
         except TimeoutError:
             pass
