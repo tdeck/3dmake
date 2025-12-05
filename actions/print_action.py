@@ -7,6 +7,8 @@ from pathlib import Path
 import ssl
 import json
 import time
+import webbrowser
+from urllib.parse import quote as uri_quote
 
 import paho.mqtt.client as mqtt
 
@@ -24,8 +26,10 @@ def print(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         _print_with_octoprint(ctx, stdout, debug_stdout)
     elif mode == 'bambu_lan':
         _print_with_bambu(ctx, stdout, debug_stdout)
+    elif mode == 'bambu_connect':
+        _print_with_bambu_connect(ctx, stdout, debug_stdout)
     else:
-        raise RuntimeError(f"Unknown print mode '{mode}")
+        raise RuntimeError(f"Unknown print mode '{mode}'")
 
 
 def _print_with_octoprint(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
@@ -71,6 +75,25 @@ def _print_with_bambu(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
 
     stdout.write(f"Starting print...\n")
     _start_bambu_print(ctx, g3mf_filename)
+
+
+def _print_with_bambu_connect(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+    gcode_filename = ctx.files.sliced_gcode.name
+    g3mf_filename = f"{gcode_filename}.3mf"
+    print_name = ctx.files.sliced_gcode.stem
+
+    stdout.write(f"Preparing 3MF file...\n")
+    g3mf_path = ctx.files.build_dir / g3mf_filename
+    _create_bambu_3mf(ctx.files.sliced_gcode, g3mf_path)
+
+    stdout.write(f"Sending to Bambu Connect...\n")
+    uri = (
+        "bambu-connect://import-file?"
+        f"path={uri_quote(str(g3mf_path.absolute()))}"
+        f"&name={uri_quote(print_name)}&version=1.0.0"
+    )
+
+    webbrowser.open(uri)
 
 
 def _create_bambu_3mf(gcode_file: Path, output_file: Path) -> None:

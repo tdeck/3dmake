@@ -29,7 +29,7 @@ class CommandOptions:
     local_libraries: List[str] = field(default_factory=list) # Note: these should contain paths
 
     # Printer connection mode
-    print_mode: str = 'octoprint' # Options are "octoprint" and "bambu_lan"
+    print_mode: str = 'octoprint' # Options are "octoprint", "bambu_lan", and "bambu_connect"
 
     # Octoprint
     octoprint_host: Optional[str] = None

@@ -13,12 +13,16 @@ def test_connect(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     ''' Test connection to the configured print server '''
 
     mode = ctx.options.print_mode
-    stdout.write(f"Testing connection to {mode} printer...\n\n")
 
     if mode == 'octoprint':
         _test_octoprint_connection(ctx, stdout)
     elif mode == 'bambu_lan':
         _test_bambu_connection(ctx, stdout)
+    elif mode == 'bambu_connect':
+        stdout.write(
+            "Cannot test connection in Bambu Connect mode.\n"
+            "Launch Bambu Connect to test your printer's connection.\n"
+        )
     else:
         raise RuntimeError(f"Unknown print mode '{mode}'")
 

@@ -71,7 +71,7 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     if DEFAULTS_TOML.exists():
         print(f"The configuration directory {CONFIG_DIR} already exists.")
         print(f"I can overwrite the printer profiles and overlays that came")
-        print(f"with 3Mmake, which will upgrade them to the latest version. But if you")
+        print(f"with 3DMake, which will upgrade them to the latest version. But if you")
         print(f"customized one of the built-in profiles, your changes will be lost.")
         overwrite_old_profiles = yes_or_no("Do you want to upgrade profiles?")
 
