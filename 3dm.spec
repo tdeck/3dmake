@@ -18,6 +18,7 @@ a = Analysis(
         (f'./{deps_dir}', deps_dir),
         (f'./default_config', 'default_config'),
         (f'README.md', '.'),
+        (f'template.gcode.3mf', '.'),
     ],
     hiddenimports=[
         'prompt-toolkit', # For some reason pyinstaller doesn't pick this up in Windows
