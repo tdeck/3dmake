@@ -132,6 +132,7 @@ def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
 
         if abs(computed_length - float(filament_used_mm_str)) > MAX_CALCULATED_FILAMENT_DEVIATION_MM:
             stdout.write("NOTE: 3DMake has detected that stats below may not be reliable.\n");
+            debug_stdout.write(f"Computed length: {computed_length}, gcode key length {filament_used_mm_str}\n")
 
         # Print computed stats
         print_detailed_stats(computed_feature_stats, stdout)

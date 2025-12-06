@@ -57,8 +57,8 @@ def parse_gcode_stats(gcode_path: Path) -> dict[str, FeatureStats]:
                     current_e = float(e_match.group(1))
                     # Don't reset retraction debt - retractions before resets still need to be paid back
 
-            # Parse G1 movement commands (extrusion)
-            elif line.startswith('G1 ') and 'E' in line:
+            # Parse G0/G1 movement commands (extrusion)
+            elif (line.startswith('G1 ') or line.startswith('G0 ')) and 'E' in line:
                 # Extract coordinates and extrusion using pre-compiled patterns
                 x_match = X_PATTERN.search(line)
                 y_match = Y_PATTERN.search(line)
