@@ -47,7 +47,7 @@ def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         copies_suffix = f'-x{ctx.options.copies}'
 
     gcode_file = ctx.files.build_dir / f"{project_prefix}{ctx.files.model_to_slice().stem}{copies_suffix}.gcode"
-    
+
     cmd = [
         DEPS.SLICER,
         '--export-gcode',
@@ -189,4 +189,29 @@ def print_detailed_stats(stats: dict[str, FeatureStats], stdout: TextIO) -> None
         if value.length_mm < 1 or value.time_seconds < 5:
             # Hide very small features so user doesn't have to listen to them
             continue
-        stdout.write(f"    {name}\t{value.time_seconds:.0f} seconds ({value.length_mm:.0f} mm)\n")
+        stdout.write(f"    {name:30}{short_format_seconds(value.time_seconds)} ({value.length_mm:.0f} mm)\n")
+
+def short_format_seconds(seconds: float) -> str:
+    ''' Format the time in seconds e.g. "2 hours 30 minutes 12 seconds" or "2 minutes 10 seconds" '''
+    total_seconds = int(seconds)
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    secs = total_seconds % 60
+
+    parts = []
+    if hours > 1:
+        parts.append(f"{hours} hours")
+    elif hours == 1:
+        parts.append("1 hour")
+
+    if minutes > 1:
+        parts.append(f"{minutes} minutes")
+    elif minutes == 1:
+        parts.append("1 minute")
+
+    if secs > 1:
+        parts.append(f"{secs} seconds")
+    elif secs == 1:
+        parts.append("1 second")
+
+    return " ".join(parts)
