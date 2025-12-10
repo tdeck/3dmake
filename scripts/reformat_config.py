@@ -54,6 +54,10 @@ def load_config_lines(path: Path) -> Dict[str, str]:
             if not line or line[0] == '#' or line[0] == ';':
                 continue
             key = line.split('=', 1)[0].strip()
+            if key in results:
+                # Sometimes the way I use this script this is actually desired, so it's not an
+                # error but only a warning
+                print(f"Duplicate key '{key}' overridden")
             results[key] = line
     return results 
 
