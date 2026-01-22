@@ -121,16 +121,22 @@ def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
 
         # NOTE: We need to change this parsing logic if we support multi-extruder prints
         filament_used_mm_str = slicer_keys.get('filament used [mm]')
-        if filament_used_mm_str:
-            filament_used_grams_str = slicer_keys.get('total filament used [g]')
-            weight_str = '' if not filament_used_grams_str else f" ({filament_used_grams_str} grams)"
-            stdout.write(f"Filament used: {format_mm_length(filament_used_mm_str)}{weight_str}\n")
+        if not filament_used_mm_str:
+            stdout.write(f"Unable to determine filament used.")
+            return
+
+        # For multi-extruder prints this can be a comma separated list
+        filament_used_mm_total = sum([float(l) for l in filament_used_mm_str.split(', ')])
+
+        filament_used_grams_str = slicer_keys.get('total filament used [g]')
+        weight_str = '' if not filament_used_grams_str else f" ({filament_used_grams_str} grams)"
+        stdout.write(f"Filament used: {format_mm_length(filament_used_mm_total)}{weight_str}\n")
 
         # Sanity check computed stats
         computed_feature_stats = parse_gcode_stats(gcode_file)
         computed_length = sum((f.length_mm for f in computed_feature_stats.values()))
 
-        if abs(computed_length - float(filament_used_mm_str)) > MAX_CALCULATED_FILAMENT_DEVIATION_MM:
+        if abs(computed_length - filament_used_mm_total) > MAX_CALCULATED_FILAMENT_DEVIATION_MM:
             stdout.write("NOTE: 3DMake has detected that stats below may not be reliable.\n");
             debug_stdout.write(f"Computed length: {computed_length}, gcode key length {filament_used_mm_str}\n")
 
@@ -173,8 +179,8 @@ def reformat_gcode_time(time_str: str) -> str:
 
     return time_str
 
-def format_mm_length(length_str: str) -> str:
-    mm = int(float(length_str))
+def format_mm_length(length: float) -> str:
+    mm = int(length)
     if mm > 1000:
         return f"about {mm / 1000:.2f} meters"
     elif mm > 10:
