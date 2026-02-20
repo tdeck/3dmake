@@ -3,11 +3,21 @@ import subprocess
 from typing import List, TextIO, Callable, Any, Dict, Optional
 from dataclasses import dataclass, field
 from pathlib import Path
+from datetime import timedelta
 
 from stl.mesh import Mesh
 
 from utils.stream_wrappers import IndentStream, DEVNULL
 from coretypes import CommandOptions, FileSet, MeshMetrics
+
+@dataclass(kw_only=True)
+class SliceMetadata:
+    printer_model: str
+    printer_vendor: str
+    estimated_duration: timedelta
+    estimated_grams: float
+    nozzle_diameters: list[float]
+    supports_enabled: bool
 
 @dataclass(kw_only=True)
 class Context:
@@ -21,6 +31,8 @@ class Context:
     mesh: Optional[Mesh] = None
     mesh_metrics: Optional[MeshMetrics] = None
 
+    # These are attached by the slicing step
+    slice_metadata: Optional[SliceMetadata] = None
 
 ActionName = str
 ActionFunc = Callable[[Context, TextIO, TextIO], None] # stdout, verbose stdout

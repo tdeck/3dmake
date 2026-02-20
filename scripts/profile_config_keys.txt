@@ -14,6 +14,7 @@ print_settings_id
 printer_settings_id
 physical_printer_settings_id
 printer_variant
+; NOTE if this contains the word bambu, the printer can use bambu upload methods
 printer_vendor
 
 # Temperatures

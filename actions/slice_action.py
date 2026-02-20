@@ -1,9 +1,10 @@
-import subprocess
 import re
 from typing import TextIO, Optional, List
 from pathlib import Path
+from datetime import timedelta
+import subprocess
 
-from .framework import Context, pipeline_action
+from .framework import Context, SliceMetadata, pipeline_action
 from utils.bundle_paths import DEPS
 from utils.logging import throw_subprogram_error
 from utils.stream_wrappers import StoreAndForwardStream
@@ -143,6 +144,16 @@ def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         # Print computed stats
         print_detailed_stats(computed_feature_stats, stdout)
 
+        # Attach slice info to context
+        ctx.slice_metadata = SliceMetadata(
+            printer_model=config_dict['printer_model'],
+            printer_vendor=config_dict['printer_vendor'],
+            nozzle_diameters=[float(d) for d in slicer_keys['nozzle_diameter'].split(',')],
+            supports_enabled=slicer_keys['support_material'].strip() == '1',
+            estimated_duration=parse_gcode_time(time_str),
+            estimated_grams=float(filament_used_grams_str),
+        )
+
 def extract_slicer_keys(gcode_file: Path) -> dict[str, str]:
     results = {}
     with open(gcode_file, 'r') as fh:
@@ -178,6 +189,15 @@ def reformat_gcode_time(time_str: str) -> str:
     time_str = re.sub(r'\b1 seconds', '1 second', time_str)
 
     return time_str
+
+def parse_gcode_time(time_str: str) -> timedelta:
+    # The time string in the GCode is formatted by the function get_time_dhms
+    # and will look like "10d 9h 8m 7s".
+    parts = re.fullmatch(r'\s*(?:(\d+)d)?\s*(?:(\d+)h)?\s*(?:(\d+)m)?\s*(?:(\d+)s)?\s*', time_str)
+    if not parts or not parts.group(0).strip():
+        raise ValueError(f"Invalid duration string: {s!r}")
+    d, h, m, s = (int(x) if x else 0 for x in parts.groups())
+    return timedelta(days=d, hours=h, minutes=m, seconds=s)
 
 def format_mm_length(length: float) -> str:
     mm = int(length)

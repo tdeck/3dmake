@@ -12,10 +12,11 @@ from urllib.parse import quote as uri_quote
 
 import paho.mqtt.client as mqtt
 
-from .framework import Context, pipeline_action
+from .framework import Context, SliceMetadata, pipeline_action
 from .slice_action import slice as slice_model
 from utils.bundle_paths import BAMBU_3MF_TEMPLATE_PATH
 from utils.ftp import ImplicitFTPS
+from utils.b3mf import SLICE_INFO_CONFIG_TEMPLATE
 
 @pipeline_action(implied_actions=[slice_model])
 def print(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
@@ -62,13 +63,20 @@ def _print_with_octoprint(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         stdout.write("\n")
 
 
+def _check_for_bambu_printer(ctx: Context) -> None:
+    if 'bambu' not in ctx.slice_metadata.printer_vendor.lower():
+        raise RuntimeError("Selected printer profile is not a Bambu Labs printer")
+
 def _print_with_bambu(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+    _check_for_bambu_printer(ctx)
+
     gcode_filename = ctx.files.sliced_gcode.name
     g3mf_filename = f"{gcode_filename}.3mf"
 
     stdout.write(f"Preparing 3MF file...\n")
     g3mf_path = ctx.files.build_dir / g3mf_filename
-    _create_bambu_3mf(ctx.files.sliced_gcode, g3mf_path)
+    debug_stdout.write(f"3mf path: {g3mf_path}\n")
+    _create_bambu_3mf(ctx.slice_metadata, ctx.files.sliced_gcode, g3mf_path)
 
     stdout.write(f"Uploading 3MF to printer...\n")
     _upload_to_bambu_printer(ctx, g3mf_path)
@@ -78,6 +86,8 @@ def _print_with_bambu(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
 
 
 def _print_with_bambu_connect(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+    _check_for_bambu_printer(ctx)
+
     gcode_filename = ctx.files.sliced_gcode.name
     g3mf_filename = f"{gcode_filename}.3mf"
     print_name = ctx.files.sliced_gcode.stem
@@ -96,7 +106,11 @@ def _print_with_bambu_connect(ctx: Context, stdout: TextIO, debug_stdout: TextIO
     webbrowser.open(uri)
 
 
-def _create_bambu_3mf(gcode_file: Path, output_file: Path) -> None:
+def _create_bambu_3mf(
+    slice_metadata: SliceMetadata,
+    gcode_file: Path,
+    output_file: Path
+) -> None:
     '''
     Embeds the given gcode file in a printable 3mf file compatible with Bambu Labs printers.
     Note that not all the metadata is present or correct in the file; it's just good enough
@@ -108,6 +122,18 @@ def _create_bambu_3mf(gcode_file: Path, output_file: Path) -> None:
 
     with zipfile.ZipFile(output_file, 'a') as zf:
         zf.write(gcode_file, 'Metadata/plate_1.gcode', compress_type=zipfile.ZIP_DEFLATED)
+
+        zf.writestr(
+            'Metadata/slice_info.config',
+            SLICE_INFO_CONFIG_TEMPLATE.substitute(dict(
+                printer_model_id=slice_metadata.printer_model,
+                nozzle_diameters=','.join([str(f) for f in slice_metadata.nozzle_diameters]),
+                predicted_seconds=slice_metadata.estimated_duration.total_seconds(),
+                predicted_grams=slice_metadata.estimated_grams,
+                supports_used=str(slice_metadata.supports_enabled).lower(),
+            )),
+        )
+
         # I'm not absolutely sure if the MD5 is needed, but I'm including it just in case
         zf.writestr('Metadata/plate_1.gcode.md5', gcode_hash)
 
