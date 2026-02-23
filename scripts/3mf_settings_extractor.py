@@ -5,6 +5,7 @@
 import zipfile
 import re
 import sys
+import xml.etree.ElementTree as ET
 
 SAME_KEYS = [
     'bed_custom_model',
@@ -65,7 +66,7 @@ SAME_KEYS = [
     'ooze_prevention',
     'post_process',
     'print_settings_id',
-    'printer_model',
+    #'printer_model', # This is pulled from Metadata/slice_info.config
     'printer_notes',
     'printer_settings_id',
     'printer_technology',
@@ -253,6 +254,21 @@ def main():
             prusa_key = key_mappings[bambu_key]
             print(f"{prusa_key} = {bambu_value}")
             output_count += 1
+
+    # Extract printer_model_id from slice_info.config
+    with zipfile.ZipFile(archive_path, 'r') as zf:
+        xml_bytes = zf.read('Metadata/slice_info.config')
+    root = ET.fromstring(xml_bytes.decode('utf-8'))
+    printer_model_id = None
+    for plate in root.findall('plate'):
+        for metadata in plate.findall('metadata'):
+            if metadata.get('key') == 'printer_model_id':
+                printer_model_id = metadata.get('value')
+                break
+        if printer_model_id:
+            break
+    if printer_model_id:
+        print(f"printer_model = {printer_model_id}")
 
     # Print summary to stderr so it doesn't interfere with output redirection
     print(f"\n# Extracted {output_count} mapped settings from {len(settings)} total settings", file=sys.stderr)
