@@ -41,7 +41,7 @@ SAME_KEYS = [
     'interface_shells',
     'ironing_spacing',
     'ironing_speed',
-    'ironing_type',
+    #'ironing_type', # TODO not sure if this is formatted right so for now I disable
     'layer_height',
     'machine_max_acceleration_e',
     'machine_max_acceleration_extruding',
