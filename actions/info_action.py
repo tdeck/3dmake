@@ -28,12 +28,13 @@ def info(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     stdout.write(f"Mesh size: x={sizes.x:.2f}, y={sizes.y:.2f}, z={sizes.z:.2f}\n")
     stdout.write(f"Mesh center: x={mid.x:.2f}, y={mid.y:.2f}, z={mid.z:.2f}\n")
 
-    if ctx.options.openrouter_key or ctx.options.gemini_key:
+    if ctx.options.openrouter_key or ctx.options.gemini_key or ctx.options.ollama_host:
         stdout.write("\nAI description:\n")
         describe_model(
             mesh=ctx.mesh,
             gemini_api_key=ctx.options.gemini_key,
             openrouter_api_key=ctx.options.openrouter_key,
+            ollama_host=ctx.options.ollama_host,
             llm_name=ctx.options.llm_name,
             stdout=stdout,
             debug_stdout=debug_stdout,
@@ -76,16 +77,82 @@ def describe_model(
     mesh: Mesh,
     gemini_api_key: Optional[str],
     openrouter_api_key: Optional[str],
+    ollama_host: Optional[str],
     llm_name: str,
     stdout: TextIO,
     debug_stdout: TextIO,
     interactive: bool,
     prompt_text: str,
 ) -> None:
-    if openrouter_api_key:
+    if ollama_host:
+        describe_model_ollama(mesh, ollama_host, llm_name, stdout, debug_stdout, interactive, prompt_text)
+    elif openrouter_api_key:
         describe_model_openrouter(mesh, openrouter_api_key, llm_name, stdout, debug_stdout, interactive, prompt_text)
     elif gemini_api_key:
         describe_model_gemini(mesh, gemini_api_key, llm_name, stdout, debug_stdout, interactive, prompt_text)
+
+def describe_model_ollama(
+    mesh: Mesh,
+    ollama_host: str,
+    llm_name: str,
+    stdout: TextIO,
+    debug_stdout: TextIO,
+    interactive: bool,
+    prompt_text: str,
+) -> None:
+    from openai import OpenAI  # Same client, different base_url
+
+    debug_stdout.write(f"Using Ollama model {llm_name} at {ollama_host}\n")
+
+    renderer = MeshRenderer(mesh)
+    images = [
+        serialize_image(
+            renderer.get_image(VIEWPOINTS[vp_name], IMAGE_PIXELS, IMAGE_PIXELS)
+        )
+        for vp_name in VIEWPOINTS_TO_USE
+    ]
+
+    # Ollama's OpenAI-compatible endpoint
+    client = OpenAI(
+        base_url=f"{ollama_host.rstrip('/')}/v1",
+        api_key="ollama",  # Ollama ignores this but the client requires a non-empty value
+    )
+
+    content = [{"type": "text", "text": prompt_text}]
+    for img_data in images:
+        content.append({
+            "type": "image_url",
+            "image_url": {"url": f"data:{img_data['mime_type']};base64,{img_data['data']}"}
+        })
+
+    completion = client.chat.completions.create(
+        model=llm_name,
+        messages=[{"role": "user", "content": content}]
+    )
+    response_text = completion.choices[0].message.content
+    stdout.write(response_text + "\n")
+
+    if interactive:
+        stdout.write("\nYou are in interactive mode and can ask the AI follow-up questions.")
+        stdout.write('\nTo stop asking questions, type "stop", "quit", or "exit":\n')
+
+        conversation = [
+            {"role": "user", "content": content},
+            {"role": "assistant", "content": response_text}
+        ]
+
+        while True:
+            question = prompt("Q: ").strip()
+            if question == '' or question.lower() in ['stop', 'quit', 'exit']:
+                if question.lower() in ['stop', 'quit', 'exit']:
+                    stdout.write("End of interaction.\n")
+                return
+
+            conversation.append({"role": "user", "content": question})
+            completion = client.chat.completions.create(model=llm_name, messages=conversation)
+            response_text = completion.choices[0].message.content
+            stdout.write(response_text + "\n")
+            conversation.append({"role": "assistant", "content": response_text})
 
 def describe_model_gemini(
     mesh: Mesh,

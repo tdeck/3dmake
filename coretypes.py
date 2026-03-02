@@ -32,8 +32,20 @@ class CommandOptions:
     print_mode: str = 'octoprint' # Options are "octoprint", "bambu_lan", and "bambu_connect"
 
     # Octoprint
-    octoprint_host: Optional[str] = None
     octoprint_key: Optional[str] = None
+    
+    # --- AI / LLM (local — Ollama) ---
+    # Set ollama_host to use a locally running Ollama instance instead of any
+    # cloud API.  When present this takes priority over openrouter_key and
+    # gemini_key, making it safe for airgapped and K-12 deployments.
+    #
+    # Example values:
+    #   "http://localhost:11434"          — Ollama running on this machine
+    #   "http://192.168.1.50:11434"       — Ollama on another LAN machine
+    #
+    # The llm_name field (above) is reused to choose the Ollama model, e.g.
+    # "llava", "llava:13b", "llava-phi3", "minicpm-v", "moondream".
+    ollama_host: Optional[str] = None
 
     # Bambu labs
     bambu_host: Optional[str] = None
