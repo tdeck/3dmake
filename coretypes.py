@@ -66,6 +66,7 @@ class FileSet:
 
     oriented_model: Optional[Path] = None
     projected_model: Optional[Path] = None
+    preview_svg: Optional[Path] = None
     sliced_gcode: Optional[Path] = None
     rendered_images: dict[str, Optional[Path]]
 
@@ -83,7 +84,13 @@ class FileSet:
         if self.rendered_images:
             return list(self.rendered_images.values())
 
-        res = self.projected_model or self.oriented_model or (self.scad_source and self.model)
+        if self.projected_model:
+            outputs = [self.projected_model]
+            if self.preview_svg:
+                outputs.append(self.preview_svg)
+            return outputs
+
+        res = self.oriented_model or (self.scad_source and self.model)
 
         if res:
             return [res]
