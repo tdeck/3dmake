@@ -9,6 +9,7 @@ import json
 import time
 import webbrowser
 from urllib.parse import quote as uri_quote
+import json
 
 import paho.mqtt.client as mqtt
 
@@ -132,6 +133,19 @@ def _create_bambu_3mf(
                 predicted_grams=slice_metadata.estimated_grams,
                 supports_used=str(slice_metadata.supports_enabled).lower(),
             )),
+        )
+
+        zf.writestr(
+            'Metadata/project_settings.config',
+            json.dumps(
+                {
+                    "print_compatible_printers": [
+                        slice_metadata.printer_settings_id,
+                    ],
+                    "version": "02.05.00.66",
+                    "filament_ids": []
+                }
+            ),
         )
 
         # I'm not absolutely sure if the MD5 is needed, but I'm including it just in case

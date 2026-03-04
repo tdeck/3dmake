@@ -147,6 +147,7 @@ def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         # Attach slice info to context
         ctx.slice_metadata = SliceMetadata(
             printer_model=config_dict['printer_model'],
+            printer_settings_id=config_dict['printer_settings_id'],
             printer_vendor=config_dict['printer_vendor'],
             nozzle_diameters=[float(d) for d in slicer_keys['nozzle_diameter'].split(',')],
             supports_enabled=slicer_keys['support_material'].strip() == '1',

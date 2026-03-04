@@ -13,6 +13,7 @@ from coretypes import CommandOptions, FileSet, MeshMetrics
 @dataclass(kw_only=True)
 class SliceMetadata:
     printer_model: str
+    printer_settings_id: str
     printer_vendor: str
     estimated_duration: timedelta
     estimated_grams: float
