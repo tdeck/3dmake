@@ -1,7 +1,7 @@
 from string import Template
 
-SLICE_INFO_CONFIG_TEMPLATE = Template('''
-<?xml version="1.0" encoding="UTF-8"?>
+SLICE_INFO_CONFIG_TEMPLATE = Template(
+'''<?xml version="1.0" encoding="UTF-8"?>
 <config>
   <header>
     <header_item key="X-BBL-Client-Type" value="slicer"/>
@@ -27,5 +27,4 @@ SLICE_INFO_CONFIG_TEMPLATE = Template('''
       <layer_filament_list filament_list="0" layer_ranges="0 3" />
     </layer_filament_lists>
   </plate>
-</config>
-''')
+</config>''') # Whitespace around the doc will break Bambu Connect
