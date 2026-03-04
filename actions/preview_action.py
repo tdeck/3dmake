@@ -1,6 +1,8 @@
 import subprocess
 import os
 import json
+import xml.etree.ElementTree as ET
+from pathlib import Path
 from typing import TextIO
 
 from .framework import Context, pipeline_action
@@ -73,8 +75,31 @@ def preview(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     if result.returncode != 0:
         throw_subprogram_error('OpenSCAD', result.returncode, ctx.options.debug)
 
+    # Update the style of the SVG paths so they'll produce a better tactile graphic
+    _update_svg_path_style(
+        ctx.files.preview_svg,
+        ctx.options.svg_fill_color,
+        ctx.options.svg_stroke_width
+    )
+
     # Insert a projection overlay to print projections quicker
     ctx.options.overlays.insert(0, 'preview')
+
+
+def _update_svg_path_style(svg_path: Path, fill_color: str, stroke_width: float):
+    SVG_NS = 'http://www.w3.org/2000/svg'
+    ET.register_namespace('', SVG_NS)
+    ET.register_namespace('xlink', 'http://www.w3.org/1999/xlink')
+
+    tree = ET.parse(svg_path)
+    root = tree.getroot()
+
+    ns_prefix = f'{{{SVG_NS}}}' if root.tag.startswith('{') else ''
+    for elem in root.iter(f'{ns_prefix}path'):
+        elem.set('fill', fill_color)
+        elem.set('stroke-width', str(stroke_width))
+
+    tree.write(svg_path, xml_declaration=True, encoding='UTF-8')
 
 PROJECTION_CODE = {
     # These all receive the following vars:

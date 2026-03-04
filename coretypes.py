@@ -50,6 +50,10 @@ class CommandOptions:
     colorscheme: str = "slicer_dark"
     image_size: str = "1080x720"
 
+    # SVG preview options
+    svg_stroke_width: float = 1
+    svg_fill_color: str = 'oldLace'
+
 
 class FileSet:
     def __init__(self, options: CommandOptions, project_root: Optional[Path]):
