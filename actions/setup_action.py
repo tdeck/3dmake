@@ -2,6 +2,7 @@ import platform
 import os
 import shutil
 import json
+import hashlib
 import platform
 import tomllib
 from pathlib import Path
@@ -12,6 +13,10 @@ from utils.print_config import list_printer_profiles
 from utils.prompts import yes_or_no, option_select, prompt
 from utils.bundle_paths import SCRIPT_DIR, SCRIPT_BIN_PATH
 from version import VERSION
+from default_file_hashes import BUNDLED_PATH_HASHES
+
+def hash_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes().replace(b'\r', b''), usedforsecurity=False).hexdigest()
 
 def get_default_settings() -> Dict[str, Any]:
     """Get the default settings for initial setup"""
@@ -67,21 +72,22 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     # Load existing settings if they exist
     existing_settings = load_existing_settings(DEFAULTS_TOML)
 
-    overwrite_old_profiles = True
-    if DEFAULTS_TOML.exists():
-        print(f"The configuration directory {CONFIG_DIR} already exists.")
-        print(f"I can overwrite the printer profiles and overlays that came")
-        print(f"with 3DMake, which will upgrade them to the latest version. But if you")
-        print(f"customized one of the built-in profiles, your changes will be lost.")
-        overwrite_old_profiles = yes_or_no("Do you want to upgrade profiles?")
+    default_conf_dir = SCRIPT_DIR / 'default_config'
 
     def copy_fn(src, dest):
-        # When overwrite_old_profiles is false, this will ignore any file that
-        # already exists
-        if overwrite_old_profiles or not Path(dest).exists():
+        dest_path = Path(dest)
+        if not dest_path.exists():
             shutil.copy2(src, dest)
+            return
 
-    default_conf_dir = SCRIPT_DIR / 'default_config'
+        rel_path = str(Path(src).relative_to(default_conf_dir)).replace('\\', '/')
+        existing_hash = hash_file(dest_path)
+        if existing_hash in BUNDLED_PATH_HASHES.get(rel_path, set()):
+            shutil.copy2(src, dest)
+        elif existing_hash == hash_file(Path(src)):
+            return # File hasn't changed
+        elif yes_or_no(f"'{rel_path}' has been customized. Overwrite with the new version?"):
+                shutil.copy2(src, dest)
     shutil.copytree(
         default_conf_dir,
         CONFIG_DIR,

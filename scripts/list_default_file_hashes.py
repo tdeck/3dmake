@@ -34,6 +34,6 @@ for tag in version_tags:
 
 from pprint import pprint
 print(f"# Generate by scripts/list_default_file_hashes.py")
-print(f"# Latest tag recorded {version_tags[-1]}")
+print(f"LATEST_TAG_RECORDED = '{version_tags[-1]}'")
 print("BUNDLED_PATH_HASHES = ", end='')
 pprint(hashes_by_path, sort_dicts=True)
