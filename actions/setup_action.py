@@ -162,26 +162,7 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             fh.write(f"{k} = {json.dumps(v)}\n")
         
     print()
-    current_has_ollama = bool(settings_dict.get('ollama_host'))
-    if current_has_ollama:
-        ollama_question = "Do you want to change your Ollama configuration?"
-    else:
-        ollama_question = "Do you want to set up a local Ollama connection?"
-
-    if yes_or_no(ollama_question):
-        print("Ollama lets you run AI models locally with no internet required.")
-        print("Make sure Ollama is running and a vision-capable model is pulled,")
-        print("e.g.: ollama pull llava")
-        current_host = settings_dict.get('ollama_host', 'http://localhost:11434')
-        host = prompt_with_current("Ollama host URL", current_host)
-        if host:
-            settings_dict['ollama_host'] = host
-            current_model = settings_dict.get('llm_name', 'llava')
-            model = prompt_with_current("Ollama model name (must support vision)", current_model)
-            if model:
-                settings_dict['llm_name'] = model
-
-                
+              
 def add_self_to_path():
     os_type = platform.system()
 
