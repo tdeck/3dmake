@@ -229,7 +229,7 @@ view            | The default view to use in [previews](#Previews)  | `"3sil"`  
 printer_profile | The default printer profile name                  | What you set in 3dm setup     | `"prusa_MK4"`
 scale           | Uniform scale factor when slicing the model       | `1.0`                         | `1.05`
 overlays        | Default overlays to apply when printing           | `[]` (empty list)             | `["supports"]`
-print_mode      | How to connect to the printer (for 3dm print)     | `"octoprint"`                 | `"bambu-lan"`
+print_mode      | How to connect to the printer (for 3dm print). Options are `octoprint`, `bambu_connect`, and `bambu_lan`    | `"octoprint"`                 | `"bambu_connect"`
 octoprint_host  | The URL of your OctoPrint instance                | What you set in 3dm setup     | `"http://192.168.1.10"`
 octoprint_key   | The OctoPrint API key (do not share this)         | What you set in 3dm setup     | `"7025A..."`
 bambu_host      | The Bambu Labs printer hostname / IP address      | none                          | `"10.168.2.3"`
@@ -248,6 +248,8 @@ local_libraries | List of library paths to use in project           | `[]` (empt
 image_angles    | List of viewpoint angle names to use in image export | `["above_front_left", "above_front", "above_front_right"]` | `["top"]`
 copies          | Number of copies of the model to create when slicing | `1` | `3`
 colorscheme     | Color scheme name to use in image export | `"slicer_dark"` | `"slicer_light"`
+svg_stroke_width| The width of the preview SVG stroke, in mm        | `1`                           | `2`
+svg_fill_color  | The color name of the preview SVG shape fill      | `"oldLace"`                   | `"grey"`
 debug           | Output a lot more messages when running 3DMake    | `false`                       | `true`
 
 Some of these settings can be further overridden on the command line (for example, `-m` overrides `model_name`, and `-i` overrides `interactive)`. In fact, all of the command line options are reflected here.
