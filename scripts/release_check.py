@@ -65,3 +65,4 @@ if errors:
     sys.exit(1)
 else:
     print(f"OK.")
+    print("Remember to publish the new version JSON by regenerating the Hugo blog.")
