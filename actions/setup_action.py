@@ -193,7 +193,8 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         for k, v in settings_dict.items():
             fh.write(f"{k} = {json.dumps(v)}\n")
         
-
+    print()
+              
 def add_self_to_path():
     os_type = platform.system()
 

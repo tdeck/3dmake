@@ -1,4 +1,4 @@
-# This script extracts settings from a 3MF flie (assumed to be sliced by Bambu Studio)
+# This script extracts settings from a 3MF file (assumed to be sliced by Bambu Studio)
 # by parsing the sliced GCode. It then translates those settings to the equivalent PrusaSlicer
 # settings, then prints them as INI lines.
 # TODO It may be possible to pull these from JSON or something.
