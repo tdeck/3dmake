@@ -15,6 +15,8 @@ from utils.bundle_paths import SCRIPT_DIR, SCRIPT_BIN_PATH
 from version import VERSION
 from default_file_hashes import BUNDLED_PATH_HASHES
 
+DEFAULT_WINDOWS_EDITOR = 'notepad'
+
 def hash_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes().replace(b'\r', b''), usedforsecurity=False).hexdigest()
 
@@ -29,7 +31,7 @@ def get_default_settings() -> Dict[str, Any]:
     # For the most common platform, we pre-populate the defaults so that it makes
     # the file easier to edit
     if platform.system() == 'Windows':
-        settings['editor'] = 'notepad'
+        settings['editor'] = DEFAULT_WINDOWS_EDITOR
         settings['edit_in_background'] = True
 
     return settings
@@ -114,6 +116,30 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
 
     profile_name = option_select_with_current("Choose a printer model", profile_options, settings_dict.get('printer_profile'))
     settings_dict['printer_profile'] = profile_name
+
+    # For Windows users, we have a slightly nicer editor select flow
+    if platform.system() == 'Windows':
+        from utils.editor import list_windows_editors
+
+        non_notepad_editors = [
+            e for e in list_windows_editors(debug_stdout)
+            if e.human_name.lower() != 'notepad.exe'
+        ]
+
+        if non_notepad_editors:
+            print()
+            current_editor = settings_dict.get('editor')
+
+            ask_editor = True
+            if current_editor and current_editor != DEFAULT_WINDOWS_EDITOR:
+                ask_editor = yes_or_no("Do you want to change your editor?")
+
+            if ask_editor:
+                editor_options = [(e.human_name, e.command) for e in non_notepad_editors]
+                editor_options.append(('Notepad', 'notepad'))
+                selected_command = option_select("Choose an editor", editor_options)
+                settings_dict['editor'] = selected_command
+                settings_dict['edit_in_background'] = True
 
     print()
     print("3DMake can use the Gemini AI to describe your models when you run 3dm info")
