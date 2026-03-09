@@ -193,8 +193,7 @@ You can customize the prompt that gets sent to the AI model using the `3dm edit-
 
 Once you create an OpenRouter account, you will get an API key. You can then run `3dm edit-global-config` and add an `openrouter_key = "..."` line with your API key. You must also set `llm_name` to an OpenRouter model name. [You can find the names of available OpenRouter models here in the OpenRouter documentation](https://openrouter.ai/models). When you have an `openrouter_key` set in your configuration, 3DMake will always use OpenRouter. OpenRouter does support Gemini models, but the model names are different between OpenRouter and Gemini. In particular, the OpenRouter names for Gemini models start with `google/` like `google/gemini-2.5-flash` instead of just `gemini-2.5.flash`. Be careful of these differences if you switch often between OpenRouter and Gemini.
 
-## Bambu labs printer support
-This is new functionality that hasn't been thoroughly tested. Please email troy [at] visitorlabs.com with any feedback if you try this; it would be much appreciated!
+## Bambu labs LAN mode
 
 ### How to set up your printer
 
