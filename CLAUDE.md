@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Development Environment
 - **Dependencies**: Uses Pipenv for dependency management
-  - `pipenv install` - Install dependencies
+  - `pipenv install --dev` - Install all dependencies (including build tools)
   - `pipenv shell` - Activate virtual environment
   - Python 3.13 is required (see Pipfile)
 

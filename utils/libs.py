@@ -3,7 +3,10 @@ from typing import TextIO, Optional
 from pathlib import Path
 from dataclasses import dataclass
 from packaging.version import Version
-import tomllib
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
 
 CATALOG_FILE = 'library_catalog.toml'
 INSTALLED_LIBS_FILE = 'installed_libraries.json'

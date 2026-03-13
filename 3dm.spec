@@ -7,6 +7,7 @@ from PyInstaller.utils.hooks import collect_submodules
 deps_dir = {
     'Linux': 'deps/linux',
     'Windows': 'deps/windows',
+    'Darwin': 'deps/darwin', # Path for macOS dependencies
 }[platform.system()]
 
 
@@ -22,6 +23,8 @@ a = Analysis(
     ],
     hiddenimports=[
         'prompt-toolkit', # For some reason pyinstaller doesn't pick this up in Windows
+        'packaging',
+        'platformdirs',
     ] + collect_submodules('vtkmodules'),
     hookspath=[],
     hooksconfig={},

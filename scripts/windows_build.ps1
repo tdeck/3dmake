@@ -1,5 +1,9 @@
 $ErrorActionPreference = "Stop"
-pipenv install # Often I just booted Windows and haven't updated this
+
+# Ensure we are in the project root
+Set-Location $PSScriptRoot\..
+
+pipenv install --dev # Often I just booted Windows and haven't updated this
 
 if ($args[0] -eq "--release") {
     Write-Output "Release build"

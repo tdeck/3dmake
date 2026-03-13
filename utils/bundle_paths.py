@@ -23,6 +23,7 @@ def get_deps() -> Dependencies:
         {
             'Linux': 'deps/linux/OpenSCAD.AppImage',
             'Windows': 'deps/windows/openscad/openscad.exe',
+            'Darwin': '/Applications/OpenSCAD.app/Contents/MacOS/OpenSCAD',
         }[os_type]
     )
 
@@ -30,6 +31,7 @@ def get_deps() -> Dependencies:
         {
             'Linux': 'deps/linux/PrusaSlicer.AppImage',
             'Windows': 'deps/windows/prusaslicer/prusa-slicer-console.exe',
+            'Darwin': '/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer',
         }[os_type]
     )
 

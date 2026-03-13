@@ -10,7 +10,7 @@ sys.path.insert(0, str(REPO_ROOT))  # so we can import from the repo root
 from version import VERSION
 from default_file_hashes import LATEST_TAG_RECORDED
 
-BUNDLED_DIRS = ['deps/linux', 'deps/windows', 'default_config']
+BUNDLED_DIRS = ['deps/linux', 'deps/windows', 'deps/darwin', 'default_config']
 
 errors = []
 
