@@ -65,9 +65,11 @@ def serialize_image(img: 'PIL.Image') -> SerializedImage:
     return {'mime_type':'image/png', 'data': base64.b64encode(stream.getvalue()).decode('utf-8')}
 
 def print_gemini_token_stats(
-    res: 'google.generativeai.types.GenerateContentResponse',
+    res: Any,
     stream: TextIO,
 ):
+    if not hasattr(res, 'usage_metadata') or not res.usage_metadata:
+        return
     stream.write(f"Prompt tokens: {res.usage_metadata.prompt_token_count}\n")
     stream.write(f"Candidates tokens: {res.usage_metadata.candidates_token_count}\n")
     stream.write(f"Total tokens: {res.usage_metadata.total_token_count}\n")
@@ -96,7 +98,8 @@ def describe_model_gemini(
     interactive: bool,
     prompt_text: str,
 ) -> None:
-    import google.generativeai as genai  # Slow import
+    from google import genai  # Slow import
+    from google.genai import types
     debug_stdout.write(f"Using Gemini model {llm_name}\n")
 
     renderer = MeshRenderer(mesh)
@@ -107,11 +110,20 @@ def describe_model_gemini(
         for vp_name in VIEWPOINTS_TO_USE
     ]
 
-    genai.configure(api_key=gemini_api_key)
-    llm = genai.GenerativeModel(llm_name)
-    chat = llm.start_chat()
+    client = genai.Client(api_key=gemini_api_key)
+    
+    # Prepare message with text and images
+    message_parts = [prompt_text]
+    for img_data in images:
+        message_parts.append(
+            types.Part.from_bytes(
+                data=base64.b64decode(img_data['data']),
+                mime_type=img_data['mime_type']
+            )
+        )
 
-    res = chat.send_message([prompt_text] + images)
+    chat = client.chats.create(model=llm_name)
+    res = chat.send_message(message=message_parts)
     stdout.write(res.text + "\n")
     print_gemini_token_stats(res, debug_stdout)
 
@@ -126,7 +138,7 @@ def describe_model_gemini(
                     stdout.write("End of interaction.\n")
                 return
 
-            res = chat.send_message(question)
+            res = chat.send_message(message=question)
             stdout.write(res.text + "\n")
             print_gemini_token_stats(res, debug_stdout)
 
