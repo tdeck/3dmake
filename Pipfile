@@ -18,6 +18,8 @@ openai = "*"
 vtk = "*"
 grpcio = "==1.67.1"  # Fix for grpc_wait_for_shutdown_with_timeout() error
 paho-mqtt = "*"
+tomli = {version = "*", markers = "python_version < '3.11'"}
+packaging = "*"
 
 [dev-packages]
 pyinstaller = "*"

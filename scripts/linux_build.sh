@@ -1,6 +1,11 @@
 #! /bin/bash
 set -e
-pipenv install
+
+# Ensure we are in the project root
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$SCRIPT_DIR/.."
+
+pipenv install --dev
 
 if [[ "$1" == "--release" ]]; then
     echo "Release build"

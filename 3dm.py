@@ -8,11 +8,36 @@ import argparse
 import os
 import sys
 import tempfile
-import tomllib
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
 import shutil
 
-from packaging.version import Version
-from platformdirs import user_config_path
+try:
+    from packaging.version import Version
+except ImportError:
+    # Very basic fallback for Version comparison if packaging is missing
+    class Version:
+        def __init__(self, vstring):
+            self.vstring = str(vstring)
+            self.components = [int(x) if x.isdigit() else x for x in self.vstring.split('.')]
+        def __lt__(self, other):
+            return self.components < other.components
+        def __str__(self):
+            return self.vstring
+
+try:
+    from platformdirs import user_config_path
+except ImportError:
+    # Fallback to standard Path for config dir if platformdirs is missing
+    def user_config_path(appname, appauthor=None):
+        if sys.platform == "darwin":
+            return Path.home() / "Library/Application Support" / appname
+        elif sys.platform == "win32":
+            return Path(os.environ.get("APPDATA", Path.home())) / appname
+        else:
+            return Path.home() / ".config" / appname
 
 import actions.help_action
 from version import VERSION

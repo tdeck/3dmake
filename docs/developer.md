@@ -21,7 +21,7 @@ Functions used by more than one action should be placed in a file in the (utils 
 ## Release builds
 In order to avoid making the user install Python and a bunch of dependences, we use [PyInstaller](https://pyinstaller.org/en/stable/) to create a directory with an executable entry point. PyInstaller can also bundle everything into an EXE, but we don't do that because it works by extracting the EXE every single time, and we have very large bundled binaries that would be inefficient to extract.
 
-Release builds must be created on the operating system they're targeting. To make a release build, you must first install pipenv and pyenv. Then cd into the 3dmake repo's root directory and run `pipenv install`. Finally, you can run one of the build scripts `scripts/linux_build.sh` or `scripts/windows_build.ps1` from the repo's root dir.
+Release builds must be created on the operating system they're targeting. To make a release build, you must first install pipenv and pyenv. Then cd into the 3dmake repo's root directory and run `pipenv install --dev`. Finally, you can run one of the build scripts `scripts/linux_build.sh` or `scripts/windows_build.ps1` from the repo's root dir.
 
 ### Steps to make a new release:
 For now Troy will make all the releases, following this process:
