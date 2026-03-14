@@ -125,7 +125,8 @@ The possible angle names are below (you can generate multiple images at once by 
 - `-a above_front` - Camera faces in the +x, -z direction (looking down at an angle)
 - `-a above_front_left` - Camrea faces in the +x. +y, -z direction (looking down at the front left corner)
 - `-a above_front_right` - Camera faces in the -x, +y, -z direction (looking down at the front right corner)
-- `-a above_back_left` - Camera faces in the 
+- `-a above_back_left` - Camera faces in the -x, -y, -z direction (looking down at the back left corner)
+- `-a above_back_right` - Camera faces in the +x, -y, -z direction (looking down at the back right corner)
 
 The `3dm image` command places your images in the build directory with names indicating the model and view angle. For example, for the "main" model, images might be called "main-above_front_left.png", and "main-above_front_right.png".
 
