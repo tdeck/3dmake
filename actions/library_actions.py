@@ -46,7 +46,7 @@ def extract_zip_to_folder(zipfh: TextIO, subdir: Optional[str], outdir: Path) ->
 
 @isolated_action(needs_options=True)
 def list_libraries(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
-    ''' Lists available OpenSCAD libraries. '''
+    ''' Lists available OpenSCAD libraries '''
     catalog = load_library_catalog(ctx.config_dir)
     registry = load_installed_libs(ctx.config_dir)
 
@@ -69,7 +69,7 @@ def list_libraries(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
 
 @isolated_action(needs_options=True)
 def install_libraries(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
-    ''' Ensures that all libraries needed by the current project are installed. '''
+    ''' Ensures that all libraries needed by the current project are installed '''
 
     # Determine which libraries are needed
     lib_registry = load_installed_libs(ctx.config_dir)

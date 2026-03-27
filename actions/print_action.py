@@ -21,7 +21,7 @@ from utils.b3mf import SLICE_INFO_CONFIG_TEMPLATE
 
 @pipeline_action(implied_actions=[slice_model], input_file_type='.stl')
 def print(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
-    ''' Send the sliced model to the printer. '''
+    ''' Send the sliced model to the printer '''
 
     mode = ctx.options.print_mode
     if mode == 'octoprint':
