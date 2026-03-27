@@ -19,7 +19,7 @@ from utils.bundle_paths import BAMBU_3MF_TEMPLATE_PATH
 from utils.ftp import ImplicitFTPS
 from utils.b3mf import SLICE_INFO_CONFIG_TEMPLATE
 
-@pipeline_action(implied_actions=[slice_model])
+@pipeline_action(implied_actions=[slice_model], input_file_type='.stl')
 def print(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     ''' Send the sliced model to the printer. '''
 

@@ -14,6 +14,7 @@ from utils.logging import throw_subprogram_error
 
 @pipeline_action(
     gerund='preparing preview',
+    input_file_type='.stl',
     implied_actions=[measure_mesh]
 )
 def preview(ctx: Context, stdout: TextIO, debug_stdout: TextIO):

@@ -48,6 +48,7 @@ class Action:
     isolated: bool  # True means the verb can't be run with other verbs
     needs_options: bool
     uses_project_files: bool
+    input_file_type: Optional[str] = None  # File extension this action accepts as input (e.g. '.stl')
     last_in_chain: bool = False  # True means no later actions in internal ordering can be executed
     implied_actions: List[ActionName] = field(default_factory=list)
     impl: ActionFunc
@@ -87,6 +88,7 @@ def isolated_action(
     func: Optional[ActionFunc] = None,
     needs_options:bool = False,
     uses_project_files:bool = False,
+    input_file_type: Optional[str] = None,
 ):
     def wrap(func: ActionFunc) -> ActionFunc:
         return Action(
@@ -95,6 +97,7 @@ def isolated_action(
             isolated=True,
             uses_project_files=uses_project_files,
             needs_options=needs_options,
+            input_file_type=input_file_type,
             impl=func,
         )
 
@@ -109,6 +112,7 @@ def pipeline_action(
     implied_actions: List[Action] = [],
     internal = False,  # Note: It would be better to call @internal_action for internal actions!
     last_in_chain: bool = False,
+    input_file_type: Optional[str] = None,
 ):
     # This is a little convenience thing we do so that the caller of pipeline_actions
     # needs to specify actions that actually exist, and we save them from calling .name
@@ -124,6 +128,7 @@ def pipeline_action(
             needs_options=True,
             internal=internal,
             last_in_chain=last_in_chain,
+            input_file_type=input_file_type,
             implied_actions=implied_action_names,
             impl=func,
         )

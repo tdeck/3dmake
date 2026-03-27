@@ -17,7 +17,7 @@ PRINT_WARNING_REGEX = re.compile(r'^(print(?:_object)?) warning:')
 
 MAX_CALCULATED_FILAMENT_DEVIATION_MM = 10
 
-@pipeline_action(gerund='slicing')
+@pipeline_action(gerund='slicing', input_file_type='.stl')
 def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     ''' Slice the model and produce a printable gcode file '''
     if not ctx.files.model.exists():
