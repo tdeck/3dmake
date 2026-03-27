@@ -109,7 +109,9 @@ if not CONFIG_DIR.exists() and verbs != {'setup'}:
     verbs = {'setup'}
     infiles = []
 
-# TODO this is kind of hacky but it allows us to `3dm info foo.scad`
+# This is kind of hacky but it allows us to `3dm info foo.scad`
+# TODO this has an edge case where you can 3dm list-proifles foo.scad which
+# would be good to fix at some point.
 if infiles and Path(infiles[0]).suffix.lower() == '.scad':
     verbs.add('build')
 
