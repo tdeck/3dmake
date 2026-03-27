@@ -66,7 +66,7 @@ SAME_KEYS = [
     'ooze_prevention',
     'post_process',
     'print_settings_id',
-    #'printer_model', # This is pulled from Metadata/slice_info.config
+    'printer_model', # This is pulled from Metadata/slice_info.config also if present, that version will come later
     'printer_notes',
     'printer_settings_id',
     'printer_technology',
@@ -112,74 +112,90 @@ SAME_KEYS = [
 
 # Maps Bamboo Studio keys to PrusaSlicer keys
 MAPPED_KEYS = {
-  # === EXACT VALUE FORMAT MATCHES ===
-  # These have identical value formats and can be directly mapped
+    # === EXACT VALUE FORMAT MATCHES ===
+    # These have identical value formats and can be directly mapped
 
-  # Temperature (single numeric values)
-  'nozzle_temperature': 'temperature',
-  'nozzle_temperature_initial_layer': 'first_layer_temperature',
-  'hot_plate_temp': 'bed_temperature',
-  'hot_plate_temp_initial_layer': 'first_layer_bed_temperature',
+    # Temperature (single numeric values)
+    'nozzle_temperature': 'temperature',
+    'nozzle_temperature_initial_layer': 'first_layer_temperature',
+    'hot_plate_temp': 'bed_temperature',
+    'hot_plate_temp_initial_layer': 'first_layer_bed_temperature',
 
-  # Layer height (single numeric)
-  'initial_layer_print_height': 'first_layer_height',
+    # Layer height (single numeric)
+    'initial_layer_print_height': 'first_layer_height',
 
-  # Counts (single integers)
-  'wall_loops': 'perimeters',
-  'top_shell_layers': 'top_solid_layers',
-  'bottom_shell_layers': 'bottom_solid_layers',
-  'skirt_loops': 'skirts',
+    # Counts (single integers)
+    'wall_loops': 'perimeters',
+    'top_shell_layers': 'top_solid_layers',
+    'bottom_shell_layers': 'bottom_solid_layers',
+    'skirt_loops': 'skirts',
 
-  # Infill (compatible formats)
-  'sparse_infill_density': 'fill_density',  # Both use percentage
-  'sparse_infill_pattern': 'fill_pattern',  # Both use pattern names
+    # Infill (compatible formats)
+    'sparse_infill_density': 'fill_density',  # Both use percentage
+    'sparse_infill_pattern': 'fill_pattern',  # Both use pattern names
 
-  # Cooling (single numeric)
-  'fan_max_speed': 'max_fan_speed',
-  'fan_min_speed': 'min_fan_speed',
+    # Cooling (single numeric)
+    'fan_max_speed': 'max_fan_speed',
+    'fan_min_speed': 'min_fan_speed',
 
-  # Basic line width (single numeric)
-  'line_width': 'extrusion_width',
+    # Basic line width (single numeric)
+    'line_width': 'extrusion_width',
 
-  # Support settings (single numerics)
-  'support_threshold_angle': 'support_material_threshold',
-  'support_interface_top_layers': 'support_material_interface_layers',
-  'support_interface_bottom_layers': 'support_material_bottom_interface_layers',
-  'support_object_xy_distance': 'support_material_xy_spacing',
-  'support_bottom_z_distance': 'support_material_bottom_contact_distance',
+    # Support settings (single numerics)
+    'support_threshold_angle': 'support_material_threshold',
+    'support_interface_top_layers': 'support_material_interface_layers',
+    'support_interface_bottom_layers': 'support_material_bottom_interface_layers',
+    'support_object_xy_distance': 'support_material_xy_spacing',
+    'support_bottom_z_distance': 'support_material_bottom_contact_distance',
 
-  # Pattern settings (strings)
-  # TODO these pattern names may need to be translated
-  #'top_surface_pattern': 'top_fill_pattern',
-  #'bottom_surface_pattern': 'bottom_fill_pattern',
+    # GCode
+    'machine_start_gcode': 'start_gcode',
+    'machine_pause_gcode': 'pause_print_gcode',
+    'machine_end_gcode': 'end_gcode',
+    'filament_start_gcode': 'start_filament_gcode',
+    'filament_end_gcode': 'end_filament_gcode',
+    'before_layer_change_gcode': 'before_layer_gcode',
+    'layer_change_gcode': 'layer_gcode',
+    'change_filament_gcode': 'toolchange_gcode',
+    'change_extrusion_role_gcode': 'feature_gcode',
+    'template_custom_gcode': 'template_custom_gcode',
 
-  # === MULTI-MATERIAL FORMAT (comma-separated values) ===
-  # These work in PrusaSlicer but Bambu uses "value,value" while Prusa often uses single values
-  # Include these if you want multi-material compatibility or plan to extract first value
+    # Bed geometry
+    'printable_area': 'bed_shape',
+    'printable_height': 'max_print_height',
 
-  # Speeds (Bambu: "200,200" / Prusa: "200")
-  'outer_wall_speed': 'external_perimeter_speed',
-  'inner_wall_speed': 'perimeter_speed',
-  'sparse_infill_speed': 'infill_speed',
-  'internal_solid_infill_speed': 'solid_infill_speed',
-  'top_surface_speed': 'top_solid_infill_speed',
-  'gap_infill_speed': 'gap_fill_speed',
-  'initial_layer_speed': 'first_layer_speed',
-  'support_speed': 'support_material_speed',
-  'support_interface_speed': 'support_material_interface_speed',
+    # Pattern settings (strings)
+    # TODO these pattern names may need to be translated
+    #'top_surface_pattern': 'top_fill_pattern',
+    #'bottom_surface_pattern': 'bottom_fill_pattern',
 
-  # Line widths (same multi-material format issue)
-  'outer_wall_line_width': 'external_perimeter_extrusion_width',
-  'inner_wall_line_width': 'perimeter_extrusion_width',
-  'sparse_infill_line_width': 'infill_extrusion_width',
-  'internal_solid_infill_line_width': 'solid_infill_extrusion_width',
-  'top_surface_line_width': 'top_infill_extrusion_width',
-  'support_line_width': 'support_material_extrusion_width',
+    # === MULTI-MATERIAL FORMAT (comma-separated values) ===
+    # These work in PrusaSlicer but Bambu uses "value,value" while Prusa often uses single values
+    # Include these if you want multi-material compatibility or plan to extract first value
 
-  # Retraction (multi-material format)
-  'retraction_length': 'retract_length',
-  'retraction_speed': 'retract_speed',
-  'z_hop': 'retract_lift',
+    # Speeds (Bambu: "200,200" / Prusa: "200")
+    'outer_wall_speed': 'external_perimeter_speed',
+    'inner_wall_speed': 'perimeter_speed',
+    'sparse_infill_speed': 'infill_speed',
+    'internal_solid_infill_speed': 'solid_infill_speed',
+    'top_surface_speed': 'top_solid_infill_speed',
+    'gap_infill_speed': 'gap_fill_speed',
+    'initial_layer_speed': 'first_layer_speed',
+    'support_speed': 'support_material_speed',
+    'support_interface_speed': 'support_material_interface_speed',
+
+    # Line widths (same multi-material format issue)
+    'outer_wall_line_width': 'external_perimeter_extrusion_width',
+    'inner_wall_line_width': 'perimeter_extrusion_width',
+    'sparse_infill_line_width': 'infill_extrusion_width',
+    'internal_solid_infill_line_width': 'solid_infill_extrusion_width',
+    'top_surface_line_width': 'top_infill_extrusion_width',
+    'support_line_width': 'support_material_extrusion_width',
+
+    # Retraction (multi-material format)
+    'retraction_length': 'retract_length',
+    'retraction_speed': 'retract_speed',
+    'z_hop': 'retract_lift',
 }
 
 
