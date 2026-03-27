@@ -220,27 +220,38 @@ def parse_settings_from_gcode(gcode_text):
     return settings
 
 
+def read_gcode_file(file_path):
+    """Read GCODE text directly from a .gcode file."""
+    with open(file_path, 'r', encoding='utf-8') as f:
+        return f.read()
+
+
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python3 3mf_settings_extractor.py <path_to_3mf_file> [gcode_path_in_archive]", file=sys.stderr)
-        print("\nExtracts settings from Bambu Studio 3mf files and maps them to PrusaSlicer format.", file=sys.stderr)
-        print("\nDefault gcode_path_in_archive: Metadata/plate_1.gcode", file=sys.stderr)
+        print("Usage: python3 3mf_settings_extractor.py <path_to_3mf_or_gcode_file> [gcode_path_in_archive]", file=sys.stderr)
+        print("\nExtracts settings from Bambu Studio 3mf or gcode files and maps them to PrusaSlicer format.", file=sys.stderr)
+        print("\nDefault gcode_path_in_archive (3mf only): Metadata/plate_1.gcode", file=sys.stderr)
         sys.exit(1)
 
-    archive_path = sys.argv[1]
-    gcode_path = sys.argv[2] if len(sys.argv) > 2 else 'Metadata/plate_1.gcode'
+    input_path = sys.argv[1]
+    is_gcode = input_path.lower().endswith('.gcode')
 
     # Build key mappings: MAPPED_KEYS takes precedence, then identity mapping for SAME_KEYS
     key_mappings = {**{k: k for k in SAME_KEYS}, **MAPPED_KEYS}
 
     # Extract and parse settings
     try:
-        gcode_text = extract_gcode_from_3mf(archive_path, gcode_path)
+        if is_gcode:
+            gcode_text = read_gcode_file(input_path)
+        else:
+            gcode_path = sys.argv[2] if len(sys.argv) > 2 else 'Metadata/plate_1.gcode'
+            gcode_text = extract_gcode_from_3mf(input_path, gcode_path)
         settings = parse_settings_from_gcode(gcode_text)
     except FileNotFoundError:
-        print(f"Error: File not found: {archive_path}", file=sys.stderr)
+        print(f"Error: File not found: {input_path}", file=sys.stderr)
         sys.exit(1)
     except KeyError as e:
+        gcode_path = sys.argv[2] if len(sys.argv) > 2 else 'Metadata/plate_1.gcode'
         print(f"Error: Could not find '{gcode_path}' in archive", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
@@ -255,20 +266,21 @@ def main():
             print(f"{prusa_key} = {bambu_value}")
             output_count += 1
 
-    # Extract printer_model_id from slice_info.config
-    with zipfile.ZipFile(archive_path, 'r') as zf:
-        xml_bytes = zf.read('Metadata/slice_info.config')
-    root = ET.fromstring(xml_bytes.decode('utf-8'))
-    printer_model_id = None
-    for plate in root.findall('plate'):
-        for metadata in plate.findall('metadata'):
-            if metadata.get('key') == 'printer_model_id':
-                printer_model_id = metadata.get('value')
+    # Extract printer_model_id from slice_info.config (3mf only)
+    if not is_gcode:
+        with zipfile.ZipFile(input_path, 'r') as zf:
+            xml_bytes = zf.read('Metadata/slice_info.config')
+        root = ET.fromstring(xml_bytes.decode('utf-8'))
+        printer_model_id = None
+        for plate in root.findall('plate'):
+            for metadata in plate.findall('metadata'):
+                if metadata.get('key') == 'printer_model_id':
+                    printer_model_id = metadata.get('value')
+                    break
+            if printer_model_id:
                 break
         if printer_model_id:
-            break
-    if printer_model_id:
-        print(f"printer_model = {printer_model_id}")
+            print(f"printer_model = {printer_model_id}")
 
     # Print summary to stderr so it doesn't interfere with output redirection
     print(f"\n# Extracted {output_count} mapped settings from {len(settings)} total settings", file=sys.stderr)
