@@ -95,7 +95,7 @@ def _print_with_bambu_connect(ctx: Context, stdout: TextIO, debug_stdout: TextIO
 
     stdout.write(f"Preparing 3MF file...\n")
     g3mf_path = ctx.files.build_dir / g3mf_filename
-    _create_bambu_3mf(ctx.files.sliced_gcode, g3mf_path)
+    _create_bambu_3mf(ctx.slice_metadata, ctx.files.sliced_gcode, g3mf_path)
 
     stdout.write(f"Sending to Bambu Connect...\n")
     uri = (
