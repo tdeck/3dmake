@@ -54,3 +54,4 @@ def get_deps() -> Dependencies:
 
 DEPS = get_deps()
 BAMBU_3MF_TEMPLATE_PATH = SCRIPT_DIR / 'template.gcode.3mf'
+BUNDLED_SCAD_LIB_PATH = SCRIPT_DIR / "scad_library"

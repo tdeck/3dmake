@@ -8,7 +8,7 @@ from time import time, sleep, strftime
 from datetime import timedelta
 
 from .framework import Context, pipeline_action
-from utils.bundle_paths import DEPS
+from utils.bundle_paths import DEPS, BUNDLED_SCAD_LIB_PATH
 from utils.stream_wrappers import FilterPipe
 from utils.openscad import should_print_openscad_log
 from utils.libs import load_installed_libs
@@ -57,6 +57,10 @@ def build(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             # 3dm is always run from a project root, but it may not work in the
             # future
         lib_include_dirs.append(ll_path)
+
+    # Include the 3DMake OpenSCAD library; it has lower search priority than
+    # explicitly listed libraries
+    lib_include_dirs.append(BUNDLED_SCAD_LIB_PATH)
 
     tty_output_mode = sys.stdout.isatty()
     
