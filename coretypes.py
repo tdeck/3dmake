@@ -47,7 +47,7 @@ class CommandOptions:
     #   2. openrouter_key     — OpenRouter cloud API (default cloud path)
     #   3. gemini_key         — Google Gemini API
     #
-    # llm_name is used by all three backends.  The default is a strong
+    # llm_name is used by all three backends.  The default is a string
     # OpenRouter model so that setting only openrouter_key "just works".
     gemini_key: Optional[str] = None
     openrouter_key: Optional[str] = None
@@ -61,7 +61,7 @@ class CommandOptions:
     # Default model used by whichever backend is active.
     # Works out of the box with openrouter_key; swap for a local model name
     # (e.g. "llava", "llama3.2-vision") when using openai_compat_host.
-    llm_name: str = 'google/gemini-2.5-pro-preview'
+    llm_name: str = 'gemini-2.5-pro'
 
     # Image rendering
     image_angles: List[str] = field(default_factory=lambda: ['above_front_left', 'above_front', 'above_front_right'])

@@ -117,42 +117,52 @@ def describe_model(
     """
     if openai_compat_host:
         describe_model_openai_compat(
-            mesh, openai_compat_host, api_key="none", llm_name=llm_name,
+            mesh, 
+            openai_compat_host, 
+            api_key="none", 
+            llm_name=llm_name,
             label=f"OpenAI-compat host {openai_compat_host}",
-            stdout=stdout, debug_stdout=debug_stdout,
-            interactive=interactive, prompt_text=prompt_text,
+            stdout=stdout, 
+            debug_stdout=debug_stdout,
+            interactive=interactive, 
+            prompt_text=prompt_text,
         )
     elif openrouter_api_key:
         describe_model_openai_compat(
-            mesh, base_url="https://openrouter.ai/api/v1", api_key=openrouter_api_key,
-            llm_name=llm_name, label="OpenRouter",
-            stdout=stdout, debug_stdout=debug_stdout,
-            interactive=interactive, prompt_text=prompt_text,
+            mesh, 
+            base_url="https://openrouter.ai/api/v1", 
+            api_key=openrouter_api_key,
+            llm_name=llm_name, 
+            label="OpenRouter",
+            stdout=stdout, 
+            debug_stdout=debug_stdout,
+            interactive=interactive, 
+            prompt_text=prompt_text,
         )
     elif gemini_api_key:
-        describe_model_gemini(mesh, gemini_api_key, llm_name, stdout, debug_stdout, interactive, prompt_text)
+        describe_model_gemini(
+            mesh, 
+            gemini_api_key, 
+            llm_name, 
+            stdout, 
+            debug_stdout, 
+            interactive, 
+            prompt_text)
 
 
 def describe_model_openai_compat(
     mesh: Mesh,
     base_url: str,
-    api_key: str,
+    api_key: Optional[str],
     llm_name: str,
-    label: str,
     stdout: TextIO,
     debug_stdout: TextIO,
     interactive: bool,
     prompt_text: str,
 ) -> None:
-    """Shared implementation for all OpenAI-compatible backends.
+    """Shared implementation for common OpenAI-compatible backends.
 
-    Works out of the box with:
-      - Ollama          (e.g. http://localhost:11434)
-      - LM Studio       (e.g. http://localhost:1234)
-      - llama.cpp       (e.g. http://localhost:8080)
-      - ramalama        (e.g. http://localhost:8080)
-      - OpenRouter      (https://openrouter.ai/api/v1)
-      - Any other server exposing a /v1/chat/completions endpoint
+    Works out of the box with common local llm servers exposing a /v1/chat/completions endpoint
 
     Pass the raw host for local servers (the /v1 suffix is appended automatically
     if the URL does not already end with /v1 or /v1/).
