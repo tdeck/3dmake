@@ -83,6 +83,7 @@ class FileSet:
 
     # This will only stay null if not initialized properly or not needed
     build_dir: Optional[Path] = None
+    explicit_input_file: Optional[Path] = None
     scad_source: Optional[Path] = None
     model: Optional[Path] = None
 

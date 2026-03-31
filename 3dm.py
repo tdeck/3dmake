@@ -109,6 +109,11 @@ if not CONFIG_DIR.exists() and verbs != {'setup'}:
     verbs = {'setup'}
     infiles = []
 
+# This is kind of hacky but it allows us to `3dm info foo.scad`
+# TODO this has an edge case where you can 3dm list-proifles foo.scad which
+# would be good to fix at some point.
+if infiles and Path(infiles[0]).suffix.lower() == '.scad':
+    verbs.add('build')
 
 # Check verbs and insert any implied ones (recursively)
 def add_implied_actions(verb_name, mutable_verbs_set):
@@ -122,6 +127,7 @@ def add_implied_actions(verb_name, mutable_verbs_set):
 verb_count = len(verbs)
 should_load_options = False
 needs_project_files = False
+accepted_input_types: set[str] = set()
 for verb in list(verbs):
     action = ALL_ACTIONS_IN_ORDER.get(verb)
 
@@ -135,6 +141,8 @@ for verb in list(verbs):
         should_load_options = True
     if action.uses_project_files:
         needs_project_files = True
+    if action.input_file_type:
+        accepted_input_types.add(action.input_file_type)
 
     # Add implied actions recursively
     add_implied_actions(verb, verbs)
@@ -219,26 +227,25 @@ if should_load_options:
 if len(infiles) > 1:
     error_out("Multiple inputs not supported yet")
 elif infiles:
-    if not needs_project_files:
-        error_out("This action does not take an input file")
-
     single_infile = Path(infiles[0])
     extension = single_infile.suffix.lower()
+
+    if extension not in accepted_input_types:
+        if not accepted_input_types:
+            error_out("This action does not take an input file")
+        else:
+            error_out(f"This action does not accept an input file of type {extension}")
 
     options.model_name = single_infile.stem # Derive the model name from the STL/scad name
 
     file_set.build_dir = Path(tempfile.mkdtemp())
-
+    file_set.explicit_input_file = single_infile
     if extension == '.stl':
         file_set.scad_source = None
         file_set.model = single_infile
     elif extension == '.scad':
         file_set.scad_source = single_infile
         file_set.model = file_set.build_dir / f"{options.model_name}.stl"
-        # TODO is this auto-add behavior a good idea?
-        verbs.add('build')
-    else:
-        error_out("Unsupported file formats. Supported formats are .stl and .scad")
 elif not needs_project_files:
     pass # Skip setting up the project root since we shouldn't need it
 elif project_root:

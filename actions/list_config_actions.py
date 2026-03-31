@@ -5,7 +5,7 @@ import utils.print_config as print_config
 
 @isolated_action(needs_options=True)
 def list_profiles(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
-    ''' Lists available printer profiles. '''
+    ''' Lists available printer profiles '''
     print("Available printer profiles:")
     for profile_name in print_config.list_printer_profiles(ctx.config_dir):
         print(profile_name)
@@ -13,7 +13,7 @@ def list_profiles(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
 
 @isolated_action(needs_options=True)
 def list_overlays(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
-    ''' Lists available slicer setting overlays. '''
+    ''' Lists available slicer setting overlays '''
     print("Available overlays:")
     for overlay in print_config.list_overlays(ctx.config_dir):
         if overlay.profile:

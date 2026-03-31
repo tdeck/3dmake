@@ -19,9 +19,9 @@ from utils.bundle_paths import BAMBU_3MF_TEMPLATE_PATH
 from utils.ftp import ImplicitFTPS
 from utils.b3mf import SLICE_INFO_CONFIG_TEMPLATE
 
-@pipeline_action(implied_actions=[slice_model])
+@pipeline_action(implied_actions=[slice_model], input_file_type='.stl')
 def print(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
-    ''' Send the sliced model to the printer. '''
+    ''' Send the sliced model to the printer '''
 
     mode = ctx.options.print_mode
     if mode == 'octoprint':
@@ -95,7 +95,7 @@ def _print_with_bambu_connect(ctx: Context, stdout: TextIO, debug_stdout: TextIO
 
     stdout.write(f"Preparing 3MF file...\n")
     g3mf_path = ctx.files.build_dir / g3mf_filename
-    _create_bambu_3mf(ctx.files.sliced_gcode, g3mf_path)
+    _create_bambu_3mf(ctx.slice_metadata, ctx.files.sliced_gcode, g3mf_path)
 
     stdout.write(f"Sending to Bambu Connect...\n")
     uri = (

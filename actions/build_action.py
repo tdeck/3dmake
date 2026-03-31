@@ -26,7 +26,7 @@ def format_build_time(seconds: float) -> str:
     td = timedelta(seconds=int(seconds))
     return str(td) # This does an OK job; could be better
 
-@pipeline_action
+@pipeline_action(input_file_type='.scad')
 def build(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     ''' Build the OpenSCAD model and produce an STL file '''
 

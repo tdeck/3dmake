@@ -20,6 +20,7 @@ import actions.list_config_actions as list_config_actions
 import actions.image_action as image_action
 import actions.edit_profile_gcode_action as edit_profile_gcode_action
 import actions.test_connect_action as test_connect_action
+import actions.install_profile_action as install_profile_action
 
 _actions_in_order = [
     setup_action.setup,
@@ -49,6 +50,7 @@ _actions_in_order = [
     library_actions.install_libraries,
 
     test_connect_action.test_connect,
+    install_profile_action.install_profile,
 
     help_action.help,
     version_action.version,

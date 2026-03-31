@@ -15,7 +15,7 @@ SLICE_INFO_CONFIG_TEMPLATE = Template(
     <metadata key="nozzle_diameters" value="$nozzle_diameters"/>
     <metadata key="timelapse_type" value="0"/>
     <metadata key="prediction" value="$predicted_seconds"/>
-    <metadata key="weight" value="$predicted_grams/>
+    <metadata key="weight" value="$predicted_grams"/>
     <metadata key="outside" value="false"/>
     <metadata key="support_used" value="$supports_used"/>
     <metadata key="label_object_enabled" value="false"/>
