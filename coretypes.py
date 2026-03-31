@@ -41,8 +41,26 @@ class CommandOptions:
     bambu_access_code: Optional[str] = None
 
     # LLM config
+    #
+    # Priority order (first one configured wins):
+    #   1. openai_compat_host — local/self-hosted servers (Ollama, LM Studio, llama.cpp, ramalama, …)
+    #   2. openrouter_key     — OpenRouter cloud API (default cloud path)
+    #   3. gemini_key         — Google Gemini API
+    #
+    # llm_name is used by all three backends.  The default is a string
+    # OpenRouter model so that setting only openrouter_key "just works".
     gemini_key: Optional[str] = None
     openrouter_key: Optional[str] = None
+
+    # Generic OpenAI-compatible host for local/self-hosted LLMs.
+    # Set to the bare server URL, e.g. "http://localhost:11434" (Ollama) or
+    # "http://localhost:1234" (LM Studio).  The /v1 suffix is added automatically.
+    # Takes precedence over openrouter_key when both are set.
+    openai_compat_host: Optional[str] = None
+
+    # Default model used by whichever backend is active.
+    # Works out of the box with openrouter_key; swap for a local model name
+    # (e.g. "llava", "llama3.2-vision") when using openai_compat_host.
     llm_name: str = 'gemini-2.5-pro'
 
     # Image rendering
@@ -127,5 +145,3 @@ class MeshMetrics:
             (self.yrange[1] + self.yrange[0]) / 2,
             (self.zrange[1] + self.zrange[0]) / 2,
         )
-
-
