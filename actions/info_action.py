@@ -122,7 +122,6 @@ def describe_model(
             openai_compat_host, 
             api_key="none", 
             llm_name=llm_name,
-            label=f"OpenAI-compat host {openai_compat_host}",
             stdout=stdout, 
             debug_stdout=debug_stdout,
             interactive=interactive, 
@@ -134,7 +133,6 @@ def describe_model(
             base_url="https://openrouter.ai/api/v1", 
             api_key=openrouter_api_key,
             llm_name=llm_name, 
-            label="OpenRouter",
             stdout=stdout, 
             debug_stdout=debug_stdout,
             interactive=interactive, 
@@ -175,7 +173,7 @@ def describe_model_openai_compat(
     if not base_url.rstrip('/').endswith('/v1'):
         base_url = base_url.rstrip('/') + '/v1'
 
-    debug_stdout.write(f"Using {label} model {llm_name} at {base_url}\n")
+    debug_stdout.write(f"Using model {llm_name} at {base_url}\n")
 
     images = render_images(mesh)
     content = build_openai_image_content(prompt_text, images)
