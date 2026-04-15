@@ -143,7 +143,10 @@ def _create_bambu_3mf(
                         slice_metadata.printer_settings_id,
                     ],
                     "version": "02.05.00.66",
-                    "filament_ids": []
+                    "filament_ids": [""], # This empty string maps to "unknown" in the slicer
+                    "filament_type": [""],
+                    "filament_colour": ["#FFFFFF"],
+                    "filament_diameter": ["1.75"], # Used for filament count in Bambu Studio fsr
                 }
             ),
         )
@@ -192,7 +195,7 @@ def _start_bambu_print(ctx: Context, filename: str) -> None:
                     "project_id": "0",
                     "subtask_id": "0",
                     "task_id": "0",
-                    "file": ""
+                    "file": "",
                 }
             })
 
