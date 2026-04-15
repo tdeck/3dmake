@@ -18,7 +18,7 @@ if [[ ! -f "$source_3mf" ]]; then
 fi
 
 cp "$base_ini" "$new_ini"
-python scripts/3mf_settings_extractor.py "$source_3mf"  >> "$new_ini"
+python scripts/bambu_settings_extractor.py "$source_3mf"  >> "$new_ini"
 python scripts/reformat_config.py "$new_ini"
 
 meld "$base_ini" "$new_ini"
