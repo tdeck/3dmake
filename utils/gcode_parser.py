@@ -30,96 +30,101 @@ def parse_gcode_stats(gcode_path: Path) -> dict[str, FeatureStats]:
     absolute_extrusion = True  # Track extrusion mode (M82 vs M83) - default to absolute
     retraction_debt = 0.0  # Track how much filament was retracted and needs to be paid back
 
-    with open(gcode_path, 'r') as f:
-        for line in f:
-            line = line.strip()
+    current_line_num = 0
+    try:
+        with open(gcode_path, 'r') as f:
+            for line_num, line in enumerate(f, 1):
+                current_line_num = line_num
+                line = line.strip()
 
-            # Skip empty lines (small optimization)
-            if not line:
-                continue
+                # Skip empty lines (small optimization)
+                if not line:
+                    continue
 
-            # Track feature type changes
-            if line.startswith(';TYPE:'):
-                current_type = line[6:]  # Remove ';TYPE:'
-                if current_type not in stats:
-                    stats[current_type] = FeatureStats()
+                # Track feature type changes
+                if line.startswith(';TYPE:'):
+                    current_type = line[6:]  # Remove ';TYPE:'
+                    if current_type not in stats:
+                        stats[current_type] = FeatureStats()
 
-            # Handle extruder mode commands
-            elif line.startswith('M82'):
-                absolute_extrusion = True
-            elif line.startswith('M83'):
-                absolute_extrusion = False
+                # Handle extruder mode commands
+                elif line.startswith('M82'):
+                    absolute_extrusion = True
+                elif line.startswith('M83'):
+                    absolute_extrusion = False
 
-            # Handle extruder resets
-            elif line.startswith('G92 E'):
-                e_match = E_PATTERN.search(line)
-                if e_match:
-                    current_e = float(e_match.group(1))
-                    # Don't reset retraction debt - retractions before resets still need to be paid back
+                # Handle extruder resets
+                elif line.startswith('G92 E'):
+                    e_match = E_PATTERN.search(line)
+                    if e_match:
+                        current_e = float(e_match.group(1))
+                        # Don't reset retraction debt - retractions before resets still need to be paid back
 
-            # Parse G0/G1 movement commands (extrusion)
-            elif (line.startswith('G1 ') or line.startswith('G0 ')) and 'E' in line:
-                # Extract coordinates and extrusion using pre-compiled patterns
-                x_match = X_PATTERN.search(line)
-                y_match = Y_PATTERN.search(line)
-                z_match = Z_PATTERN.search(line)
-                e_match = E_PATTERN.search(line)
-                f_match = F_PATTERN.search(line)
+                # Parse G0/G1 movement commands (extrusion)
+                elif (line.startswith('G1 ') or line.startswith('G0 ')) and 'E' in line:
+                    # Extract coordinates and extrusion using pre-compiled patterns
+                    x_match = X_PATTERN.search(line)
+                    y_match = Y_PATTERN.search(line)
+                    z_match = Z_PATTERN.search(line)
+                    e_match = E_PATTERN.search(line)
+                    f_match = F_PATTERN.search(line)
 
-                # Update position
-                new_x = float(x_match.group(1)) if x_match else current_x
-                new_y = float(y_match.group(1)) if y_match else current_y
-                new_z = float(z_match.group(1)) if z_match else current_z
+                    # Update position
+                    new_x = float(x_match.group(1)) if x_match else current_x
+                    new_y = float(y_match.group(1)) if y_match else current_y
+                    new_z = float(z_match.group(1)) if z_match else current_z
 
-                # Update feedrate if specified
-                if f_match:
-                    current_feedrate = float(f_match.group(1))
+                    # Update feedrate if specified
+                    if f_match:
+                        current_feedrate = float(f_match.group(1))
 
-                # Calculate movement distance
-                distance = ((new_x - current_x)**2 + (new_y - current_y)**2 + (new_z - current_z)**2)**0.5
+                    # Calculate movement distance
+                    distance = ((new_x - current_x)**2 + (new_y - current_y)**2 + (new_z - current_z)**2)**0.5
 
-                # Calculate extrusion amount
-                if e_match:
-                    e_value = float(e_match.group(1))
+                    # Calculate extrusion amount
+                    if e_match:
+                        e_value = float(e_match.group(1))
 
-                    if absolute_extrusion:
-                        # In absolute mode, calculate delta from previous position
-                        e_delta = e_value - current_e
-                        current_e = e_value
-                    else:
-                        # In relative mode, the E value is the delta
-                        e_delta = e_value
-
-                    # Handle retraction/unretraction accounting
-                    if e_delta < -0.0001:
-                        # This is a retraction - track the debt
-                        retraction_debt += abs(e_delta)
-                    elif e_delta > 0.0001:
-                        # This is positive extrusion - check if it's just paying back retraction debt
-                        if retraction_debt > 0:
-                            # Pay back retraction debt first
-                            debt_payment = min(e_delta, retraction_debt)
-                            retraction_debt -= debt_payment
-                            productive_extrusion = e_delta - debt_payment
+                        if absolute_extrusion:
+                            # In absolute mode, calculate delta from previous position
+                            e_delta = e_value - current_e
+                            current_e = e_value
                         else:
-                            # No debt, all extrusion is productive
-                            productive_extrusion = e_delta
+                            # In relative mode, the E value is the delta
+                            e_delta = e_value
 
-                        # Only count productive extrusion (not unretraction)
-                        if productive_extrusion > 0.0001:
-                            if current_type not in stats:
-                                stats[current_type] = FeatureStats()
+                        # Handle retraction/unretraction accounting
+                        if e_delta < -0.0001:
+                            # This is a retraction - track the debt
+                            retraction_debt += abs(e_delta)
+                        elif e_delta > 0.0001:
+                            # This is positive extrusion - check if it's just paying back retraction debt
+                            if retraction_debt > 0:
+                                # Pay back retraction debt first
+                                debt_payment = min(e_delta, retraction_debt)
+                                retraction_debt -= debt_payment
+                                productive_extrusion = e_delta - debt_payment
+                            else:
+                                # No debt, all extrusion is productive
+                                productive_extrusion = e_delta
 
-                            stats[current_type].length_mm += productive_extrusion
-                            stats[current_type].moves += 1
+                            # Only count productive extrusion (not unretraction)
+                            if productive_extrusion > 0.0001:
+                                if current_type not in stats:
+                                    stats[current_type] = FeatureStats()
 
-                            # Estimate time (feedrate is in mm/min, convert to seconds)
-                            if distance > 0:
-                                move_time = (distance / current_feedrate) * 60
-                                stats[current_type].time_seconds += move_time
+                                stats[current_type].length_mm += productive_extrusion
+                                stats[current_type].moves += 1
 
-                # Update current position
-                current_x, current_y, current_z = new_x, new_y, new_z
+                                # Estimate time (feedrate is in mm/min, convert to seconds)
+                                if distance > 0:
+                                    move_time = (distance / current_feedrate) * 60
+                                    stats[current_type].time_seconds += move_time
+
+                    # Update current position
+                    current_x, current_y, current_z = new_x, new_y, new_z
+    except Exception as e:
+        raise ValueError(f"GCode parse error on line {current_line_num}:") from e
 
     return stats
 
