@@ -129,7 +129,8 @@ def _create_bambu_3mf(
             SLICE_INFO_CONFIG_TEMPLATE.substitute(dict(
                 printer_model_id=slice_metadata.printer_model,
                 nozzle_diameters=','.join([str(f) for f in slice_metadata.nozzle_diameters]),
-                predicted_seconds=slice_metadata.estimated_duration.total_seconds(),
+                # predicted_seconds must be an int or Bambu Connect will show a 400 error
+                predicted_seconds=int(slice_metadata.estimated_duration.total_seconds()),
                 predicted_grams=slice_metadata.estimated_grams,
                 supports_used=str(slice_metadata.supports_enabled).lower(),
             )),
