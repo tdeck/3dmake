@@ -64,7 +64,8 @@ def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     cmd.append(ctx.files.model_to_slice())
     for ini_file in ini_files:
         cmd.append('--load')
-        cmd.append(ini_file)
+        # resolve bc of this bug https://github.com/python/cpython/issues/122057
+        cmd.append(ini_file.resolve(strict=False))
 
     config_dict = read_config_values(ini_files)
     if '3dm_bed_center' in config_dict:
