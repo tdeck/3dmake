@@ -158,7 +158,7 @@ def _create_bambu_3mf(
 
 def _upload_to_bambu_printer(ctx: Context, file: Path) -> None:
     ftp_client = ImplicitFTPS()
-    ftp_client.connect(host=ctx.options.bambu_host, port=990)
+    ftp_client.connect(host=ctx.options.bambu_host, port=990, timeout=30)
     ftp_client.login(user='bblp', passwd=ctx.options.bambu_access_code)
     ftp_client.prot_p()
 

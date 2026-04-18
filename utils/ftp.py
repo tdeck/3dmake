@@ -1,6 +1,9 @@
 import ftplib
 import ssl
 
+# Much of this code is derived from the bambulabs_api project
+# https://github.com/BambuTools/bambulabs_api
+
 class ImplicitFTPS(ftplib.FTP_TLS):
     """ FTP_TLS subclass that automatically wraps sockets in SSL to support implicit FTPS. """
 
@@ -27,3 +30,18 @@ class ImplicitFTPS(ftplib.FTP_TLS):
                 session=self.sock.session
             )
         return conn, size
+
+    def storbinary(self, cmd, fp, blocksize=8192, callback=None, rest=None):
+        self.voidcmd('TYPE I')
+        conn = self.transfercmd(cmd, rest)
+        try:
+            while True:
+                buf = fp.read(blocksize)
+                if not buf:
+                    break
+                conn.sendall(buf)
+                if callback:
+                    callback(buf)
+        finally:
+            conn.close()  # This is the addition to the previous comment.
+        return self.voidresp()
