@@ -6,19 +6,22 @@ import hashlib
 import platform
 import tomllib
 import requests
+import webbrowser
 from pathlib import Path
 from typing import TextIO, Dict, Any
 
 from .framework import Context, isolated_action
-from utils.print_config import list_printer_profiles
+from utils.print_config import list_printer_profiles, read_profile_config
 from utils.prompts import yes_or_no, option_select, prompt
 from utils.bundle_paths import SCRIPT_DIR, SCRIPT_BIN_PATH
 from version import VERSION
 from default_file_hashes import BUNDLED_PATH_HASHES
 from utils.shell import shell_command_exists
+from utils.bambu import vendor_is_bambu
 
 DEFAULT_WINDOWS_EDITOR = 'notepad'
 OLLAMA_LOCALHOST = 'http://localhost:11434'
+BAMBU_CONNECT_DOWNLOAD_PAGE = "https://wiki.bambulab.com/en/software/bambu-connect"
 
 def ollama_detected() -> bool:
     if shell_command_exists('ollama'):
@@ -128,6 +131,9 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     profile_name = option_select_with_current("Choose a printer model", profile_options, settings_dict.get('printer_profile'))
     settings_dict['printer_profile'] = profile_name
 
+    # Read the printer profile config, some other settings vary based on this
+    print_profile_config: dict[str, str] = read_profile_config(CONFIG_DIR, profile_name)
+
     # For Windows users, we have a slightly nicer editor select flow
     if platform.system() == 'Windows':
         from utils.editor import list_windows_editors
@@ -202,26 +208,48 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             else:
                 print("Empty response, leaving this unconfigured for now.")
 
-    print()
-    current_has_octoprint = bool(settings_dict.get('octoprint_host'))
-    if current_has_octoprint:
-        octoprint_question = "Do you want to change your OctoPrint configuration?"
-    else:
-        octoprint_question = "Do you want to set up an OctoPrint connection?"
+    #
+    # Printer connection methods
+    #
+    current_print_mode = settings_dict.get("print_mode", "octoprint")
+    is_bambu_printer = vendor_is_bambu(print_profile_config['printer_vendor'])
+    
+    if is_bambu_printer and current_print_mode not in ["bambu_connect", "bambu_lan"]:
+        print()
+        print("3DMake can send prints to your Bambu printer using Bambu Connect,")
+        print("an accessible software tool you can download from Bambu Labs.")
+        if yes_or_no("Do you want to enable Bambu Connect?"):
+            settings_dict['print_mode'] = 'bambu_connect' 
+            print("You must download and install Bambu Connect from the Bambu")
+            print("Labs website.")
+            if yes_or_no("Do you want to open the download page now?"):
+                print(f"Opening {BAMBU_CONNECT_DOWNLOAD_PAGE}")
+                webbrowser.open(BAMBU_CONNECT_DOWNLOAD_PAGE)
+            else:
+                print(f"You can find it at {BAMBU_CONNECT_DOWNLOAD_PAGE}")
+    
+    if not is_bambu_printer:
+        print()
+        current_has_octoprint = bool(settings_dict.get('octoprint_host'))
+        if current_has_octoprint:
+            octoprint_question = "Do you want to change your OctoPrint configuration?"
+        else:
+            octoprint_question = "Do you want to set up an OctoPrint connection?"
 
-    if yes_or_no(octoprint_question):
-        current_host = settings_dict.get('octoprint_host')
-        server = prompt_with_current("What is the web address of your OctoPrint server (including http://)?", current_host)
+        if yes_or_no(octoprint_question):
+            current_host = settings_dict.get('octoprint_host')
+            server = prompt_with_current("What is the web address of your OctoPrint server (including http://)?", current_host)
 
-        print("You must set up an OctoPrint API key for 3DMake if you do not have one already.")
-        print("To do this, open the OctoPrint settings in your browser, navigate to Application Keys,")
-        print("and manually generate a key.")
+            print("You must set up an OctoPrint API key for 3DMake if you do not have one already.")
+            print("To do this, open the OctoPrint settings in your browser, navigate to Application Keys,")
+            print("and manually generate a key.")
 
-        current_key = settings_dict.get('octoprint_key')
-        key = prompt_with_current("What is your OctoPrint application key?", current_key)
+            current_key = settings_dict.get('octoprint_key')
+            key = prompt_with_current("What is your OctoPrint application key?", current_key)
 
-        settings_dict['octoprint_host'] = server
-        settings_dict['octoprint_key'] = key
+            settings_dict['print_mode'] = "octoprint"
+            settings_dict['octoprint_host'] = server
+            settings_dict['octoprint_key'] = key
     
 
     with open(DEFAULTS_TOML, 'w') as fh:

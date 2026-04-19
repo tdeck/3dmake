@@ -55,3 +55,8 @@ def read_config_values(ini_files: list[Path]) -> dict[str, str]:
                 result[k.strip()] = v.strip()
 
     return result
+
+def read_profile_config(config_dir: Path, profile_name: str) -> dict[str, str]:
+    return read_config_values(
+        [config_dir / "profiles" / f"{profile_name}.ini"]
+    )

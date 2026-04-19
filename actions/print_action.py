@@ -17,7 +17,7 @@ from .framework import Context, SliceMetadata, pipeline_action
 from .slice_action import slice as slice_model
 from utils.bundle_paths import BAMBU_3MF_TEMPLATE_PATH
 from utils.ftp import ImplicitFTPS
-from utils.b3mf import SLICE_INFO_CONFIG_TEMPLATE
+from utils.bambu import SLICE_INFO_CONFIG_TEMPLATE, vendor_is_bambu
 
 @pipeline_action(implied_actions=[slice_model], input_file_type='.stl')
 def print(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
@@ -65,7 +65,7 @@ def _print_with_octoprint(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
 
 
 def _check_for_bambu_printer(ctx: Context) -> None:
-    if 'bambu' not in ctx.slice_metadata.printer_vendor.lower():
+    if not vendor_is_bambu(ctx.slice_metadata.printer_vendor):
         raise RuntimeError("Selected printer profile is not a Bambu Labs printer")
 
 def _print_with_bambu(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
