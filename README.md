@@ -259,3 +259,10 @@ Some of these settings can be further overridden on the command line (for exampl
 [^2]: In Linux, 3DMake tries to use your existing `VISUAL` and `EDITOR` environment variables if you don't set an editor. If it finds none of those, it uses GNU Nano.
 
 [^3]: If your text editor opens a new window, you generally want this to be true so you can keep the editor open and still use 3DMake in your terminal window. However, if your editor runs in the terminal (like Vim, for example), it will be broken by this setting.
+
+# Acknowledgements
+3DMake is built around the [OpenSCAD](https://openscad.org/) and [PrusaSlicer](https://www.prusa3d.com/page/prusaslicer_424/), both of which are free software.
+
+The people below have generously contribued code that is included in the release of 3DMake.
+
+- Ryan (Michael) Hunsaker
