@@ -153,7 +153,7 @@ def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             nozzle_diameters=[float(d) for d in slicer_keys['nozzle_diameter'].split(',')],
             supports_enabled=slicer_keys['support_material'].strip() == '1',
             estimated_duration=parse_gcode_time(time_str),
-            estimated_grams=float(filament_used_grams_str),
+            estimated_grams=float(filament_used_grams_str or 0),
         )
 
 def extract_slicer_keys(gcode_file: Path) -> dict[str, str]:
@@ -197,7 +197,7 @@ def parse_gcode_time(time_str: str) -> timedelta:
     # and will look like "10d 9h 8m 7s".
     parts = re.fullmatch(r'\s*(?:(\d+)d)?\s*(?:(\d+)h)?\s*(?:(\d+)m)?\s*(?:(\d+)s)?\s*', time_str)
     if not parts or not parts.group(0).strip():
-        raise ValueError(f"Invalid duration string: {s!r}")
+        raise ValueError(f"Invalid duration string: {time_str!r}")
     d, h, m, s = (int(x) if x else 0 for x in parts.groups())
     return timedelta(days=d, hours=h, minutes=m, seconds=s)
 

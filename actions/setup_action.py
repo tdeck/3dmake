@@ -28,8 +28,11 @@ def ollama_detected() -> bool:
         return True
     else:
         # If it's not in PATH for some reason but the server is running
-        response = requests.get(OLLAMA_LOCALHOST, timeout=0.5)
-        return response.status_code == 200
+        try:
+            response = requests.get(OLLAMA_LOCALHOST, timeout=0.5)
+            return response.status_code == 200
+        except requests.exceptions.RequestException:
+            return False
 
 def hash_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes().replace(b'\r', b''), usedforsecurity=False).hexdigest()
@@ -179,8 +182,8 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
                 settings_dict['llm_name'] = model_name.strip()
             else:
                 print("Empty response. Disabling ollama for now.")
-                del settings_dict['openai_compat_host']
-                del settings_dict['llm_name']
+                settings_dict.pop('openai_compat_host', None)
+                settings_dict.pop('llm_name', None)
         
     if not settings_dict.get('openai_compat_host'):
         print()

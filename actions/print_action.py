@@ -9,7 +9,6 @@ import json
 import time
 import webbrowser
 from urllib.parse import quote as uri_quote
-import json
 
 import paho.mqtt.client as mqtt
 

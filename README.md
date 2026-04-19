@@ -12,8 +12,8 @@ Thanks for trying 3DMake!
 - Slicing STL files for your printer
 - Automatically orienting models for optimal printing
 - Downloading OpenSCAD libraries with 3DMake's library manager
-- Preparing 2-dimensional "previews" of a model's shape that are very fast to print
-- Sending sliced models directly to OctoPrint
+- Preparing 2-dimensional "previews" of a model's shape that are very fast to print or emboss
+- Sending sliced models directly to your printer using OctoPrint, Bambu Connect, or Bambu LAN mode
 
 ## Setting up 3DMake
 Download the latest version of 3DMake for your operating system by following these links:
