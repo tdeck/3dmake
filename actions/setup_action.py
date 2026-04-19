@@ -5,6 +5,7 @@ import json
 import hashlib
 import platform
 import tomllib
+import requests
 from pathlib import Path
 from typing import TextIO, Dict, Any
 
@@ -14,8 +15,18 @@ from utils.prompts import yes_or_no, option_select, prompt
 from utils.bundle_paths import SCRIPT_DIR, SCRIPT_BIN_PATH
 from version import VERSION
 from default_file_hashes import BUNDLED_PATH_HASHES
+from utils.shell import shell_command_exists
 
 DEFAULT_WINDOWS_EDITOR = 'notepad'
+OLLAMA_LOCALHOST = 'http://localhost:11434'
+
+def ollama_detected() -> bool:
+    if shell_command_exists('ollama'):
+        return True
+    else:
+        # If it's not in PATH for some reason but the server is running
+        response = requests.get(OLLAMA_LOCALHOST, timeout=0.5)
+        return response.status_code == 200
 
 def hash_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes().replace(b'\r', b''), usedforsecurity=False).hexdigest()
@@ -141,30 +152,55 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
                 settings_dict['editor'] = selected_command
                 settings_dict['edit_in_background'] = True
 
-    print()
-    print("3DMake can use the Gemini AI to describe your models when you run 3dm info")
-    print("This requires you to get a free Gemini API key, and has a limit of 50 runs per day.")
-    current_has_gemini = bool(settings_dict.get('gemini_key'))
-    if current_has_gemini:
-        gemini_question = "Do you want to change your Gemini configuration?"
-    else:
-        gemini_question = "Do you want to set up Gemini?"
-
-    if yes_or_no(gemini_question):
-        print("The Gemini API key is a string of text that 3DMake needs to access the Gemini AI.")
-        print("Copy your API key from this page while logged into your Google account:")
-        print("https://aistudio.google.com/app/apikey")
-        current_key = settings_dict.get('gemini_key')
-        key = prompt_with_current("What is your Gemini API key?", current_key)
+    # We support all kinds of local LLM backends but only provide an easy setup
+    # path for ollama right now. 
+    current_has_ollama = settings_dict.get("openai_compat_host") == OLLAMA_LOCALHOST
+    ollama_question = None
+    if current_has_ollama:
+        ollama_question = "Do you want to change your ollama configuration?"
+    elif ollama_detected():
+        ollama_question = "Do you want to set up an ollama connection?"
+    if ollama_question:
         print()
-        if key:
-            settings_dict['gemini_key'] = key
-            print("Before using the AI descriptions, you should understand that they sometimes make")
-            print("surprising mistakes, such as miscounting parts, describing things that aren't there,")
-            print("or missing obvious flaws in models. This is part of the challenge of using today's AI,")
-            print("so take care when relying on it.")
+        print("3DMake can use local ollama AI to describe your models when you run 3dm info")
+        if yes_or_no(ollama_question):
+            model_name = prompt_with_current(
+                "What is the ollama model name?",
+                settings_dict.get('llm_name')
+            )
+            if model_name:
+                settings_dict['openai_compat_host'] = OLLAMA_LOCALHOST
+                settings_dict['llm_name'] = model_name.strip()
+            else:
+                print("Empty response. Disabling ollama for now.")
+                del settings_dict['openai_compat_host']
+                del settings_dict['llm_name']
+        
+    if not settings_dict.get('openai_compat_host'):
+        print()
+        print("3DMake can use the Gemini AI to describe your models when you run 3dm info")
+        print("This requires you to get a free Gemini API key, and has a limit of 50 runs per day.")
+        current_has_gemini = bool(settings_dict.get('gemini_key'))
+        if current_has_gemini:
+            gemini_question = "Do you want to change your Gemini configuration?"
         else:
-            print("Empty response, leaving this unconfigured for now.")
+            gemini_question = "Do you want to set up Gemini?"
+
+        if yes_or_no(gemini_question):
+            print("The Gemini API key is a string of text that 3DMake needs to access the Gemini AI.")
+            print("Copy your API key from this page while logged into your Google account:")
+            print("https://aistudio.google.com/app/apikey")
+            current_key = settings_dict.get('gemini_key')
+            key = prompt_with_current("What is your Gemini API key?", current_key)
+            print()
+            if key:
+                settings_dict['gemini_key'] = key
+                print("Before using the AI descriptions, you should understand that they sometimes make")
+                print("surprising mistakes, such as miscounting parts, describing things that aren't there,")
+                print("or missing obvious flaws in models. This is part of the challenge of using today's AI,")
+                print("so take care when relying on it.")
+            else:
+                print("Empty response, leaving this unconfigured for now.")
 
     print()
     current_has_octoprint = bool(settings_dict.get('octoprint_host'))
