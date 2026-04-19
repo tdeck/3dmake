@@ -217,11 +217,11 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     if is_bambu_printer and current_print_mode not in ["bambu_connect", "bambu_lan"]:
         print()
         print("3DMake can send prints to your Bambu printer using Bambu Connect,")
-        print("an accessible software tool you can download from Bambu Labs.")
+        print("when you run 3dm print. Bambu Connect is an accessible software")
+        print("tool you can download from Bambu Labs.")
         if yes_or_no("Do you want to enable Bambu Connect?"):
             settings_dict['print_mode'] = 'bambu_connect' 
-            print("You must download and install Bambu Connect from the Bambu")
-            print("Labs website.")
+            print("You must download and install Bambu Connect from the Bambu Labs website.")
             if yes_or_no("Do you want to open the download page now?"):
                 print(f"Opening {BAMBU_CONNECT_DOWNLOAD_PAGE}")
                 webbrowser.open(BAMBU_CONNECT_DOWNLOAD_PAGE)
