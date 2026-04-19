@@ -12,8 +12,8 @@ from stl.mesh import Mesh
 
 from .mesh_actions import measure_mesh
 from .framework import Context, pipeline_action
-from utils.prompt import get_ai_prompt
-from utils.prompts import prompt
+from utils.llm_prompt import get_ai_prompt
+from utils.user_prompts import prompt
 
 @pipeline_action(
     gerund='examining',

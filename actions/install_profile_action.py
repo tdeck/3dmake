@@ -3,7 +3,7 @@ import shutil
 
 from .framework import Context, isolated_action
 import utils.print_config as print_config
-from utils.prompts import yes_or_no
+from utils.user_prompts import yes_or_no
 
 @isolated_action(needs_options=True, input_file_type='.ini')
 def install_profile(ctx: Context, stdout: TextIO, debug_stdout: TextIO):

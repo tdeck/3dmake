@@ -17,7 +17,7 @@ from platformdirs import user_config_path
 import actions.help_action
 from version import VERSION
 from coretypes import FileSet, CommandOptions
-from utils.prompts import yes_or_no, prompt
+from utils.user_prompts import yes_or_no, prompt
 from utils.update_check import newer_3dmake_version, DOWNLOAD_URL
 from actions import ALL_ACTIONS_IN_ORDER, Context
 

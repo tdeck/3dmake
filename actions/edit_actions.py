@@ -4,9 +4,9 @@ from typing import TextIO
 
 from .framework import Context, isolated_action
 from utils.print_config import list_printer_profiles, list_overlays, OverlayName
-from utils.prompts import yes_or_no, option_select, prompt
+from utils.user_prompts import yes_or_no, option_select, prompt
 from utils.editor import launch_editor
-from utils.prompt import ensure_custom_prompt_exists
+from utils.llm_prompt import ensure_custom_prompt_exists
 
 @isolated_action(needs_options=True, uses_project_files=True)
 def edit_model(ctx: Context, stdout, __):

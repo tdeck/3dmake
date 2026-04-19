@@ -4,7 +4,7 @@ from typing import TextIO
 
 from .framework import Context, isolated_action
 from utils.print_config import read_config_values, list_printer_profiles
-from utils.prompts import option_select
+from utils.user_prompts import option_select
 from utils.editor import launch_editor
 
 EXCLUDED_SETTINGS = {'binary_gcode'}  # These aren't actually gcode
