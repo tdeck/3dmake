@@ -7,6 +7,7 @@ import shutil
 import json
 import pytest
 import pexpect
+import platform
 from pexpect.popen_spawn import PopenSpawn
 from pathlib import Path
 from contextlib import contextmanager
@@ -23,54 +24,50 @@ def test_3dm_setup():
     with isolated_3dmake_env() as config_dir:
         print(f"Testing 3dmake setup in: {config_dir}")
 
-        # Start interactive setup
-        script_dir = Path(__file__).parent
-        cmd = [sys.executable, str(script_dir / '3dm.py'), 'setup']
+        child = spawn_interactive_3dmake(['setup']) # ollama_detected = false
+        try:
+            # Look for printer selection prompt
+            child.expect(r'Choose a printer model', timeout=3)
+            child.expect(r'Choose an option number', timeout=3)
 
-        child = PopenSpawn(cmd, timeout=30, encoding='utf-8')
+            # Look for Prusa Mini option and select it
+            print("Printer selection prompt received")
+            child.sendline(search_for_option(child, 'prusa mini'))
 
-        # Look for printer selection prompt
-        child.expect(r'Choose a printer model', timeout=3)
-        child.expect(r'Choose an option number', timeout=3)
+            # Windows-specific editor setup
+            if platform.system() == 'Windows':
+                child.expect(r'Choose a text editor', timeout=3)
+                child.expect(r'Choose an option number', timeout=3)
+                # Notepad should always be there
+                child.sendline(search_for_option(child, "Notepad"))
 
-        # Look for Prusa Mini option and select it
-        output_so_far = child.before
-        print("Printer selection prompt received")
+            # Skip Gemini setup
+            child.expect(r'Do you want to.*Gemini', timeout=10)
+            child.sendline('n')
 
-        # Find which number corresponds to Prusa Mini
-        lines = output_so_far.split('\n')
-        mini_option = None
-        for line in lines:
-            match = re.search(r'(\d+): prusa mini', line, re.IGNORECASE)
-            if match:
-                mini_option = match.group(1)
-                break
+            # Skip OctoPrint setup
+            child.expect(r'Do you want to.*OctoPrint', timeout=10)
+            child.sendline('n')
 
-        assert mini_option, f"Option for prusa mini not found. Options:\n{output_so_far}"
-        child.sendline(mini_option)
+            # Wait for completion
+            child.expect(pexpect.EOF, timeout=10)
 
-        # Skip Gemini setup
-        child.expect(r'Do you want to.*Gemini', timeout=10)
-        child.sendline('n')
+            # Ensure process has terminated and exit status is available
+            child.wait()
 
-        # Skip OctoPrint setup
-        child.expect(r'Do you want to.*OctoPrint', timeout=10)
-        child.sendline('n')
+            print(child.before) # TODO debug
+            # Verify setup completed successfully
+            assert child.exitstatus == 0, f"Setup failed with exit code: {child.exitstatus}"
 
-        # Wait for completion
-        child.expect(pexpect.EOF, timeout=10)
-
-        # Ensure process has terminated and exit status is available
-        child.wait()
-
-        print(child.before) # TODO debug
-        # Verify setup completed successfully
-        assert child.exitstatus == 0, f"Setup failed with exit code: {child.exitstatus}"
-
-        # Verify config directory was created
-        assert config_dir.exists(), "Config directory should exist after setup"
-        defaults_file = config_dir / "defaults.toml"
-        assert defaults_file.exists(), "defaults.toml should exist after setup"
+            # Verify config directory was created
+            assert config_dir.exists(), "Config directory should exist after setup"
+            defaults_file = config_dir / "defaults.toml"
+            assert defaults_file.exists(), "defaults.toml should exist after setup"
+        finally:
+            try:
+                child.proc.terminate()
+            except OSError:
+                pass
 
 
 def test_3dm_new():
@@ -80,18 +77,20 @@ def test_3dm_new():
         with tempfile.TemporaryDirectory() as work_dir:
             work_path = Path(work_dir)
 
-            script_dir = Path(__file__).parent
-            cmd = [sys.executable, str(script_dir / '3dm.py'), 'new']
+            child = spawn_interactive_3dmake(['new'], cwd=work_path)
+            try:
+                child.expect(r'Choose a project directory name', timeout=3)
+                child.sendline('test_project')
 
-            child = PopenSpawn(cmd, cwd=str(work_path), timeout=30, encoding='utf-8')
+                child.expect(pexpect.EOF, timeout=10)
+                child.wait()
 
-            child.expect(r'Choose a project directory name', timeout=3)
-            child.sendline('test_project')
-
-            child.expect(pexpect.EOF, timeout=10)
-            child.wait()
-
-            assert child.exitstatus == 0, f"New command failed with exit code: {child.exitstatus}"
+                assert child.exitstatus == 0, f"New command failed with exit code: {child.exitstatus}"
+            finally:
+                try:
+                    child.proc.terminate()
+                except OSError:
+                    pass
 
             project_path = work_path / "test_project"
             expected_files = [
@@ -389,7 +388,29 @@ def populate_config(overrides: dict[str, Any] = {}) -> dict[str, Any]:
     return minimal_settings
 
 
-def run_3dmake(args, cwd=None) -> subprocess.CompletedProcess:
+
+def search_for_option(child: PopenSpawn, option_name: str) -> str:
+    ''' Search child.before for a numbered option matching option_name and return its number. '''
+    # Split on the last occurrence of a "1:" line to isolate the most recent option list
+    latest_list = child.before.rsplit('\n1:', 1)[-1]
+
+    for line in latest_list.split('\n'):
+        match = re.search(rf'(\d+): {re.escape(option_name)}', line, re.IGNORECASE)
+        if match:
+            return match.group(1)
+    raise AssertionError(f"Option {option_name!r} not found in output:\n{child.before}")
+
+
+def _build_test_env(env_flags: set[str]) -> dict:
+    for flag in env_flags:
+        assert re.fullmatch(r'[a-zA-Z0-9_]+', flag), f"Invalid test flag: {flag!r}"
+    return {
+        **os.environ,
+        '_3DMAKE_TEST_MODE': '1',
+        '_3DMAKE_TEST_FLAGS': ','.join(env_flags),
+    }
+
+def run_3dmake(args, cwd=None, env_flags: set[str] = set()) -> subprocess.CompletedProcess:
     """
     Helper function to run 3dmake with the given arguments.
     """
@@ -400,7 +421,23 @@ def run_3dmake(args, cwd=None) -> subprocess.CompletedProcess:
         cmd,
         cwd=cwd,
         capture_output=True,
-        text=True
+        text=True,
+        env=_build_test_env(env_flags),
     )
 
 
+def spawn_interactive_3dmake(args, cwd=None, env_flags: set[str] = set()) -> PopenSpawn:
+    """
+    Helper function to spawn an interactive 3DMake subshell using PopenSpawn.
+    Used when testing interactive commands only; it can be a bit brittle.
+    """
+    script_dir = Path(__file__).parent
+    cmd = [sys.executable, str(script_dir / '3dm.py')] + args
+
+    return PopenSpawn(
+        cmd,
+        cwd=str(cwd) if cwd else None,
+        timeout=30,
+        encoding='utf-8',
+        env=_build_test_env(env_flags),
+    )

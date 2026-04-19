@@ -18,12 +18,16 @@ from version import VERSION
 from default_file_hashes import BUNDLED_PATH_HASHES
 from utils.shell import shell_command_exists
 from utils.bambu import vendor_is_bambu
+from utils.test_flags import in_test_mode, test_flag_set
 
 DEFAULT_WINDOWS_EDITOR = 'notepad'
 OLLAMA_LOCALHOST = 'http://localhost:11434'
 BAMBU_CONNECT_DOWNLOAD_PAGE = "https://wiki.bambulab.com/en/software/bambu-connect"
 
 def ollama_detected() -> bool:
+    if in_test_mode():
+        return test_flag_set('ollama_detected')
+
     if shell_command_exists('ollama'):
         return True
     else:
@@ -157,7 +161,7 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             if ask_editor:
                 editor_options = [(e.human_name, e.command) for e in non_notepad_editors]
                 editor_options.append(('Notepad', 'notepad'))
-                selected_command = option_select("Choose an editor", editor_options)
+                selected_command = option_select("Choose a text editor to edit OpenSCAD code and config files", editor_options)
                 settings_dict['editor'] = selected_command
                 settings_dict['edit_in_background'] = True
 
