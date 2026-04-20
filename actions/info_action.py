@@ -222,6 +222,12 @@ def describe_model_gemini(
     prompt_text: str,
 ) -> None:
     import google.generativeai as genai  # Slow import
+
+    # Fix up the llm name if they accidentally entered the OpenRouter version
+    # just as a convenience
+    if llm_name.startswith('google/'):
+        llm_name = llm_name[7:]
+
     debug_stdout.write(f"Using Gemini model {llm_name}\n")
 
     images = render_images(mesh)
