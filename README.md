@@ -130,13 +130,15 @@ The possible angle names are below (you can generate multiple images at once by 
 
 The `3dm image` command places your images in the build directory with names indicating the model and view angle. For example, for the "main" model, images might be called "main-above_front_left.png", and "main-above_front_right.png".
 
+You can select the image size with the `--image-size` option. For example, to have a small 640x480 image, use `--image-size 640x480`.
+
 The command also supports different color schemes for the model, background, and grid. This can be set with the `--colorscheme` option which has these possible values:
 
 - `--colorscheme slicer_light` - Orange model. light gray background, green and blue grid lines
 - `--colorscheme slicer_dark` - Orange model, almost black background, green and blue grid lines
 - `--colorscheme light_on_dark` -White model, dark gray background, light gray grid lines
 
-Default color scheme and angles can also be set in your 3dm config files.
+Default size, color scheme, and angles can also be set in your 3dm config files.
 
 # Working with files that aren't part of a project
 
