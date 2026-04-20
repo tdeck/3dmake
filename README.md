@@ -110,6 +110,8 @@ The preview's "view" can be changed using the -v option. Here are the possible p
 - -v rightsil - Silhouette from the right
 - -v topsil - Silhouette from the top
 
+Previews are also produced as SVG files in the build directory, so if you have an embosser or swell paper machine you may be able to quickly print these out. You can adjust the line width of the SVG previews using the `svg_stroke_width` option in your configuration file.
+
 # Producing images of models
 
 The `3dm image` command allows you to make images of your models. These images will automatically be scaled to center the model and zoom in, and the model will sit on a grid indicating the x-y plane. The images will show the model when viewed from a particular angle, and these angles have names for your convenience. You select the angle by adding the `-a` option to the 3dm command, for example `3dm image -a front`.
