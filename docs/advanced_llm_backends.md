@@ -209,32 +209,6 @@ llm_name = "gemini-2.5-pro-preview"   # bare model name, no provider prefix
 
 ---
 
-## Choosing a Vision Model
-
-Not all models support image input. When picking a model, verify it is listed as **vision** or **multimodal**. Recommended choices by use case:
-
-| Use case            | Recommendation                                            |
-| ------------------- | --------------------------------------------------------- |
-| Best quality, cloud | `google/gemini-2.5-pro-preview` via OpenRouter            |
-| Fast + cheap, cloud | `meta-llama/llama-3.2-11b-vision-instruct` via OpenRouter |
-| Best local quality  | `llama3.2-vision` via Ollama                              |
-| Lightweight local   | `moondream2` via Ollama (very fast, less detail)          |
-| Privacy-sensitive   | Any local model — nothing leaves your machine             |
-
----
-
-## Interactive Mode
-
-All backends support interactive follow-up questions. Pass `-i` / `--interactive`:
-
-```bash
-3dmake info mymodel.stl -i
-```
-
-After the initial description you will be prompted for questions. Type `stop`, `quit`, or `exit` to end the session.
-
----
-
 ## Troubleshooting
 
 **`Connection refused` / `Failed to connect`**

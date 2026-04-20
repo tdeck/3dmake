@@ -120,10 +120,10 @@ The possible angle names are below (you can generate multiple images at once by 
 - `-a back` - Camera faces in the -x direction
 - `-a left` - Camera faces in the +y direction
 - `-a right` - Camera faces in the -y direction
-- `-a top` - Camera faces in the -z directoin
+- `-a top` - Camera faces in the -z direction
 - `-a bottom` - Camera faces in the +z direction
 - `-a above_front` - Camera faces in the +x, -z direction (looking down at an angle)
-- `-a above_front_left` - Camrea faces in the +x. +y, -z direction (looking down at the front left corner)
+- `-a above_front_left` - Camera faces in the +x. +y, -z direction (looking down at the front left corner)
 - `-a above_front_right` - Camera faces in the -x, +y, -z direction (looking down at the front right corner)
 - `-a above_back_left` - Camera faces in the -x, -y, -z direction (looking down at the back left corner)
 - `-a above_back_right` - Camera faces in the +x, -y, -z direction (looking down at the back right corner)
@@ -144,7 +144,7 @@ Default color scheme and angles can also be set in your 3dm config files.
 
 # Using OpenSCAD libraries
 
-Libraries are collections of pre-written code that you can use in your projects. They can contain modules for useful shapes and transformations that save you a lot of time. 3DMake makes it easier to use popular OpenSCAD libraries with your project using the 3DMake library manager, which is the first package manager for OpenSCAD. You can easily libraries from the library manager to your project by adding a `libraries` line with a list of library names to your project's `3dmake.toml` file. Each 3DMake library has an all lowercase name with no spaces that uniquely identifies that library. You can get a list of available libraries and their documentation pages by running `3dm list-libraries`.
+Libraries are collections of pre-written code that you can use in your projects. They can contain modules for useful shapes and transformations that save you a lot of time. 3DMake makes it easier to use popular OpenSCAD libraries with your project using the 3DMake library manager, which is the first package manager for OpenSCAD. You can easily add libraries from the library manager to your project by adding a `libraries` line with a list of library names to your project's `3dmake.toml` file. Each 3DMake library has an all lowercase name with no spaces that uniquely identifies that library. You can get a list of available libraries and their documentation pages by running `3dm list-libraries`.
 
 For example, let's say you want to use the [Belfry OpenSCAD library](https://github.com/revarbat/BOSL/wiki) in your project. You can add this line to your 3dmake.toml file:
 
@@ -166,7 +166,7 @@ use <bosl/shapes.scad>
 pyramid(n=4, h=30, l=30);
 ```
 
-You may notice that the BOSL library's documentation documents these imports in uppercase (e.g. `use <BOSL/shapes.scad>` rather than `use <bosl/shapes.scad>`. Some library authors expected their library to be used without an outer folder (e.g. dotSCAD's `use <line2d.scad>` vs the 3DMake version `use <dotscad/line2d.scad`). In order to prevent conflicts between libraries, 3DMake has standardized on always putting the library inside a folder with a lowercase name. So you may need to make small adjustments to the `include` or `use` lines when following examples library documentation.
+You may notice that the BOSL library's documentation documents these imports in uppercase (e.g. `use <BOSL/shapes.scad>` rather than `use <bosl/shapes.scad>`. Some library authors expected their library to be used without an outer folder (e.g. dotSCAD's `use <line2d.scad>` vs the 3DMake version `use <dotscad/line2d.scad>`). In order to prevent conflicts between libraries, 3DMake has standardized on always putting the library inside a folder with a lowercase name. So you may need to make small adjustments to the `include` or `use` lines when following examples library documentation.
 
 ### Local libraries
 
@@ -177,12 +177,15 @@ libraries = ["bosl", "braille-chars"]
 local_libraries = ['''C:\custom_openscad_shapes''']  # The three apostrophe here allow you to use backslashes in your path
 ```
 
-There is no need to run `3dm install-libraries` for local libraries. When you use local libraries, OpenSCAD treats the folder you listed as if it were the same top-level folder as your project. So in the example above, if you had a file at `C:\custom_openscad_shapes\mechanical.scad`, you'd access it with `use <mechanical.scad>` or `<include mechanical.scad>`.
+There is no need to run `3dm install-libraries` for local libraries. When you use local libraries, OpenSCAD treats the folder you listed as if it were the same top-level folder as your project. So in the example above, if you had a file at `C:\custom_openscad_shapes\mechanical.scad`, you'd access it with `use <mechanical.scad>` or `include <mechanical.scad>`.
 
 If you come across and OpenSCAD library that you'd like to see included in 3DMake's library manager, please get in touch. I'd like to grow the list of libraries in the future.
 
 ## Advanced AI options
 Google Gemini is the easiest way to get started with AI model descriptions for free, but advanced users may want to try different AI models or edit the prompt that 3DMake uses. This can be done by editing 3DMake's configuration files.
+
+### Using local models with Ollama
+3DMake supports using AI models running on your own machine with Ollama ([ollama.com](https://ollama.com/)). These models are free and unlimited, but may run very slowly depending on your computer hardware. If you have installed Ollama, you will have the option to choose an ollama model when running 3dm setup. You will need to choose the model name of a vision-capable model that you have installed. [To find a list of vision models, visit this page on the Ollama website.](https://ollama.com/search?c=vision). You can install the models by name using the command shown on that site. You can list your installed models by running `ollama list` from the terminal.
 
 ### Changing the prompt
 You can customize the prompt that gets sent to the AI model using the `3dm edit-prompt` command. The first time you run this command, you'll start with a text file containing the default prompt. The AI will always get the same images of the model from the same set of camera angles, so it's a good idea to keep some text explaining what the images are.
@@ -194,13 +197,15 @@ You can customize the prompt that gets sent to the AI model using the `3dm edit-
 
 Once you create an OpenRouter account, you will get an API key. You can then run `3dm edit-global-config` and add an `openrouter_key = "..."` line with your API key. You must also set `llm_name` to an OpenRouter model name. [You can find the names of available OpenRouter models here in the OpenRouter documentation](https://openrouter.ai/models). When you have an `openrouter_key` set in your configuration, 3DMake will always use OpenRouter. OpenRouter does support Gemini models, but the model names are different between OpenRouter and Gemini. In particular, the OpenRouter names for Gemini models start with `google/` like `google/gemini-2.5-flash` instead of just `gemini-2.5.flash`. Be careful of these differences if you switch often between OpenRouter and Gemini.
 
+As mentioned above, you can use local models with Ollama or other OpenAI compatible AI systems. In this case, the `llm_name` will be the name of the LLM model, and `openai_compat_host` will be the hostname of the model server. [This document describes the advanced LLM setup options in more detail](docs/advanced_llm_backends.md).
+
 ## Bambu labs LAN mode
 
 ### How to set up your printer
 
 The printer must be placed in LAN only mode and in developer mode from the network settings menu on the device's touchscreen. On this screen, you will see the printer's IP address (something like "10.1.2.3") and access code, which is a short string of letters and numbers. You will need both of these. You will also need the printer's serial number. [This document explains how to find the serial number.](https://wiki.bambulab.com/en/general/find-sn)
 
-When your printer is in LAN only mode, you will not be able to print form the Bambu cloud.
+When your printer is in LAN only mode, you will not be able to print from the Bambu cloud or control it using the Bambu Handy app.
 
 ### How to set up 3Dmake
 You'll need to edit your 3Dmake configuration to add several lines. Run `3dm edit-global-config`. Add these lines to the end of the file, and edit them to reflect your printer's settings:
@@ -241,7 +246,7 @@ editor          | Command to open your preferred text editor        | "notepad" 
 edit_in_background | Exit 3DMake after starting an editor           | `true` when using Notepad, `false` otherwise     | `false`
 gemini_key      | Your Gemini API key (do not share this)           | What you set in 3dm setup     | `"47b64..."`
 llm_name        | The name of the gemini or OpenRouter model to use | Depends on 3dmake version     | `"gemini-2.5-pro"`
-openrouter_key  | Your OpenRouter API key (takes priority over Gemini | none | `"sk-or-v1-1234..."`
+openrouter_key  | Your OpenRouter API key (takes priority over Gemini) | none | `"sk-or-v1-1234..."`
 interactive     | Whether to make `3dm info` interactive by default[^3] | `false`                       | `true`
 libraries       | List of libraries to use in your project          | `[]` (empty list)             | `["bosl", "dotscad"]`
 local_libraries | List of library paths to use in project           | `[]` (empty list)             | `["/home/troy/3d/example"]`
@@ -263,6 +268,6 @@ Some of these settings can be further overridden on the command line (for exampl
 # Acknowledgements
 3DMake is built around the [OpenSCAD](https://openscad.org/) and [PrusaSlicer](https://www.prusa3d.com/page/prusaslicer_424/), both of which are free software.
 
-The people below have generously contribued code that is included in the release of 3DMake.
+The people below have generously contributed code that is included in the release of 3DMake.
 
 - Ryan (Michael) Hunsaker
