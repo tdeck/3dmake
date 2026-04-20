@@ -158,6 +158,16 @@ openai_compat_host = "http://<host>:<port>"
 llm_name = "<model-name-as-your-server-expects-it>"
 ```
 
+For servers that require authentication (including OpenAI itself at `api.openai.com`), also set `openai_api_key`:
+
+```toml
+openai_compat_host = "https://api.openai.com"
+openai_api_key = "sk-..."
+llm_name = "gpt-4o"
+```
+
+Local servers like Ollama and LM Studio do not require `openai_api_key`.
+
 ---
 
 ## OpenRouter (`openrouter_key`)
@@ -225,3 +235,6 @@ Your OpenRouter account has no credits. Add funds at https://openrouter.ai/credi
 
 **Gemini: `403 PERMISSION_DENIED`**
 The API key is invalid or the model name uses the wrong format (remember: no `google/` prefix for direct Gemini keys).
+
+**`401 Unauthorized` on an OpenAI-compatible server**
+The server requires authentication. Set `openai_api_key` in your config to your API key for that service.

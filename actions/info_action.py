@@ -36,6 +36,7 @@ def info(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             gemini_api_key=ctx.options.gemini_key,
             openrouter_api_key=ctx.options.openrouter_key,
             openai_compat_host=ctx.options.openai_compat_host,
+            openai_api_key=ctx.options.openai_api_key,
             llm_name=ctx.options.llm_name,
             stdout=stdout,
             debug_stdout=debug_stdout,
@@ -105,6 +106,7 @@ def describe_model(
     openrouter_api_key: Optional[str],
     llm_name: str,
     openai_compat_host: Optional[str],
+    openai_api_key: Optional[str],
     stdout: TextIO,
     debug_stdout: TextIO,
     interactive: bool,
@@ -118,9 +120,9 @@ def describe_model(
     """
     if openai_compat_host:
         describe_model_openai_compat(
-            mesh, 
-            openai_compat_host, 
-            api_key="none", 
+            mesh,
+            openai_compat_host,
+            api_key=openai_api_key or "none",
             llm_name=llm_name,
             stdout=stdout, 
             debug_stdout=debug_stdout,

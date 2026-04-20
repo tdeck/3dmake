@@ -247,10 +247,13 @@ edit_in_background | Exit 3DMake after starting an editor           | `true` whe
 gemini_key      | Your Gemini API key (do not share this)           | What you set in 3dm setup     | `"47b64..."`
 llm_name        | The name of the gemini or OpenRouter model to use | Depends on 3dmake version     | `"gemini-2.5-pro"`
 openrouter_key  | Your OpenRouter API key (takes priority over Gemini) | none | `"sk-or-v1-1234..."`
+openai_compat_host | The hostname of an Ollama compatible server    | none                          | `"http://localhost:11434"`
+openai_api_key  | The optional API key to use with openai_compat_host | none                        | `"abcdef..."`
 interactive     | Whether to make `3dm info` interactive by default[^3] | `false`                       | `true`
 libraries       | List of libraries to use in your project          | `[]` (empty list)             | `["bosl", "dotscad"]`
 local_libraries | List of library paths to use in project           | `[]` (empty list)             | `["/home/troy/3d/example"]`
 image_angles    | List of viewpoint angle names to use in image export | `["above_front_left", "above_front", "above_front_right"]` | `["top"]`
+image_size      | The size of the images to export (width x height) | `"1080x720"`                  | `"1920x1080"`
 copies          | Number of copies of the model to create when slicing | `1` | `3`
 colorscheme     | Color scheme name to use in image export | `"slicer_dark"` | `"slicer_light"`
 svg_stroke_width| The width of the preview SVG stroke, in mm        | `1`                           | `2`

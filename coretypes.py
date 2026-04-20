@@ -57,6 +57,7 @@ class CommandOptions:
     # "http://localhost:1234" (LM Studio).  The /v1 suffix is added automatically.
     # Takes precedence over openrouter_key when both are set.
     openai_compat_host: Optional[str] = None
+    openai_api_key: Optional[str] = None
 
     # Default model used by whichever backend is active.
     # Works out of the box with openrouter_key; swap for a local model name
