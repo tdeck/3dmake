@@ -26,11 +26,11 @@ _actions_in_order = [
     setup_action.setup,
     new_action.new,
 
-    build_action.build,
+    build_action.build, # must be before load_mesh
+    orient_action.orient, # must be before load_mesh
     mesh_actions.load_mesh,
     mesh_actions.measure_mesh,
     info_action.info,
-    orient_action.orient,
     image_action.image,
     preview_action.preview,
     slice_action.slice,

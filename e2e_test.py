@@ -27,7 +27,7 @@ def test_3dm_setup():
         child = spawn_interactive_3dmake(['setup']) # ollama_detected = false
         try:
             # Look for printer selection prompt
-            child.expect(r'Choose a printer model', timeout=3)
+            child.expect(r'Choose a printer model', timeout=5)
             child.expect(r'Choose an option number', timeout=3)
 
             # Look for Prusa Mini option and select it

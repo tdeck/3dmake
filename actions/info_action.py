@@ -5,7 +5,7 @@ import re
 import html
 import textwrap
 from pathlib import Path
-from typing import Any, List, Dict, Tuple, Set, TextIO, Optional
+from typing import Any, List, Dict, TextIO, Optional
 from utils.renderer import MeshRenderer, VIEWPOINTS
 
 from stl.mesh import Mesh
@@ -45,7 +45,6 @@ def info(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         )
 
 
-SerializedImage = Dict[str, Any]
 PromptObject = List[Any]
 
 MODEL_COLOR = 'orange'
@@ -62,41 +61,32 @@ VIEWPOINTS_TO_USE = [
     'bottom',
 ]
 
-def serialize_image(img: 'PIL.Image') -> SerializedImage:
-    stream = io.BytesIO()
-    img.save(stream, format="png")
-    return {'mime_type':'image/png', 'data': base64.b64encode(stream.getvalue()).decode('utf-8')}
-
-def print_gemini_token_stats(
-    res: 'google.generativeai.types.GenerateContentResponse',
-    stream: TextIO,
-):
+def print_gemini_token_stats(res: Any, stream: TextIO) -> None:
     stream.write(f"Prompt tokens: {res.usage_metadata.prompt_token_count}\n")
     stream.write(f"Candidates tokens: {res.usage_metadata.candidates_token_count}\n")
     stream.write(f"Total tokens: {res.usage_metadata.total_token_count}\n")
 
 def print_openai_token_stats(completion: Any, stream: TextIO) -> None:
-    """Print token usage from any OpenAI-compatible completion response, if available."""
     if hasattr(completion, 'usage') and completion.usage:
         stream.write(f"Prompt tokens: {completion.usage.prompt_tokens}\n")
         stream.write(f"Completion tokens: {completion.usage.completion_tokens}\n")
         stream.write(f"Total tokens: {completion.usage.total_tokens}\n")
 
-def render_images(mesh: Mesh) -> List[SerializedImage]:
-    """Render all configured viewpoints of the mesh into serialized PNG images."""
+def render_png_images(mesh: Mesh) -> List[bytes]:
     renderer = MeshRenderer(mesh)
-    return [
-        serialize_image(renderer.get_image(VIEWPOINTS[vp_name], IMAGE_PIXELS, IMAGE_PIXELS))
-        for vp_name in VIEWPOINTS_TO_USE
-    ]
+    images = []
+    for vp_name in VIEWPOINTS_TO_USE:
+        stream = io.BytesIO()
+        renderer.get_image(VIEWPOINTS[vp_name], IMAGE_PIXELS, IMAGE_PIXELS).save(stream, format="png")
+        images.append(stream.getvalue())
+    return images
 
-def build_openai_image_content(prompt_text: str, images: List[SerializedImage]) -> List[Dict]:
-    """Build the OpenAI-compatible content list from a prompt and serialized images."""
+def build_openai_image_content(prompt_text: str, images: List[bytes]) -> List[Dict]:
     content = [{"type": "text", "text": prompt_text}]
-    for img_data in images:
+    for img in images:
         content.append({
             "type": "image_url",
-            "image_url": {"url": f"data:{img_data['mime_type']};base64,{img_data['data']}"}
+            "image_url": {"url": f"data:image/png;base64,{base64.b64encode(img).decode()}"}
         })
     return content
 
@@ -177,7 +167,7 @@ def describe_model_openai_compat(
 
     debug_stdout.write(f"Using model {llm_name} at {base_url}\n")
 
-    images = render_images(mesh)
+    images = render_png_images(mesh)
     content = build_openai_image_content(prompt_text, images)
 
     client = OpenAI(base_url=base_url, api_key=api_key)
@@ -223,7 +213,8 @@ def describe_model_gemini(
     interactive: bool,
     prompt_text: str,
 ) -> None:
-    import google.generativeai as genai  # Slow import
+    from google import genai  # Slow import
+    from google.genai import types
 
     # Fix up the llm name if they accidentally entered the OpenRouter version
     # just as a convenience
@@ -232,13 +223,17 @@ def describe_model_gemini(
 
     debug_stdout.write(f"Using Gemini model {llm_name}\n")
 
-    images = render_images(mesh)
+    images = render_png_images(mesh)
 
-    genai.configure(api_key=gemini_api_key)
-    llm = genai.GenerativeModel(llm_name)
-    chat = llm.start_chat()
+    client = genai.Client(api_key=gemini_api_key)
+    chat = client.chats.create(model=llm_name)
 
-    res = chat.send_message([prompt_text] + images)
+    parts = [prompt_text] + [
+        types.Part.from_bytes(data=img, mime_type='image/png')
+        for img in images
+    ]
+
+    res = chat.send_message(parts)
     stdout.write(res.text + "\n")
     print_gemini_token_stats(res, debug_stdout)
 

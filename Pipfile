@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-tweaker3 = {editable = true, git = "https://github.com/ChristophSchranz/Tweaker-3.git"}
+tweaker3 = {git = "https://github.com/ChristophSchranz/Tweaker-3.git", ref="v3.9.1"}
 numpy-stl = "*"
 requests = "*"
 platformdirs = "*"
@@ -13,10 +13,9 @@ prompt_toolkit = "*"
 prompt-toolkit = "*"
 vtkplotlib = "*"
 pillow = "*"
-google-generativeai = "*"
+google-genai = "*"
 openai = "*"
 vtk = "*"
-grpcio = "==1.67.1"  # Fix for grpc_wait_for_shutdown_with_timeout() error
 paho-mqtt = "*"
 packaging = "*"
 
