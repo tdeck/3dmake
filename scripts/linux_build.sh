@@ -1,6 +1,6 @@
 #! /bin/bash
 set -e
-pipenv install
+pipenv install --dev
 
 if [[ "$1" == "--release" ]]; then
     echo "Release build"
