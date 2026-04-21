@@ -62,7 +62,7 @@ class CommandOptions:
     # Default model used by whichever backend is active.
     # Works out of the box with openrouter_key; swap for a local model name
     # (e.g. "llava", "llama3.2-vision") when using openai_compat_host.
-    llm_name: str = 'gemini-2.5-pro'
+    llm_name: str = 'gemini-2.5-flash'
 
     # Image rendering
     image_angles: List[str] = field(default_factory=lambda: ['above_front_left', 'above_front', 'above_front_right'])
