@@ -23,6 +23,10 @@ packaging = "*"
 pyinstaller = "*"
 pytest = "*"
 pexpect = '*'
+# These are transitive dependencies only used on Windows; we lock them here to avoid churn in Pipfile
+pywin32-ctypes = {version = "*", markers = "sys_platform == 'win32'"}
+pefile = {version = "*", markers = "sys_platform == 'win32'"}
+colorama = {version = "*", markers = "sys_platform == 'win32'"}
 
 [requires]
 python_version = "3.13"
