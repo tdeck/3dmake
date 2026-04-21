@@ -20,7 +20,7 @@ paho-mqtt = "*"
 packaging = "*"
 
 [dev-packages]
-pyinstaller = "*"
+pyinstaller = ">=6.19"
 pytest = "*"
 pexpect = '*'
 # These are transitive dependencies only used on Windows; we lock them here to avoid churn in Pipfile
