@@ -4,18 +4,16 @@
 ; Hash comments will become section headings above ## TODO
 
 # Metadata
-notes
+; NOTE if this contains the word bambu, the printer can use bambu upload methods
+printer_settings_id
+printer_vendor
+printer_variant
+print_settings_id
 printer_model
 ; NOTE printer_model is used to populate identifiers inside 3mf files
 printer_notes
 ; TODO need to figure out what these are for and if they can be deleted
-print_settings_id
-; TODO probably better to put printer_settings_id first, printer info, and printer_model later
-printer_settings_id
-physical_printer_settings_id
-printer_variant
-; NOTE if this contains the word bambu, the printer can use bambu upload methods
-printer_vendor
+notes
 
 # Temperatures
 temperature
@@ -394,6 +392,7 @@ compatible_printers_condition_cummulative
 default_filament_profile
 default_print_profile
 filament_spool_weight
+physical_printer_settings_id
 
 ; These seem to be duplicates of their non-filamnet key
 ; TODO consider applying these when reading a profile as an override or fallback
