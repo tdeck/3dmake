@@ -9,6 +9,7 @@ numpy-stl = "*"
 requests = "*"
 platformdirs = "*"
 mslex = {version = "*", markers = "sys_platform == 'win32'"}
+colorama = {version = "*", markers = "sys_platform == 'win32'"}
 prompt_toolkit = "*"
 prompt-toolkit = "*"
 vtkplotlib = "*"
