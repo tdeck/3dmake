@@ -75,8 +75,8 @@ class Action:
 #
 # Decorators
 #
-def _action_name(fn: Callable[..., Any]) -> str:
-    return fn.__name__.replace('_', '-')
+def _action_name(fn: Callable[..., Any], name: Optional[str] = None) -> str:
+    return name if name else fn.__name__.replace('_', '-')
 
 def _action_doc(fn: Callable[..., Any]) -> str:
     if fn.__doc__:
@@ -86,13 +86,14 @@ def _action_doc(fn: Callable[..., Any]) -> str:
 
 def isolated_action(
     func: Optional[ActionFunc] = None,
+    name: Optional[str] = None,
     needs_options:bool = False,
     uses_project_files:bool = False,
     input_file_type: Optional[str] = None,
 ):
     def wrap(func: ActionFunc) -> ActionFunc:
         return Action(
-            name=_action_name(func),
+            name=_action_name(func, name),
             doc=_action_doc(func),
             isolated=True,
             uses_project_files=uses_project_files,
@@ -108,6 +109,7 @@ def isolated_action(
 
 def pipeline_action(
     func: Optional[ActionFunc] = None,
+    name: Optional[str] = None,
     gerund:Optional[str] = None,
     implied_actions: List[Action] = [],
     internal = False,  # Note: It would be better to call @internal_action for internal actions!
@@ -120,7 +122,7 @@ def pipeline_action(
 
     def wrap(func: ActionFunc) -> ActionFunc:
         return Action(
-            name=_action_name(func),
+            name=_action_name(func, name),
             doc=_action_doc(func),
             gerund=gerund,
             isolated=False,
