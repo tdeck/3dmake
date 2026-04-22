@@ -34,7 +34,7 @@ _actions_in_order = [
     image_action.image,
     preview_action.preview,
     slice_action.slice,
-    print_action.print,
+    print_action.print_3d,
 
     list_config_actions.list_profiles,
     list_config_actions.list_overlays,
