@@ -1,5 +1,5 @@
 $ErrorActionPreference = "Stop"
-pipenv install --dev # Often I just booted Windows and haven't updated this
+pipenv sync --dev
 
 if ($args[0] -eq "--release") {
     Write-Output "Release build"
