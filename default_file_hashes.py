@@ -1,5 +1,5 @@
 # Generate by scripts/list_default_file_hashes.py
-LATEST_TAG_RECORDED = 'v0.8'
+LATEST_TAG_RECORDED = 'v0.9'
 BUNDLED_PATH_HASHES = {'library_catalog.toml': {'3964d6d30ce75682e3fd6e4efe7282644f262ec5eb082e5be37341e1aeb1c31b',
                           '7d4c3dffaef6632cb47b2e552c618d1692c867bfea630842b7991d8e4b5b58f3'},
  'overlays/default/ABS.ini': {'18c54212207def44caae3e0f901461ae0a2033fbf1b0697eb8ccef86b0cdfc85',
@@ -12,7 +12,12 @@ BUNDLED_PATH_HASHES = {'library_catalog.toml': {'3964d6d30ce75682e3fd6e4efe72826
  'overlays/default/supports.ini': {'19c79e3dc9ca8afda042974afae5be9312b4e6c53357fc4a860be8faf4a96a29'},
  'profiles/ankermake_M5.ini': {'331a081cfd13b4013d6ca36b08cb2dd32b90cacae585adde56d1a2c600e312b5',
                                '475dfbe5628d710a19a46937dbfef4cf27136a4e5ad1ac24c43d400b609f0cda'},
- 'profiles/bambu_labs_X1_carbon.ini': {'84b97241aa7eb9178c16afd51ab0a465b3a330743734670beea4f1403fe84b63',
+ 'profiles/bambu_labs_A1_mini.ini': {'721477c8598b577294bac09d70990c56fa666499e3fd8bbb485e367ec39c1971'},
+ 'profiles/bambu_labs_H2D.ini': {'2da67cb27d8de08656d9f2475908198c1baf3bf1660df1b6517a10972666543c'},
+ 'profiles/bambu_labs_P1S.ini': {'676ad5d891974cedb82297cc1945e78923bb2b2ec5ccd7b200cb831b10f2c1fd'},
+ 'profiles/bambu_labs_P2S.ini': {'56f6dcacec061234853e560dc818e95c9a90547c500b6ad454ac64ab6bfe6744'},
+ 'profiles/bambu_labs_X1_carbon.ini': {'5940f3eee4db55c3021f291d0e6e20cc5fca59fb6c188d796c3a05a52b525deb',
+                                       '84b97241aa7eb9178c16afd51ab0a465b3a330743734670beea4f1403fe84b63',
                                        '8c103950ebaa5386aee21cbaea50b875cdb13213db4a91b5f5918c98160a37f3',
                                        'd4110a3c02bcbad8c3f287eaf1f91f53f2f9adb1d4c9d56cecfc0a164e06d9a0'},
  'profiles/creality_ender_3.ini': {'5cca3b59fa33de9b7671f902de82223041ff0877512f9c1770269615e6ec5d00'},
@@ -20,6 +25,7 @@ BUNDLED_PATH_HASHES = {'library_catalog.toml': {'3964d6d30ce75682e3fd6e4efe72826
  'profiles/creality_ender_3_s1.ini': {'1f9ef1019fe573dbbbd0ea112dfabdb9a9f3c2e67707c6b955ced023570e78b1'},
  'profiles/creality_ender_3_s1_pro.ini': {'3cc84b64ba97f420b80377c4dd06e230c931c035170b850f3719159c05233cb4'},
  'profiles/elegoo_neptune_3_plus.ini': {'c6237987b4fe40336dc1136f22b4be7e83d975b225a5dca9fda86cb62b0f20d6'},
+ 'profiles/flashforge_adventurer_5m.ini': {'a6c96d322876cc84c3707f1b7c5f66e7583e7de31246dbf96ae1d1c84f9349be'},
  'profiles/monoprice_mini_delta.ini': {'44660a2b5986aac5608f7981fa1659949ea7433fe7e30d546199af7cb6531e63',
                                        '8d7edcc37f01da75868361769b0506148902c93a181fd5f45d7f9d8f6fb3fab5',
                                        'e4f0c819901b545497af0c8e159774003211482ceff52c812a131095e9170649'},
