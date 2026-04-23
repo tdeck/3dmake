@@ -21,7 +21,7 @@ from utils.user_prompts import yes_or_no, prompt
 from utils.update_check import newer_3dmake_version, DOWNLOAD_URL
 from actions import ALL_ACTIONS_IN_ORDER, Context
 
-CONFIG_DIR = Path(os.environ['3DMAKE_CONFIG_DIR']) if '3DMAKE_CONFIG_DIR' in os.environ else user_config_path('3dmake', None)
+CONFIG_DIR = Path(os.environ['THREEDMAKE_CONFIG_DIR']) if 'THREEDMAKE_CONFIG_DIR' in os.environ else user_config_path('3dmake', None)
 PROFILES_DIR = CONFIG_DIR / 'profiles'
 OVERLAYS_DIR = CONFIG_DIR / 'overlays'
 

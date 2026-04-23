@@ -337,23 +337,23 @@ def isolated_3dmake_env():
         temp_config_path = Path(temp_dir)
         print(f"Temporary 3dmake config dir: {temp_config_path}")
 
-        old_3dmake_config_dir = os.environ.get('3DMAKE_CONFIG_DIR')
+        old_3dmake_config_dir = os.environ.get('THREEDMAKE_CONFIG_DIR')
 
         actual_config_dir = temp_config_path / '3dmake'
-        os.environ['3DMAKE_CONFIG_DIR'] = str(actual_config_dir)
+        os.environ['THREEDMAKE_CONFIG_DIR'] = str(actual_config_dir)
 
         try:
             yield actual_config_dir
         finally:
             if old_3dmake_config_dir is not None:
-                os.environ['3DMAKE_CONFIG_DIR'] = old_3dmake_config_dir
+                os.environ['THREEDMAKE_CONFIG_DIR'] = old_3dmake_config_dir
             else:
-                os.environ.pop('3DMAKE_CONFIG_DIR', None)
+                os.environ.pop('THREEDMAKE_CONFIG_DIR', None)
 
 
 def get_config_dir() -> Path:
     """Get the current 3dmake config directory"""
-    return Path(os.environ['3DMAKE_CONFIG_DIR']) if '3DMAKE_CONFIG_DIR' in os.environ else user_config_path('3dmake', None)
+    return Path(os.environ['THREEDMAKE_CONFIG_DIR']) if 'THREEDMAKE_CONFIG_DIR' in os.environ else user_config_path('3dmake', None)
 
 
 def populate_config(overrides: dict[str, Any] = {}) -> dict[str, Any]:
