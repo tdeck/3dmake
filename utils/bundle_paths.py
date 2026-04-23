@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 from dataclasses import dataclass
@@ -19,20 +20,25 @@ class Dependencies:
 def get_deps() -> Dependencies:
     os_type = platform.system()
 
-    openscad_path = SCRIPT_DIR.joinpath(
-        {
-            'Linux': 'deps/linux/OpenSCAD.AppImage',
-            'Windows': 'deps/windows/openscad/openscad.exe',
-        }[os_type]
-    )
+    if openscad_env := os.environ.get('THREEDMAKE_OPENSCAD_PATH'):
+        openscad_path = Path(openscad_env)
+    else:
+        openscad_path = SCRIPT_DIR.joinpath(
+            {
+                'Linux': 'deps/linux/OpenSCAD.AppImage',
+                'Windows': 'deps/windows/openscad/openscad.exe',
+            }[os_type]
+        )
 
-    slicer_path = SCRIPT_DIR.joinpath(
-        {
-            'Linux': 'deps/linux/PrusaSlicer.AppImage',
-            'Windows': 'deps/windows/prusaslicer/prusa-slicer-console.exe',
-        }[os_type]
-    )
-
+    if slicer_env := os.environ.get('THREEDMAKE_SLICER_PATH'):
+        slicer_path = Path(slicer_env)
+    else:
+        slicer_path = SCRIPT_DIR.joinpath(
+            {
+                'Linux': 'deps/linux/PrusaSlicer.AppImage',
+                'Windows': 'deps/windows/prusaslicer/prusa-slicer-console.exe',
+            }[os_type]
+        )
 
     return Dependencies(openscad_path, slicer_path)
 
