@@ -3,14 +3,24 @@ import sys
 from pathlib import Path
 from dataclasses import dataclass
 import platform
+from platformdirs import user_data_path
+from version import VERSION
 
-if getattr(sys, 'frozen', False):
+IS_PYINSTALLER_DISTRIBUTION = getattr(sys, 'frozen', False)
+
+if IS_PYINSTALLER_DISTRIBUTION:
     # Special case for PyInstaller
     SCRIPT_DIR = Path(sys._MEIPASS)
     SCRIPT_BIN_PATH = Path(sys.executable).absolute()
 else:
     SCRIPT_DIR = Path(sys.path[0])
     SCRIPT_BIN_PATH = Path(sys.argv[0]).absolute()
+
+INSTALL_DIR = (
+    Path(os.environ['THREEDMAKE_INSTALL_DIR'])
+    if 'THREEDMAKE_INSTALL_DIR' in os.environ
+    else user_data_path('3dmake', None) / f'v{VERSION}'
+)
 
 @dataclass
 class Dependencies:

@@ -13,7 +13,7 @@ from typing import TextIO, Dict, Any
 from .framework import Context, isolated_action
 from utils.print_config import list_printer_profiles, read_profile_config
 from utils.user_prompts import yes_or_no, option_select, prompt
-from utils.bundle_paths import SCRIPT_DIR, SCRIPT_BIN_PATH
+from utils.bundle_paths import SCRIPT_DIR, SCRIPT_BIN_PATH, IS_PYINSTALLER_DISTRIBUTION, INSTALL_DIR
 from version import VERSION
 from default_file_hashes import BUNDLED_PATH_HASHES
 from utils.shell import shell_command_exists
@@ -118,7 +118,22 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         dirs_exist_ok=True, # Don't need to mkdir -p as shutil will do this
     )
 
-    add_self_to_path()
+    # If this is a release build and hasn't been installed into a common location,
+    # copy over its files into the user's program data directory
+    if not SCRIPT_BIN_PATH.is_relative_to(INSTALL_DIR) and IS_PYINSTALLER_DISTRIBUTION:
+        print(f"Installing 3DMake files...")
+        debug_stdout.write(f"install dir: {INSTALL_DIR}\n")
+
+        shutil.copytree(SCRIPT_BIN_PATH.parent, INSTALL_DIR, dirs_exist_ok=True)
+        effective_bin_path = INSTALL_DIR / SCRIPT_BIN_PATH.name
+    else:
+        effective_bin_path = SCRIPT_BIN_PATH
+
+    add_self_to_path(effective_bin_path)
+
+    if IS_PYINSTALLER_DISTRIBUTION:
+        offer_to_delete_old_versions()
+
     with open(CONFIG_DIR / ".installed_version", 'w') as fh:
         # This is to help later versions of 3DMake which may need to migrate
         # settings when upgrading
@@ -265,7 +280,34 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             fh.write(f"{k} = {json.dumps(v)}\n")
         
 
-def add_self_to_path():
+def offer_to_delete_old_versions():
+    install_base = INSTALL_DIR.parent
+    # Sanity check for extra safety
+    if not install_base.exists() or install_base.name != '3dmake':
+        return
+
+    old_version_dirs = sorted([
+        d for d in install_base.iterdir()
+        if d.is_dir() and d != INSTALL_DIR and d.name.startswith('v')
+    ])
+    if not old_version_dirs:
+        return
+
+    version_names = [d.name[1:] for d in old_version_dirs]
+    if len(version_names) == 1:
+        version_str = version_names[0]
+        question = f"You also have 3DMake version {version_str} installed. Do you want to delete it?"
+    else:
+        version_str = ', '.join(version_names[:-1]) + f' and {version_names[-1]}'
+        question = f"You also have 3DMake versions {version_str} installed. Do you want to delete them?"
+
+    print()
+    if yes_or_no(question):
+        for d in old_version_dirs:
+            shutil.rmtree(d)
+
+
+def add_self_to_path(bin_path: Path):
     os_type = platform.system()
 
     if os_type == 'Windows':
@@ -277,11 +319,11 @@ def add_self_to_path():
             # So instead we create a batch file in this directory that simply runs 3DMake
             with open(bin_dir / '3dm.bat', 'w') as fh:
                 fh.write("@echo off\r\n")
-                fh.write(f"{mslex.quote(str(SCRIPT_BIN_PATH))} %*\r\n")
+                fh.write(f"{mslex.quote(str(bin_path))} %*\r\n")
         else:
             print("3DMake was not added to your PATH automatically. Consider adding this folder")
             print("to your PATH environment variable:")
-            print(SCRIPT_BIN_PATH.parent)
+            print(bin_path.parent)
             # TODO not sure whether to give a setx command or not, hopefully this is a rare case
 
     else:  # Assume a Linux/Unix platform
@@ -290,7 +332,7 @@ def add_self_to_path():
         if bin_dir.exists():
             symlink_path = bin_dir / '3dm'
             symlink_path.unlink(missing_ok=True) # Replace if one already exists
-            symlink_path.symlink_to(SCRIPT_BIN_PATH)
+            symlink_path.symlink_to(bin_path)
         else:
             # If it doesn't exist, maybe we could create it and it'll be in the PATH, but maybe
             # not. Better to assume it won't work and tell the user to set things up themselves.
@@ -304,6 +346,6 @@ def add_self_to_path():
 
             print("3DMake was not added to your PATH automatically. Consider adding a line like")
             print(f"this to your shell config file (e.g. {shell_config_file}):")
-            print(f'export PATH="{SCRIPT_BIN_PATH.parent}:$PATH"')
+            print(f'export PATH="{bin_path.parent}:$PATH"')
             print(f"After doing this, you must reload your shell.")
 
