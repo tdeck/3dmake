@@ -18,7 +18,7 @@ import actions.help_action
 from version import VERSION
 from coretypes import FileSet, CommandOptions
 from utils.user_prompts import yes_or_no, prompt
-from utils.update_check import newer_3dmake_version, DOWNLOAD_URL
+from utils.update_check import newer_3dmake_version
 from actions import ALL_ACTIONS_IN_ORDER, Context
 
 CONFIG_DIR = Path(os.environ['THREEDMAKE_CONFIG_DIR']) if 'THREEDMAKE_CONFIG_DIR' in os.environ else user_config_path('3dmake', None)
@@ -296,9 +296,9 @@ with ThreadPoolExecutor(max_workers=1) as executor:
 
     finally:
         try:
-            new_version = update_check_future.result(timeout=3)
-            if new_version:
-                print(f"A newer version of 3DMake is available at {DOWNLOAD_URL}")
-                print(f"You are running version {VERSION}. The latest is {new_version}.")
+            update_info = update_check_future.result(timeout=3)
+            if update_info:
+                print(f"3DMake {update_info.version} is available (you have {VERSION}).")
+                print("Run '3dm self-update' to install it.")
         except TimeoutError:
             pass
