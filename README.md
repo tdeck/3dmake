@@ -25,7 +25,7 @@ Download the latest version of 3DMake for your operating system by following the
 To set up 3DMake, extract the release for your operating system and navigate to the 3DMake folder
 in your terminal. Run `./3dm setup` and answer a few questions to complete the setup process.
 
-Once this is done, `3dm` should be installed so that you can run it by simply typing 3dm in your terminal from any folder. Do not delete the original directory where you extracted 3DMake.
+Once this is done, `3dm` should be installed so that you can run it by simply typing 3dm in your terminal from any folder. You can then delete the files you downloaded and extracted.
 
 ## Starting a new project
 
@@ -184,6 +184,9 @@ local_libraries = ['''C:\custom_openscad_shapes''']  # The three apostrophe here
 There is no need to run `3dm install-libraries` for local libraries. When you use local libraries, OpenSCAD treats the folder you listed as if it were the same top-level folder as your project. So in the example above, if you had a file at `C:\custom_openscad_shapes\mechanical.scad`, you'd access it with `use <mechanical.scad>` or `include <mechanical.scad>`.
 
 If you come across and OpenSCAD library that you'd like to see included in 3DMake's library manager, please get in touch. I'd like to grow the list of libraries in the future.
+
+## Updating 3DMake
+When a new version of 3DMake is released, you can upgrade simply by running `3dm self-update`.
 
 ## Advanced AI options
 Google Gemini is the easiest way to get started with AI model descriptions for free, but advanced users may want to try different AI models or edit the prompt that 3DMake uses. This can be done by editing 3DMake's configuration files.
