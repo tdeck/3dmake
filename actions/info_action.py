@@ -4,6 +4,8 @@ import sys
 import re
 import html
 import textwrap
+import numpy as np
+import trimesh
 from pathlib import Path
 from typing import Any, List, Dict, TextIO, Optional
 from utils.renderer import MeshRenderer, VIEWPOINTS
@@ -12,7 +14,7 @@ from stl.mesh import Mesh
 
 from .mesh_actions import measure_mesh
 from .framework import Context, pipeline_action
-from utils.llm_prompt import get_ai_prompt
+from utils.llm_prompt import get_ai_prompt_template
 from utils.user_prompts import prompt
 
 @pipeline_action(
@@ -26,10 +28,16 @@ def info(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
 
     sizes = ctx.mesh_metrics.sizes()
     mid = ctx.mesh_metrics.midpoints()
+    solid_count = count_mesh_solids(ctx.mesh)
+
     stdout.write(f"Mesh size: x={sizes.x:.2f}, y={sizes.y:.2f}, z={sizes.z:.2f}\n")
     stdout.write(f"Mesh center: x={mid.x:.2f}, y={mid.y:.2f}, z={mid.z:.2f}\n")
+    stdout.write(f"Object count: {solid_count}\n")
 
-    if ctx.options.openrouter_key or ctx.options.gemini_key or ctx.options.openai_compat_host:
+    if solid_count and (ctx.options.openrouter_key or ctx.options.gemini_key or ctx.options.openai_compat_host):
+        prompt_text = get_ai_prompt_template(ctx.config_dir).substitute(
+            object_count=solid_count,
+        )
         stdout.write("\nAI description:\n")
         describe_model(
             mesh=ctx.mesh,
@@ -41,8 +49,14 @@ def info(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             stdout=stdout,
             debug_stdout=debug_stdout,
             interactive=ctx.options.interactive,
-            prompt_text=get_ai_prompt(ctx.config_dir),
+            prompt_text=prompt_text,
         )
+
+def count_mesh_solids(mesh: Mesh) -> int:
+    vertices = mesh.vectors.reshape(-1, 3)
+    faces = np.arange(len(vertices)).reshape(-1, 3)
+    tri = trimesh.Trimesh(vertices=vertices, faces=faces)
+    return len(tri.split())
 
 
 PromptObject = List[Any]

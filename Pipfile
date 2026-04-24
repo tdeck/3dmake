@@ -19,6 +19,8 @@ openai = "*"
 vtk = "*"
 paho-mqtt = "*"
 packaging = "*"
+trimesh = "*"
+networkx = "*"
 
 [dev-packages]
 pyinstaller = ">=6.19"
