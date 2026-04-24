@@ -197,6 +197,8 @@ Google Gemini is the easiest way to get started with AI model descriptions for f
 ### Changing the prompt
 You can customize the prompt that gets sent to the AI model using the `3dm edit-prompt` command. The first time you run this command, you'll start with a text file containing the default prompt. The AI will always get the same images of the model from the same set of camera angles, so it's a good idea to keep some text explaining what the images are.
 
+AI models often have trouble counting objects, so 3DMake can provide a count of the solid objects within the prompt. If you include the string `$object_count` in your prompt, it will be replaced with the number of solid objects when prompting the AI.
+
 ### Changing the model
 3DMake has a default Gemini model it uses, which is the best image description model available to users of Gemini's free tier. If you want to change it, you can set the `llm_name` configuration key to one of Google's model variant names. [Here is Google's official documentation for the model variants](https://ai.google.dev/gemini-api/docs/models). Example model variant names are `gemini-2.5-pro` and `gemini-2.5-flash`.
 
