@@ -80,6 +80,7 @@ parser.add_argument('--image-size', type=str)
 parser.add_argument('--help', '-h', action=HelpAction, nargs=0)
 parser.add_argument('--debug', action='store_true')
 parser.add_argument('actions_and_files', nargs='+')
+parser.add_argument('--version', action='version', version=f'%(prog)s v{VERSION}') # -v not used as it is already used by --view
 
 # We follow this strategy of using parse_known_args() rather than parse_args()
 # so that we can interleave actions_and_files with dashed options
