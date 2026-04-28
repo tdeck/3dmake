@@ -15,6 +15,7 @@ from packaging.version import Version
 from platformdirs import user_config_path
 
 import actions.help_action
+import actions.version_action
 from version import VERSION
 from coretypes import FileSet, CommandOptions
 from utils.user_prompts import yes_or_no, prompt
@@ -62,6 +63,12 @@ class HelpAction(argparse.Action):
         actions.help_action.help(None)
         parser.exit()
 
+class VersionAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        ctx = Context(config_dir=CONFIG_DIR, options=None, files=None, explicit_overlay_arg=[])
+        actions.version_action.version(ctx)
+        parser.exit()
+
 parser = argparse.ArgumentParser(
     prog='3dmake',
     add_help=False,
@@ -78,6 +85,7 @@ parser.add_argument('-c', '--copies', type=int, default=1)
 parser.add_argument('--colorscheme', type=str)
 parser.add_argument('--image-size', type=str)
 parser.add_argument('--help', '-h', action=HelpAction, nargs=0)
+parser.add_argument('--version', action=VersionAction, nargs=0)
 parser.add_argument('--debug', action='store_true')
 parser.add_argument('actions_and_files', nargs='+')
 
