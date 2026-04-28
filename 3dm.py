@@ -15,6 +15,7 @@ from packaging.version import Version
 from platformdirs import user_config_path
 
 import actions.help_action
+import actions.self_update_action as self_update_action
 import actions.version_action
 from version import VERSION
 from coretypes import FileSet, CommandOptions
@@ -305,7 +306,7 @@ with ThreadPoolExecutor(max_workers=1) as executor:
     finally:
         try:
             update_info = update_check_future.result(timeout=3)
-            if update_info:
+            if update_info and self_update_action.self_update.name not in verbs:
                 print(f"3DMake {update_info.version} is available (you have {VERSION}).")
                 print("Run '3dm self-update' to install it.")
         except TimeoutError:

@@ -1,5 +1,6 @@
 import os
 import platform
+import subprocess
 import sys
 import tarfile
 import tempfile
@@ -94,4 +95,8 @@ def self_update(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         new_bin_path.chmod(new_bin_path.stat().st_mode | 0o755)
 
     stdout.write(f"Running setup for 3DMake {update_info.version}...\n")
-    os.execv(str(new_bin_path), [str(new_bin_path), 'setup'])
+    # os.execv doesn't replace the process on Windows — it spawns a new one while
+    # the old one exits, leaving the terminal in a broken state where stdin stops
+    # working. subprocess.run + sys.exit behaves correctly on all platforms.
+    result = subprocess.run([str(new_bin_path), 'setup'])
+    sys.exit(result.returncode)
