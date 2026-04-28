@@ -16,10 +16,17 @@ else:
     SCRIPT_DIR = Path(sys.path[0])
     SCRIPT_BIN_PATH = Path(sys.argv[0]).absolute()
 
+def _default_install_base() -> Path:
+    if platform.system() == 'Windows':
+        # On Windows user_data_path and user_config_path
+        # are both LOCALAPPDATA which is a problem
+        return Path(os.environ['LOCALAPPDATA']) / 'Programs' / '3dmake'
+    return user_data_path('3dmake', None)
+
 INSTALL_DIR = (
     Path(os.environ['THREEDMAKE_INSTALL_DIR'])
     if 'THREEDMAKE_INSTALL_DIR' in os.environ
-    else user_data_path('3dmake', None) / f'v{VERSION}'
+    else _default_install_base() / f'v{VERSION}'
 )
 
 @dataclass

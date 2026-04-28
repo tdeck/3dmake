@@ -61,14 +61,12 @@ def self_update(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         stdout.write("Extracting...\n")
         is_zip = update_info.download_url.endswith('.zip')
         with (zipfile.ZipFile(archive_path) if is_zip else tarfile.open(archive_path)) as archive:
-            # This extraction unwraps the outer dir (3dmake/) inside the archive
             if is_zip:
+                # Windows zip has files at the top level, no outer dir to unwrap
                 members = archive.infolist()
-                for m in members:
-                    m.filename = m.filename.split('/', 1)[1] if '/' in m.filename else ''
-                members = [m for m in members if m.filename]
                 def do_extract(m): archive.extract(m, new_install_dir)
             else:
+                # This extraction unwraps the outer dir (3dmake/) inside the archive
                 members = archive.getmembers()
                 for m in members:
                     m.name = m.name.split('/', 1)[1] if '/' in m.name else ''
