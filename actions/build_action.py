@@ -1,26 +1,15 @@
-import os
-import subprocess
-import platform
 import sys
 from typing import TextIO
 from pathlib import Path
-from time import time, sleep, strftime
+from time import time, sleep
 from datetime import timedelta
 
-from .framework import Context, pipeline_action
-from utils.bundle_paths import DEPS, BUNDLED_SCAD_LIB_PATH
+from .framework import Context, BuildMetadata, pipeline_action
+from utils.bundle_paths import BUNDLED_SCAD_LIB_PATH
 from utils.stream_wrappers import FilterPipe
-from utils.openscad import should_print_openscad_log
+from utils.openscad import run_openscad, OpenSCADMessageCollector
 from utils.libs import load_installed_libs
 from utils.logging import throw_subprogram_error
-
-def construct_OPENSCADPATH(dirs: list[Path]) -> str:
-    if platform.system() == 'Windows':
-        path_sep = ';'
-    else:
-        path_sep = ':'
-
-    return path_sep.join((str(d) for d in dirs))
 
 def format_build_time(seconds: float) -> str:
     td = timedelta(seconds=int(seconds))
@@ -64,32 +53,26 @@ def build(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
 
     tty_output_mode = sys.stdout.isatty()
     
+    collector = OpenSCADMessageCollector()
+
     if ctx.options.debug:
         filter_stdout = stdout
+        # TODO this doesn't collect 3dm logs! DO NOT MERGE
     else:
         filter_stdout = FilterPipe(
             stdout,
-            filter_fn=should_print_openscad_log,
+            filter_fn=collector.should_print,
             pad_lines_to=20 if tty_output_mode else 0,
         )
 
-    cmd_options = [
-        '--export-format', 'binstl',
-        # Can't use --quiet here since it suppresses warnings
-        '-o', ctx.files.model,
-    ]
-
-    if ctx.options.strict_warnings:
-        cmd_options.append('--hardwarnings')
-
-    envvars = dict(os.environ, OPENSCADPATH=construct_OPENSCADPATH(lib_include_dirs))
-
     start_time = time()
-    subproc = subprocess.Popen(
-        [DEPS.OPENSCAD] + cmd_options + [ctx.files.scad_source],
+    subproc = run_openscad(
+        model_file=ctx.files.scad_source,
+        output_file=ctx.files.model,
         stdout=debug_stdout,
-        stderr=filter_stdout,
-        env=envvars,
+        stderr=filter_stdout, # TODO check that echo is on stderr
+        lib_include_dirs=lib_include_dirs,
+        hardwarnings=ctx.options.strict_warnings,
     )
 
     last_printed_time = None
@@ -126,3 +109,7 @@ def build(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
 
     if subproc.returncode != 0:
         throw_subprogram_error('OpenSCAD', subproc.returncode, ctx.options.debug)
+
+    ctx.build_metadata = BuildMetadata(
+        preview_plane_names=set(collector.logged_key_values.get("preview_plane_option", []))
+    )
