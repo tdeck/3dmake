@@ -11,6 +11,10 @@ from utils.stream_wrappers import IndentStream, DEVNULL
 from coretypes import CommandOptions, FileSet, MeshMetrics
 
 @dataclass(kw_only=True)
+class BuildMetadata:
+    preview_plane_names: set[str]
+
+@dataclass(kw_only=True)
 class SliceMetadata:
     printer_model: str
     printer_settings_id: str
@@ -27,6 +31,9 @@ class Context:
     files: Optional[FileSet]  # Input files and outputs of prior steps, mutated during the run
     explicit_overlay_arg: List[str]  # List of overlays requested on CLI, sometimes this is treated differently
     single_file_mode: bool = False  # True when running with an input file (not in a project)
+
+    # These are attached by the build step
+    build_metadata: Optional[BuildMetadata] = None
 
     # These are attached by the measure-model step
     mesh: Optional[Mesh] = None

@@ -1,13 +1,16 @@
+use <_internal.scad>;
+
 $THREEDMAKE_PREVIEW_PLANE = undef;
-module xy_preview_plane(name) {
-    MARKER = "___[3DMAKE]___";
-    SIZE = 1000000;
-    HEIGHT = 1;
+module xy_preview_plane(name, index=undef) {
+    SIZE = 10000000;
+    HEIGHT = 20;
+
+    pname = (index != undef) ? str(name, "#", index) : name;
 
     if ($THREEDMAKE_PREVIEW_PLANE == undef) {
-        echo(MARKER, "preview_plane_option", name);
-    } else if ($THREEDMAKE_PREVIEW_PLANE == name) {
-        echo(MARKER, "selected_preview_plane", name);
+        _3dm_log_scalar("preview_plane_option", pname);
+    } else if ($THREEDMAKE_PREVIEW_PLANE == pname) {
+        _3dm_log_scalar("selected_preview_plane", pname);
         // This is a pyramid with a very wide base. The point points toward the viewer.
         polyhedron(
             points=[ 
@@ -29,10 +32,10 @@ module xy_preview_plane(name) {
     }
 }
 
-module xz_preview_plane(name) {
-    rotate([90, 0, 0]) xy_preview_plane(name);
+module xz_preview_plane(name, index=undef) {
+    rotate([90, 0, 0]) xy_preview_plane(name, index);
 }
 
-module yz_preview_plane(name) {
-    rotate([0, 90, 0]) xy_preview_plane(name);
+module yz_preview_plane(name, index=undef) {
+    rotate([0, 90, 0]) xy_preview_plane(name, index);
 }

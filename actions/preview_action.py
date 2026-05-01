@@ -4,12 +4,16 @@ import json
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import TextIO
+from dataclasses import dataclass
+import tempfile
 
+import trimesh
+import numpy as np
 from .framework import Context, pipeline_action
 from .mesh_actions import measure_mesh
-from utils.bundle_paths import DEPS
+from utils.bundle_paths import DEPS, BUNDLED_SCAD_LIB_PATH
 from utils.stream_wrappers import FilterPipe
-from utils.openscad import should_print_openscad_log
+from utils.openscad import should_print_openscad_log, run_openscad
 from utils.logging import throw_subprogram_error
 
 @pipeline_action(
@@ -20,6 +24,16 @@ from utils.logging import throw_subprogram_error
 def preview(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     ''' Produce a 2-D representation of the object '''
     view_name = ctx.options.view
+    if view_name in PROJECTION_CODE:
+        pass
+    elif view_name in ctx.build_metadata.preview_plane_names:
+        build_and_locate_preview_plane(
+            ctx.files.scad_source,
+            view_name,
+            debug_stdout,
+        )
+        # TODO what if not built?
+        # TODO must use un-oriented model for preview projection
     if view_name not in PROJECTION_CODE:
         raise RuntimeError(f"The preview view '{view_name}' does not exist")
 
@@ -101,6 +115,90 @@ def _update_svg_path_style(svg_path: Path, fill_color: str, stroke_width: float)
         elem.set('stroke-width', str(stroke_width))
 
     tree.write(svg_path, xml_declaration=True, encoding='UTF-8')
+
+
+INVALID_PLANE_ERROR = RuntimeError(
+    # TODO
+    "Could not find a valid preview plane. Was the plane part of a subtraction or intersection?"
+)
+
+@dataclass(kw_only=True)
+class Plane:
+    origin: tuple[float, float, float]
+    normal: tuple[float, float, float]
+
+def build_and_locate_preview_plane(model_source: Path, plane_name: str, debug_stdout: TextIO):
+    with tempfile.TemporaryDirectory() as stl_dir:
+        #plane_stl = Path(stl_dir) / "plane.stl"
+        plane_stl = Path("/tmp/troysplane.stl") # TODO DO NOT MERGE
+        lib_include_dirs = [BUNDLED_SCAD_LIB_PATH] # TODO DO NOT MERGE
+        subproc = run_openscad(
+            model_file=model_source,
+            output_file=plane_stl,
+            stdout=debug_stdout, # TODO collect info
+            stderr=debug_stdout,
+            lib_include_dirs=lib_include_dirs,
+            hardwarnings=False,
+            var_defs={"$THREEDMAKE_PREVIEW_PLANE": plane_name},
+        )
+
+        print(subproc.wait()) # TODO debug DO NOT MERGE
+
+        print("Preview plane", extract_stl_preview_plane(plane_stl))
+
+
+def extract_stl_preview_plane(stl_file: Path) -> Plane:
+    CUTOFF_COORD = 100_000
+    PLANE_TOLERANCE = 1 # TODO adjust
+
+    with open(stl_file, 'rb') as fh:
+        tm = trimesh.Trimesh(**trimesh.exchange.stl.load_stl_binary(fh))
+
+    # Find all the vertices that could be part of a preview plane
+    far_vertex_indices = np.where(np.any(np.abs(tm.vertices) >= CUTOFF_COORD, axis=1))[0]
+
+    if len(far_vertex_indices) != 4:
+        raise INVALID_PLANE_ERROR
+
+    # Since the plane object is a giant pyramid with a low peak, each of these
+    # vertices should be one corner of the base. 
+
+    # Check that the base points are coplanar
+    far_vertices = tm.vertices[far_vertex_indices]
+    plane_origin, plane_normal = trimesh.points.plane_fit(far_vertices)
+    plane_distances = trimesh.points.point_plane_distance(far_vertices, plane_normal, plane_origin)
+    # Note: I have confirmed that point_plane_distance returns a signed value
+    if np.any(np.abs(plane_distances) > PLANE_TOLERANCE):
+        raise INVALID_PLANE_ERROR
+
+    # Now identify the direction of the pyramid apex, so we can tell if the plane
+    # should be inverted. It's very likely that the plane will have been merged with
+    # some other solid, so we instead figure out which direction the extreme corner's
+    # non-planar vectors are pointing.
+    min_dist = 0.0
+    max_dist = 0.0
+    for plane_vertex_idx in far_vertex_indices:
+        neighbor_vertices = tm.vertices[tm.vertex_neighbors[plane_vertex_idx]]
+        neighbor_plane_dists = trimesh.points.point_plane_distance(
+            neighbor_vertices,
+            plane_normal,
+            plane_origin
+        )
+        min_dist = min(neighbor_plane_dists.min(), min_dist)
+        max_dist = max(neighbor_plane_dists.max(), max_dist)
+
+    if min_dist > -PLANE_TOLERANCE and max_dist < PLANE_TOLERANCE:
+        # No peak found
+        raise INVALID_PLANE_ERROR
+    elif min_dist < -PLANE_TOLERANCE and max_dist > PLANE_TOLERANCE:
+        # Peaks on either side?
+        raise INVALID_PLANE_ERROR
+    elif abs(min_dist) > max_dist:
+        # This means the peak is below the plane, so we invert the normal
+        plane_normal = -plane_normal
+
+    return Plane(origin=plane_origin, normal=plane_normal)
+    
 
 PROJECTION_CODE = {
     # These all receive the following vars:

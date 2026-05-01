@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Design advice
+Please ask for clarification when necessary when responding to requests.
+
+When extending existing code to a new use case, it's better to refactor the existing code cleanly rather than adding a patch around it. For example, if we have a function that produces metadata objects and JSON serializes them, and we now need one that produces similar metadata in YAML with a couple added fields, it's better to factor out the logic for the common metadata into a new function that returns a dict, then add JSON and YAML functions. It's not good to take the JSON function and write a wrapper that deserializes it, adds a couple fields, and then serializes it into YAML. This principle generalizes
+
 ## Commands
 
 ### Development Environment
