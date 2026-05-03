@@ -7,6 +7,7 @@ from PyInstaller.utils.hooks import collect_submodules
 deps_dir = {
     'Linux': 'deps/linux',
     'Windows': 'deps/windows',
+    'Darwin': 'deps/macos',
 }[platform.system()]
 
 

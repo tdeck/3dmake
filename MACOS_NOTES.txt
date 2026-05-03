@@ -1,0 +1,22 @@
+Things I've observed:
+- Initial startup takes a long time - first run is like 15 seconds before anything happens.
+
+# OpenSCAD setup
+Need to emable running the program: https://github.com/openscad/openscad/issues/880
+When I set 
+export THREEDMAKE_OPENSCAD_PATH=/Applications/OpenSCAD-2021.01.app/Contents/MacOS/OpenSCAD
+I can them run 3dm build.
+
+# Tested (if not listed here, not tested);
+3dm new
+3dm edit-model
+3dm slice
+3dm info (with Gemini)
+3dm orient
+3dm edit-global-config
+3dm version
+3dm help
+3dm list-overlays
+3dm list-profiles
+3dm image
+3dm build

@@ -27,7 +27,8 @@ def get_deps() -> Dependencies:
             {
                 'Linux': 'deps/linux/OpenSCAD.AppImage',
                 'Windows': 'deps/windows/openscad/openscad.exe',
-                'Darwin': 'false', # User will have to set this using env var
+                # I'm not sure if there is a standard path but this is where I put mine
+                'Darwin': '/Applications/OpenSCAD-2021.01.app/Contents/MacOS/OpenSCAD',
             }[os_type]
         )
 
@@ -38,8 +39,8 @@ def get_deps() -> Dependencies:
             {
                 'Linux': 'deps/linux/PrusaSlicer.AppImage',
                 'Windows': 'deps/windows/prusaslicer/prusa-slicer-console.exe',
-		# After installing the DMG this is where PS 2.9.4 ended up on my system
-		'Darwin': '/Applications/Original Prusa Drivers/PrusaSlicer.app/Contents/MacOS/PrusaSlicer',
+                # After installing the DMG this is where PS 2.9.4 ended up on my system
+                'Darwin': '/Applications/Original Prusa Drivers/PrusaSlicer.app/Contents/MacOS/PrusaSlicer',
             }[os_type]
         )
 
