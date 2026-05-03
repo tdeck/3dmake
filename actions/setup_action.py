@@ -54,6 +54,9 @@ def get_default_settings() -> Dict[str, Any]:
     if platform.system() == 'Windows':
         settings['editor'] = DEFAULT_WINDOWS_EDITOR
         settings['edit_in_background'] = True
+    elif platform.system() == 'Darwin':
+        settings['editor'] = 'open -t' # Opens file in default text editor
+        settings['edit_in_background'] = True
 
     return settings
 
