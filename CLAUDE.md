@@ -86,7 +86,6 @@ Actions are organized by functionality:
 - `print_config.py`: PrusaSlicer configuration management
 - `ftp.py`: Bambu Labs printer FTP integration
 - `prompts.py`: CLI interaction utilities
-- `stream_wrappers.py`: Output formatting and indentation
 
 ### Configuration System
 - **Global config**: `~/.config/3dmake/defaults.toml` (via platformdirs)

@@ -8,7 +8,7 @@ import tomllib
 import requests
 import webbrowser
 from pathlib import Path
-from typing import TextIO, Dict, Any
+from typing import Dict, Any
 
 from .framework import Context, isolated_action
 from utils.print_config import list_printer_profiles, read_profile_config
@@ -18,6 +18,7 @@ from version import VERSION
 from default_file_hashes import BUNDLED_PATH_HASHES
 from utils.shell import shell_command_exists
 from utils.bambu import vendor_is_bambu
+from utils.output_streams import OutputStream
 from utils.test_flags import in_test_mode, test_flag_set
 
 DEFAULT_WINDOWS_EDITOR = 'notepad'
@@ -87,7 +88,7 @@ def option_select_with_current(question: str, options, current_value: str = None
         return option_select(question, options)
 
 @isolated_action
-def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+def setup(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     ''' Set up 3DMake for the first time, or overwrite existing settings '''
     CONFIG_DIR = ctx.config_dir
     DEFAULTS_TOML = CONFIG_DIR / "defaults.toml"
@@ -122,7 +123,7 @@ def setup(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     # copy over its files into the user's program data directory
     if not SCRIPT_BIN_PATH.is_relative_to(INSTALL_DIR) and IS_PYINSTALLER_DISTRIBUTION:
         print(f"Installing 3DMake files...")
-        debug_stdout.write(f"install dir: {INSTALL_DIR}\n")
+        debug_stdout.writeln(f"install dir: {INSTALL_DIR}")
 
         shutil.copytree(SCRIPT_BIN_PATH.parent, INSTALL_DIR, dirs_exist_ok=True)
         effective_bin_path = INSTALL_DIR / SCRIPT_BIN_PATH.name

@@ -7,7 +7,8 @@ import textwrap
 import numpy as np
 import trimesh
 from pathlib import Path
-from typing import Any, List, Dict, TextIO, Optional
+from typing import Any, List, Dict, Optional
+from utils.output_streams import OutputStream
 from utils.renderer import MeshRenderer, VIEWPOINTS
 
 from stl.mesh import Mesh
@@ -23,16 +24,16 @@ from utils.user_prompts import prompt
     input_file_type='.stl',
     last_in_chain=True,
 )
-def info(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+def info(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     ''' Get basic info about the model, and AI description if enabled '''
 
     sizes = ctx.mesh_metrics.sizes()
     mid = ctx.mesh_metrics.midpoints()
     solid_count = count_mesh_solids(ctx.mesh)
 
-    stdout.write(f"Mesh size: x={sizes.x:.2f}, y={sizes.y:.2f}, z={sizes.z:.2f}\n")
-    stdout.write(f"Mesh center: x={mid.x:.2f}, y={mid.y:.2f}, z={mid.z:.2f}\n")
-    stdout.write(f"Object count: {solid_count}\n")
+    stdout.writeln(f"Mesh size: x={sizes.x:.2f}, y={sizes.y:.2f}, z={sizes.z:.2f}")
+    stdout.writeln(f"Mesh center: x={mid.x:.2f}, y={mid.y:.2f}, z={mid.z:.2f}")
+    stdout.writeln(f"Object count: {solid_count}")
 
     if solid_count and (ctx.options.openrouter_key or ctx.options.gemini_key or ctx.options.openai_compat_host):
         prompt_text = get_ai_prompt_template(ctx.config_dir).substitute(
@@ -75,16 +76,16 @@ VIEWPOINTS_TO_USE = [
     'bottom',
 ]
 
-def print_gemini_token_stats(res: Any, stream: TextIO) -> None:
-    stream.write(f"Prompt tokens: {res.usage_metadata.prompt_token_count}\n")
-    stream.write(f"Candidates tokens: {res.usage_metadata.candidates_token_count}\n")
-    stream.write(f"Total tokens: {res.usage_metadata.total_token_count}\n")
+def print_gemini_token_stats(res: Any, stream: OutputStream) -> None:
+    stream.writeln(f"Prompt tokens: {res.usage_metadata.prompt_token_count}")
+    stream.writeln(f"Candidates tokens: {res.usage_metadata.candidates_token_count}")
+    stream.writeln(f"Total tokens: {res.usage_metadata.total_token_count}")
 
-def print_openai_token_stats(completion: Any, stream: TextIO) -> None:
+def print_openai_token_stats(completion: Any, stream: OutputStream) -> None:
     if hasattr(completion, 'usage') and completion.usage:
-        stream.write(f"Prompt tokens: {completion.usage.prompt_tokens}\n")
-        stream.write(f"Completion tokens: {completion.usage.completion_tokens}\n")
-        stream.write(f"Total tokens: {completion.usage.total_tokens}\n")
+        stream.writeln(f"Prompt tokens: {completion.usage.prompt_tokens}")
+        stream.writeln(f"Completion tokens: {completion.usage.completion_tokens}")
+        stream.writeln(f"Total tokens: {completion.usage.total_tokens}")
 
 def render_png_images(mesh: Mesh) -> List[bytes]:
     renderer = MeshRenderer(mesh)
@@ -111,8 +112,8 @@ def describe_model(
     llm_name: str,
     openai_compat_host: Optional[str],
     openai_api_key: Optional[str],
-    stdout: TextIO,
-    debug_stdout: TextIO,
+    stdout: OutputStream,
+    debug_stdout: OutputStream,
     interactive: bool,
     prompt_text: str,
 ) -> None:
@@ -160,8 +161,8 @@ def describe_model_openai_compat(
     base_url: str,
     api_key: Optional[str],
     llm_name: str,
-    stdout: TextIO,
-    debug_stdout: TextIO,
+    stdout: OutputStream,
+    debug_stdout: OutputStream,
     interactive: bool,
     prompt_text: str,
 ) -> None:
@@ -179,7 +180,7 @@ def describe_model_openai_compat(
     if not base_url.rstrip('/').endswith('/v1'):
         base_url = base_url.rstrip('/') + '/v1'
 
-    debug_stdout.write(f"Using model {llm_name} at {base_url}\n")
+    debug_stdout.writeln(f"Using model {llm_name} at {base_url}")
 
     images = render_png_images(mesh)
     content = build_openai_image_content(prompt_text, images)
@@ -207,7 +208,7 @@ def describe_model_openai_compat(
             question = prompt("Q: ").strip()
             if question == '' or question.lower() in ['stop', 'quit', 'exit']:
                 if question.lower() in ['stop', 'quit', 'exit']:
-                    stdout.write("End of interaction.\n")
+                    stdout.writeln("End of interaction.")
                 return
 
             conversation.append({"role": "user", "content": question})
@@ -222,8 +223,8 @@ def describe_model_gemini(
     mesh: Mesh,
     gemini_api_key: str,
     llm_name: str,
-    stdout: TextIO,
-    debug_stdout: TextIO,
+    stdout: OutputStream,
+    debug_stdout: OutputStream,
     interactive: bool,
     prompt_text: str,
 ) -> None:
@@ -235,7 +236,7 @@ def describe_model_gemini(
     if llm_name.startswith('google/'):
         llm_name = llm_name[7:]
 
-    debug_stdout.write(f"Using Gemini model {llm_name}\n")
+    debug_stdout.writeln(f"Using Gemini model {llm_name}")
 
     images = render_png_images(mesh)
 
@@ -259,7 +260,7 @@ def describe_model_gemini(
             question = prompt("Q: ").strip()
             if question == '' or question.lower() in ['stop', 'quit', 'exit']:
                 if question.lower() in ['stop', 'quit', 'exit']:
-                    stdout.write("End of interaction.\n")
+                    stdout.writeln("End of interaction.")
                 return
 
             res = chat.send_message(question)

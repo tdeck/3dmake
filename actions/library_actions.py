@@ -1,6 +1,7 @@
 from packaging.version import Version
 from typing import TextIO, Optional
 from pathlib import Path
+from utils.output_streams import OutputStream
 import tempfile
 import zipfile
 import shutil
@@ -45,7 +46,7 @@ def extract_zip_to_folder(zipfh: TextIO, subdir: Optional[str], outdir: Path) ->
                 shutil.copyfileobj(ifh, ofh)
 
 @isolated_action(needs_options=True)
-def list_libraries(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+def list_libraries(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     ''' Lists available OpenSCAD libraries '''
     catalog = load_library_catalog(ctx.config_dir)
     registry = load_installed_libs(ctx.config_dir)
@@ -55,27 +56,27 @@ def list_libraries(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     for library in catalog.libs.values():
         installed = registry.libs.get(library.name)
         if installed:
-            stdout.write(f"Library: {library.name} (version {installed.latest_version()} installed)\n")
+            stdout.writeln(f"Library: {library.name} (version {installed.latest_version()} installed)")
         else:
-            stdout.write(f"Library: {library.name}\n")
+            stdout.writeln(f"Library: {library.name}")
 
-        stdout.write(f"Full name: {library.full_name}\n")
-        stdout.write(f"Homepage: {library.homepage}\n")
-        stdout.write(f"License: {library.license}\n")
-        stdout.write(f"Latest version: {library.latest_version().version}\n")
+        stdout.writeln(f"Full name: {library.full_name}")
+        stdout.writeln(f"Homepage: {library.homepage}")
+        stdout.writeln(f"License: {library.license}")
+        stdout.writeln(f"Latest version: {library.latest_version().version}")
         stdout.write("\n")
 
 
 
 @isolated_action(needs_options=True)
-def install_libraries(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+def install_libraries(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     ''' Ensures that all libraries needed by the current project are installed '''
 
     # Determine which libraries are needed
     lib_registry = load_installed_libs(ctx.config_dir)
     needed_libs = set(ctx.options.libraries) - set(lib_registry.libs.keys())
     if not needed_libs:
-        stdout.write("All needed libraries are installed.\n")
+        stdout.writeln("All needed libraries are installed.")
 
     # Load the library catalog
     catalog = load_library_catalog(ctx.config_dir)
@@ -88,7 +89,7 @@ def install_libraries(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     
         latest_catalog_version = catalog_entry.latest_version()
 
-        stdout.write(f"Downloading {lib_name} version {latest_catalog_version.version}...\n")
+        stdout.writeln(f"Downloading {lib_name} version {latest_catalog_version.version}...")
 
         with tempfile.TemporaryFile(suffix=".zip") as zipfh:
             response = requests.get(latest_catalog_version.archive, stream=True)
@@ -97,7 +98,7 @@ def install_libraries(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             for chunk in response.iter_content(chunk_size=8192): # TODO tune chunk size
                 zipfh.write(chunk)
 
-            stdout.write(f"Extracting library...\n")
+            stdout.writeln(f"Extracting library...")
             zipfh.seek(0)
 
             # container_dir gets added to the PATH, but the lib contents go in outdir

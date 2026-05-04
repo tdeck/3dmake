@@ -1,13 +1,13 @@
 import sys
 import subprocess
-from typing import List, TextIO, Callable, Any, Dict, Optional
+from typing import List, Callable, Any, Dict, Optional
 from dataclasses import dataclass, field
 from pathlib import Path
 from datetime import timedelta
 
 from stl.mesh import Mesh
 
-from utils.stream_wrappers import IndentStream, DEVNULL
+from utils.output_streams import OutputStream, PipeOutputStream, TransformerStream, NullOutputStream
 from coretypes import CommandOptions, FileSet, MeshMetrics
 
 @dataclass(kw_only=True)
@@ -43,7 +43,7 @@ class Context:
     slice_metadata: Optional[SliceMetadata] = None
 
 ActionName = str
-ActionFunc = Callable[[Context, TextIO, TextIO], None] # stdout, verbose stdout
+ActionFunc = Callable[[Context, OutputStream, OutputStream], None] # stdout, verbose stdout
 
 @dataclass(kw_only=True)
 class Action:
@@ -68,7 +68,8 @@ class Action:
 
         if self.isolated:
             # Isolated commands don't run in a pipeline so we don't indent their output
-            return self.impl(context, sys.stdout, sys.stdout if debug_mode else DEVNULL)
+            stdout_stream = PipeOutputStream(sys.stdout)
+            return self.impl(context, stdout_stream, stdout_stream if debug_mode else NullOutputStream())
         else:
             if not self.internal:
                 # I'm not sure what I should do if the internal action *does* produce output;
@@ -76,8 +77,10 @@ class Action:
                 gerund_str = self.gerund or (self.name + 'ing')
                 print(f"\n{gerund_str.capitalize()}...")
 
-            with IndentStream(sys.stdout) as indent_stream:
-                return self.impl(context, indent_stream, indent_stream if debug_mode else DEVNULL)
+            stdout_stream = TransformerStream(PipeOutputStream(sys.stdout), lambda t: f"    {t}")
+            debug_stream = stdout_stream if debug_mode else NullOutputStream()
+
+            return self.impl(context, stdout_stream, debug_stream)
 
 #
 # Decorators

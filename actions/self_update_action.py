@@ -5,11 +5,11 @@ import tarfile
 import tempfile
 import zipfile
 from pathlib import Path
-from typing import TextIO
 from urllib.request import urlopen
 
 from .framework import Context, isolated_action
 from utils.bundle_paths import INSTALL_DIR, SCRIPT_BIN_PATH
+from utils.output_streams import OutputStream
 from utils.update_check import newer_3dmake_version
 from version import VERSION
 
@@ -17,18 +17,18 @@ DOWNLOAD_CHUNK_SIZE = 1024 * 1024  # 1 MB
 
 
 @isolated_action
-def self_update(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+def self_update(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     ''' Download and install the latest version of 3DMake '''
 
     if not SCRIPT_BIN_PATH.is_relative_to(INSTALL_DIR.parent):
-        stdout.write("Self-update is only supported when running an installed version of 3DMake.\n")
+        stdout.writeln("Self-update is only supported when running an installed version of 3DMake.")
         return
 
-    stdout.write("Checking for updates...\n")
+    stdout.writeln("Checking for updates...")
     update_info = newer_3dmake_version(ctx.config_dir, VERSION, force_reload=True)
 
     if update_info is None:
-        stdout.write("3DMake is already up to date.\n")
+        stdout.writeln("3DMake is already up to date.")
         return
 
     tty_mode = sys.stdout.isatty()
@@ -39,7 +39,7 @@ def self_update(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         archive_path = Path(tmp_dir) / Path(update_info.download_url).name
 
         # Download
-        stdout.write(f"Downloading 3DMake {update_info.version}...\n")
+        stdout.writeln(f"Downloading 3DMake {update_info.version}...")
         with urlopen(update_info.download_url) as response:
             total_bytes = int(response.headers.get('Content-Length', 0))
             total_mb = total_bytes // (1024 * 1024)
@@ -58,7 +58,7 @@ def self_update(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             print()
 
         # Extract
-        stdout.write("Extracting...\n")
+        stdout.writeln("Extracting...")
         is_zip = update_info.download_url.endswith('.zip')
         with (zipfile.ZipFile(archive_path) if is_zip else tarfile.open(archive_path)) as archive:
             # This extraction unwraps the outer dir (3dmake/) inside the archive
@@ -89,11 +89,11 @@ def self_update(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
 
     new_bin_path = new_install_dir / SCRIPT_BIN_PATH.name
     if not new_bin_path.exists():
-        stdout.write(f"Error: could not find {new_bin_path.name} after extraction.\n")
+        stdout.writeln(f"Error: could not find {new_bin_path.name} after extraction.")
         return
 
     if platform.system() != 'Windows':
         new_bin_path.chmod(new_bin_path.stat().st_mode | 0o755)
 
-    stdout.write(f"Running setup for 3DMake {update_info.version}...\n")
+    stdout.writeln(f"Running setup for 3DMake {update_info.version}...")
     os.execv(str(new_bin_path), [str(new_bin_path), 'setup'])

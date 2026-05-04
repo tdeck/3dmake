@@ -1,5 +1,4 @@
 import requests
-from typing import TextIO
 import shutil
 import hashlib
 import zipfile
@@ -13,13 +12,14 @@ from urllib.parse import quote as uri_quote
 import paho.mqtt.client as mqtt
 
 from .framework import Context, SliceMetadata, pipeline_action
+from utils.output_streams import OutputStream
 from .slice_action import slice as slice_model
 from utils.bundle_paths import BAMBU_3MF_TEMPLATE_PATH
 from utils.ftp import ImplicitFTPS
 from utils.bambu import SLICE_INFO_CONFIG_TEMPLATE, vendor_is_bambu
 
 @pipeline_action(name='print', implied_actions=[slice_model], input_file_type='.stl')
-def print_3d(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+def print_3d(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     ''' Send the sliced model to the printer '''
 
     mode = ctx.options.print_mode
@@ -33,7 +33,7 @@ def print_3d(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         raise RuntimeError(f"Unknown print mode '{mode}'")
 
 
-def _print_with_octoprint(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+def _print_with_octoprint(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     if not ctx.options.octoprint_host or not ctx.options.octoprint_key:
         raise RuntimeError("Either octoprint_host or octoprint_key is not configured.")
 
@@ -56,9 +56,9 @@ def _print_with_octoprint(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
 
     # TODO handle this better
     if response.status_code == 201:
-        stdout.write(f"File uploaded successfully as {server_filename}\n")
+        stdout.writeln(f"File uploaded successfully as {server_filename}")
     else:
-        stdout.write(f"Failed to upload. Status code: {response.status_code}\n")
+        stdout.writeln(f"Failed to upload. Status code: {response.status_code}")
         stdout.write(response.text or '')
         stdout.write("\n")
 
@@ -67,36 +67,36 @@ def _check_for_bambu_printer(ctx: Context) -> None:
     if not vendor_is_bambu(ctx.slice_metadata.printer_vendor):
         raise RuntimeError("Selected printer profile is not a Bambu Labs printer")
 
-def _print_with_bambu(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+def _print_with_bambu(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     _check_for_bambu_printer(ctx)
 
     gcode_filename = ctx.files.sliced_gcode.name
     g3mf_filename = f"{gcode_filename}.3mf"
 
-    stdout.write(f"Preparing 3MF file...\n")
+    stdout.writeln(f"Preparing 3MF file...")
     g3mf_path = ctx.files.build_dir / g3mf_filename
-    debug_stdout.write(f"3mf path: {g3mf_path}\n")
+    debug_stdout.writeln(f"3mf path: {g3mf_path}")
     _create_bambu_3mf(ctx.slice_metadata, ctx.files.sliced_gcode, g3mf_path)
 
-    stdout.write(f"Uploading 3MF to printer...\n")
+    stdout.writeln(f"Uploading 3MF to printer...")
     _upload_to_bambu_printer(ctx, g3mf_path)
 
-    stdout.write(f"Starting print...\n")
+    stdout.writeln(f"Starting print...")
     _start_bambu_print(ctx, g3mf_filename)
 
 
-def _print_with_bambu_connect(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+def _print_with_bambu_connect(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     _check_for_bambu_printer(ctx)
 
     gcode_filename = ctx.files.sliced_gcode.name
     g3mf_filename = f"{gcode_filename}.3mf"
     print_name = ctx.files.sliced_gcode.stem
 
-    stdout.write(f"Preparing 3MF file...\n")
+    stdout.writeln(f"Preparing 3MF file...")
     g3mf_path = ctx.files.build_dir / g3mf_filename
     _create_bambu_3mf(ctx.slice_metadata, ctx.files.sliced_gcode, g3mf_path)
 
-    stdout.write(f"Sending to Bambu Connect...\n")
+    stdout.writeln(f"Sending to Bambu Connect...")
     uri = (
         "bambu-connect://import-file?"
         f"path={uri_quote(str(g3mf_path.absolute()))}"

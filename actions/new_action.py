@@ -1,13 +1,13 @@
 from pathlib import Path
-from typing import TextIO
 import shutil
 
 from utils.user_prompts import prompt
 
 from .framework import Context, isolated_action
+from utils.output_streams import OutputStream
 
 @isolated_action(needs_options=False)
-def new(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+def new(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     ''' Create a new 3DMake project directory structure '''
 
     proj_dir = prompt("Choose a project directory name (press ENTER for current dir): ").strip()
@@ -36,7 +36,7 @@ def new(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         )
 
     if proj_dir == '.':
-        stdout.write("Project created in the current directory.\n")
+        stdout.writeln("Project created in the current directory.")
     else:
-        stdout.write("Project created.\n")
-        stdout.write(f'To enter the project directory, type "cd {proj_dir}".\n')
+        stdout.writeln("Project created.")
+        stdout.writeln(f'To enter the project directory, type "cd {proj_dir}".')
