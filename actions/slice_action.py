@@ -1,5 +1,5 @@
 import re
-from typing import TextIO, Optional, List
+from typing import Optional, List
 from pathlib import Path
 from datetime import timedelta
 import subprocess
@@ -7,18 +7,18 @@ import subprocess
 from .framework import Context, SliceMetadata, pipeline_action
 from utils.bundle_paths import DEPS
 from utils.logging import throw_subprogram_error
-from utils.stream_wrappers import StoreAndForwardStream
+from utils.output_streams import OutputStream, AccumulatorStream, OutputPipe
 from utils.print_config import read_config_values
 from utils.gcode_parser import parse_gcode_stats, FeatureStats
 
-CANT_FIT_ERROR_MESSAGE = ': No outline can be derived for object\n'
+CANT_FIT_ERROR_MESSAGE = ': No outline can be derived for object'
 STATUS_LINE_REGEX = re.compile(r'^\d+ => ')
 PRINT_WARNING_REGEX = re.compile(r'^(print(?:_object)?) warning:')
 
 MAX_CALCULATED_FILAMENT_DEVIATION_MM = 10
 
 @pipeline_action(gerund='slicing', input_file_type='.stl')
-def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+def slice(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     ''' Slice the model and produce a printable gcode file '''
     if not ctx.files.model.exists():
         raise RuntimeError("Model has not been built")
@@ -77,84 +77,90 @@ def slice(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     # Unfortunately PrusaSlicer doesn't treat the specific case of a model being
     # outside the horizontal build volume as an error, instead it simply logs an
     # obscure note to stdout, so we need to do this hack to handle it.
-    with StoreAndForwardStream(debug_stdout) as stdout_capture_stream:
-        # Here we suppress a lot of the progress messages from PrusaSlicer because
-        # the loglevel directive doesn't seem to work. True errors should appear on
-        # stderr where they will be displayed.
-        process_result = subprocess.run(cmd, stdout=stdout_capture_stream, stderr=stdout)
+    captured_lines = []
+    capture_stream = AccumulatorStream(
+        sink=debug_stdout,
+        reader_fn=lambda line, lines: lines.append(line),
+        accumulator=captured_lines,
+    )
+    # Here we suppress a lot of the progress messages from PrusaSlicer because
+    # the loglevel directive doesn't seem to work. True errors should appear on
+    # stderr where they will be displayed.
+    with OutputPipe(capture_stream) as stdout_pipe, OutputPipe(stdout) as stderr_pipe:
+        process_result = subprocess.run(cmd, stdout=stdout_pipe, stderr=stderr_pipe)
 
-        # Pass through any warnings
-        warning_state = False
-        saw_warnings = False
-        for line in stdout_capture_stream.content.splitlines():
-            # Here we do the best we can to pass through only print warning lines.
-            # The difficulty is that such warning lines can be multiple lines long,
-            # and don't all start with the warning marker. So instead, when we see one,
-            # we carry on passing through until we see the next normal status line
-            # message. This is an imperfect heuristic in that it may let too much through.
-            if STATUS_LINE_REGEX.match(line):
-                warning_state = False
-            elif warning_state or PRINT_WARNING_REGEX.match(line):
-                stdout.write(line + "\n")
-                warning_state = True
-                saw_warnings = True
+    # Pass through any warnings
+    warning_state = False
+    saw_warnings = False
+    for line in captured_lines:
+        # Here we do the best we can to pass through only print warning lines.
+        # The difficulty is that such warning lines can be multiple lines long,
+        # and don't all start with the warning marker. So instead, when we see one,
+        # we carry on passing through until we see the next normal status line
+        # message. This is an imperfect heuristic in that it may let too much through.
+        if STATUS_LINE_REGEX.match(line):
+            warning_state = False
+        elif warning_state or PRINT_WARNING_REGEX.match(line):
+            stdout.writeln(line)
+            warning_state = True
+            saw_warnings = True
 
-        if process_result.returncode != 0:
-            throw_subprogram_error('slicer', process_result.returncode, ctx.options.debug)
+    if process_result.returncode != 0:
+        throw_subprogram_error('slicer', process_result.returncode, ctx.options.debug)
 
-        if CANT_FIT_ERROR_MESSAGE in stdout_capture_stream.content:
-            raise RuntimeError(f"Could not fit the object outline on the build surface")
+    if any(CANT_FIT_ERROR_MESSAGE in line for line in captured_lines):
+        raise RuntimeError(f"Could not fit the object outline on the build surface")
 
-        ctx.files.sliced_gcode = gcode_file
+    ctx.files.sliced_gcode = gcode_file
 
-        slicer_keys = extract_slicer_keys(gcode_file)
+    slicer_keys = extract_slicer_keys(gcode_file)
 
-        if saw_warnings:
-            stdout.write("\n") # Just some extra space for readability
+    if saw_warnings:
+        stdout.write("\n") # Just some extra space for readability
 
-        stdout.write(f"Hotend temperature: {slicer_keys['temperature']} Celsius\n")
+    stdout.writeln(f"Hotend temperature: {slicer_keys['temperature']} Celsius")
 
-        time_str = (
-            slicer_keys.get('estimated printing time (normal mode)')
-            or slicer_keys.get('estimated printing time (silent mode)')
-        )
-        if time_str:
-            stdout.write(f"Estimated print time: {reformat_gcode_time(time_str)}\n")
+    time_str = (
+        slicer_keys.get('estimated printing time (normal mode)')
+        or slicer_keys.get('estimated printing time (silent mode)')
+    )
+    if time_str:
+        stdout.writeln(f"Estimated print time: {reformat_gcode_time(time_str)}")
 
-        # NOTE: We need to change this parsing logic if we support multi-extruder prints
-        filament_used_mm_str = slicer_keys.get('filament used [mm]')
-        if not filament_used_mm_str:
-            stdout.write(f"Unable to determine filament used.")
-            return
+    # NOTE: We need to change this parsing logic if we support multi-extruder prints
+    filament_used_mm_str = slicer_keys.get('filament used [mm]')
+    if not filament_used_mm_str:
+        stdout.write(f"Unable to determine filament used.")
+        return
 
-        # For multi-extruder prints this can be a comma separated list
-        filament_used_mm_total = sum([float(l) for l in filament_used_mm_str.split(', ')])
+    # For multi-extruder prints this can be a comma separated list
+    filament_used_mm_total = sum([float(l) for l in filament_used_mm_str.split(', ')])
 
-        filament_used_grams_str = slicer_keys.get('total filament used [g]')
-        weight_str = '' if not filament_used_grams_str else f" ({filament_used_grams_str} grams)"
-        stdout.write(f"Filament used: {format_mm_length(filament_used_mm_total)}{weight_str}\n")
+    filament_used_grams_str = slicer_keys.get('total filament used [g]')
+    weight_str = '' if not filament_used_grams_str else f" ({filament_used_grams_str} grams)"
+    stdout.writeln(f"Filament used: {format_mm_length(filament_used_mm_total)}{weight_str}")
 
-        # Sanity check computed stats
-        computed_feature_stats = parse_gcode_stats(gcode_file)
-        computed_length = sum((f.length_mm for f in computed_feature_stats.values()))
+    # Sanity check computed stats
+    computed_feature_stats = parse_gcode_stats(gcode_file)
+    computed_length = sum((f.length_mm for f in computed_feature_stats.values()))
 
-        if abs(computed_length - filament_used_mm_total) > MAX_CALCULATED_FILAMENT_DEVIATION_MM:
-            stdout.write("NOTE: 3DMake has detected that stats below may not be reliable.\n");
-            debug_stdout.write(f"Computed length: {computed_length}, gcode key length {filament_used_mm_str}\n")
+    if abs(computed_length - filament_used_mm_total) > MAX_CALCULATED_FILAMENT_DEVIATION_MM:
+        stdout.writeln("NOTE: 3DMake has detected that stats below may not be reliable.")
+        debug_stdout.writeln(f"Computed length: {computed_length}, gcode key length {filament_used_mm_str}")
 
-        # Print computed stats
-        print_detailed_stats(computed_feature_stats, stdout)
+    # Print computed stats
+    print_detailed_stats(computed_feature_stats, stdout)
 
-        # Attach slice info to context
-        ctx.slice_metadata = SliceMetadata(
-            printer_model=config_dict['printer_model'],
-            printer_settings_id=config_dict['printer_settings_id'],
-            printer_vendor=config_dict['printer_vendor'],
-            nozzle_diameters=[float(d) for d in slicer_keys['nozzle_diameter'].split(',')],
-            supports_enabled=slicer_keys['support_material'].strip() == '1',
-            estimated_duration=parse_gcode_time(time_str),
-            estimated_grams=float(filament_used_grams_str or 0),
-        )
+    # Attach slice info to context
+    ctx.slice_metadata = SliceMetadata(
+        printer_model=config_dict['printer_model'],
+        printer_settings_id=config_dict['printer_settings_id'],
+        printer_vendor=config_dict['printer_vendor'],
+        nozzle_diameters=[float(d) for d in slicer_keys['nozzle_diameter'].split(',')],
+        supports_enabled=slicer_keys['support_material'].strip() == '1',
+        estimated_duration=parse_gcode_time(time_str),
+        estimated_grams=float(filament_used_grams_str or 0),
+    )
 
 def extract_slicer_keys(gcode_file: Path) -> dict[str, str]:
     results = {}
@@ -210,14 +216,14 @@ def format_mm_length(length: float) -> str:
     else:
         return f"{mm} millimeters"
 
-def print_detailed_stats(stats: dict[str, FeatureStats], stdout: TextIO) -> None:
-    stdout.write("Extrusion stats (longest time first):\n")
+def print_detailed_stats(stats: dict[str, FeatureStats], stdout: OutputStream) -> None:
+    stdout.writeln("Extrusion stats (longest time first):")
     sorted_by_time = sorted(stats.items(), key=lambda pair: pair[1].time_seconds, reverse=True)
     for name, value in sorted_by_time:
         if value.length_mm < 1 or value.time_seconds < 5:
             # Hide very small features so user doesn't have to listen to them
             continue
-        stdout.write(f"    {name:30}{short_format_seconds(value.time_seconds)} ({value.length_mm:.0f} mm)\n")
+        stdout.writeln(f"    {name:30}{short_format_seconds(value.time_seconds)} ({value.length_mm:.0f} mm)")
 
 def short_format_seconds(seconds: float) -> str:
     ''' Format the time in seconds e.g. "2 hours 30 minutes 12 seconds" or "2 minutes 10 seconds" '''

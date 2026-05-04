@@ -1,8 +1,8 @@
-from typing import TextIO
 from dataclasses import dataclass
 from pathlib import Path
 import re
 
+from utils.output_streams import OutputStream
 from utils.renderer import VIEWPOINTS, MeshRenderer, ColorScheme
 from utils.logging import check_if_value_in_options
 from .mesh_actions import load_mesh
@@ -20,7 +20,7 @@ COLORSCHEMES = {
     last_in_chain=True,
     implied_actions=[load_mesh],
 )
-def image(ctx: Context, stdout: TextIO, __):
+def image(ctx: Context, stdout: OutputStream, __):
     ''' Exports one or more rendered images of the model '''
     # Check arguments
     check_if_value_in_options('color scheme', ctx.options.colorscheme, COLORSCHEMES)
@@ -67,8 +67,8 @@ def image(ctx: Context, stdout: TextIO, __):
                 display_paths.append(file)
 
         if len(display_paths) == 1:
-            stdout.write(f"Image saved to {display_paths[0]}\n")
+            stdout.writeln(f"Image saved to {display_paths[0]}")
         else:
-            stdout.write(f"Images saved:\n")
+            stdout.writeln(f"Images saved:")
             for path in display_paths:
-                stdout.write(f"    {path}\n")
+                stdout.writeln(f"    {path}")

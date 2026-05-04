@@ -4,9 +4,8 @@ import os
 from time import time
 from pathlib import Path
 from dataclasses import dataclass
-from typing import TextIO
-
 from coretypes import CommandOptions
+from utils.output_streams import OutputStream
 
 MIN_BLOCKING_SECONDS = 0.5
 
@@ -51,7 +50,7 @@ class WindowsEditor:
     human_name: str
     command: str
 
-def list_windows_editors(debug_stdout: TextIO) -> list[WindowsEditor]:
+def list_windows_editors(debug_stdout: OutputStream) -> list[WindowsEditor]:
     import winreg
 
     results: list[WindowsEditor] = []
@@ -94,8 +93,7 @@ def list_windows_editors(debug_stdout: TextIO) -> list[WindowsEditor]:
                         pass
 
             if not command:
-                debug_stdout.write(f"No command for progid {progid}\n")
-                debug_stdout.flush()
+                debug_stdout.writeln(f"No command for progid {progid}")
                 continue
 
             # Typically the commands contain "%1" to tell you where to put
@@ -107,8 +105,7 @@ def list_windows_editors(debug_stdout: TextIO) -> list[WindowsEditor]:
             elif command.endswith(' %1'):
                 command = command[:-3]
             else:
-                debug_stdout.write(
-                    f"Unexpected editor cmd: progid={progid}, command={command}\n")
+                debug_stdout.writeln(f"Unexpected editor cmd: progid={progid}, command={command}")
                 continue
 
             # Find the best name we can display for the program

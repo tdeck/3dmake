@@ -1,10 +1,10 @@
 import textwrap
-from typing import TextIO
 
 from .framework import Context, isolated_action
+from utils.output_streams import OutputStream
 
 @isolated_action
-def help(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+def help(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     ''' Display this message ''' # This docstring is used to produce the help
 
     # We can't do this at the top level or we'll get a circular import and break

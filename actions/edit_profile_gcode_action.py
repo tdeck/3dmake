@@ -1,11 +1,11 @@
 import tempfile
 from pathlib import Path
-from typing import TextIO
 
 from .framework import Context, isolated_action
 from utils.print_config import read_config_values, list_printer_profiles
 from utils.user_prompts import option_select
 from utils.editor import launch_editor
+from utils.output_streams import OutputStream
 
 EXCLUDED_SETTINGS = {'binary_gcode'}  # These aren't actually gcode
 
@@ -80,7 +80,7 @@ def update_profile_gcode_value(profile_path: Path, key: str, new_gcode: str) -> 
         fh.writelines(lines)
 
 @isolated_action(needs_options=True)
-def edit_profile_gcode(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+def edit_profile_gcode(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     """Edit GCODE scripts in printer profile (affected by -p)"""
 
     # Check that the printer profile exists
@@ -98,7 +98,7 @@ def edit_profile_gcode(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
                   if key.endswith('_gcode') and key not in EXCLUDED_SETTINGS]
 
     if not gcode_keys:
-        stdout.write("No GCODE settings found in this profile.\n")
+        stdout.writeln("No GCODE settings found in this profile.")
         return
 
     # Sort keys for consistent ordering
@@ -124,7 +124,7 @@ def edit_profile_gcode(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         temp_path = Path(temp_file.name)
 
         # Launch editor
-        stdout.write(f"Opening {selected_key} for editing...\n")
+        stdout.writeln(f"Opening {selected_key} for editing...")
         launch_editor(ctx.options, temp_path, blocking=True)
 
         # Read back the edited content
@@ -134,6 +134,6 @@ def edit_profile_gcode(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         # Update the profile file
         update_profile_gcode_value(profile_path, selected_key, edited_content)
 
-        stdout.write(f"Updated {selected_key} in profile '{ctx.options.printer_profile}'\n")
+        stdout.writeln(f"Updated {selected_key} in profile '{ctx.options.printer_profile}'")
     finally:
         pass # TODO temp_path.unlink()

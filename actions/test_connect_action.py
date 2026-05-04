@@ -1,15 +1,15 @@
 import requests
 import ssl
-from typing import TextIO
 import paho.mqtt.client as mqtt
 from threading import Event
 
 from .framework import Context, isolated_action
 from utils.ftp import ImplicitFTPS
+from utils.output_streams import OutputStream
 
 
 @isolated_action(needs_options=True)
-def test_connect(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+def test_connect(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     ''' Test connection to the configured print server '''
 
     mode = ctx.options.print_mode
@@ -27,19 +27,19 @@ def test_connect(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
         raise RuntimeError(f"Unknown print mode '{mode}'")
 
 
-def _test_octoprint_connection(ctx: Context, stdout: TextIO):
+def _test_octoprint_connection(ctx: Context, stdout: OutputStream):
     """Test OctoPrint connection using the version API endpoint"""
 
     if not ctx.options.octoprint_host:
-        stdout.write("ERROR: octoprint_host is not configured\n")
+        stdout.writeln("ERROR: octoprint_host is not configured")
         return
 
     if not ctx.options.octoprint_key:
-        stdout.write("ERROR: octoprint_key is not configured\n")
+        stdout.writeln("ERROR: octoprint_key is not configured")
         return
 
-    stdout.write(f"Host: {ctx.options.octoprint_host}\n")
-    stdout.write(f"Testing API connection...\n")
+    stdout.writeln(f"Host: {ctx.options.octoprint_host}")
+    stdout.writeln(f"Testing API connection...")
 
     try:
         # Test the version endpoint - simple read-only check
@@ -54,56 +54,56 @@ def _test_octoprint_connection(ctx: Context, stdout: TextIO):
 
         if response.status_code == 200:
             version_data = response.json()
-            stdout.write(f"SUCCESS: Connected to OctoPrint\n")
-            stdout.write(f"  Server version: {version_data.get('server', 'unknown')}\n")
-            stdout.write(f"  API version: {version_data.get('api', 'unknown')}\n")
+            stdout.writeln(f"SUCCESS: Connected to OctoPrint")
+            stdout.writeln(f"  Server version: {version_data.get('server', 'unknown')}")
+            stdout.writeln(f"  API version: {version_data.get('api', 'unknown')}")
         elif response.status_code == 401:
-            stdout.write(f"ERROR: Authentication failed (401)\n")
-            stdout.write(f"  Check that your API key is correct\n")
+            stdout.writeln(f"ERROR: Authentication failed (401)")
+            stdout.writeln(f"  Check that your API key is correct")
         elif response.status_code == 403:
-            stdout.write(f"ERROR: Access forbidden (403)\n")
-            stdout.write(f"  Check that your API key has sufficient permissions\n")
+            stdout.writeln(f"ERROR: Access forbidden (403)")
+            stdout.writeln(f"  Check that your API key has sufficient permissions")
         else:
-            stdout.write(f"ERROR: Unexpected status code {response.status_code}\n")
-            stdout.write(f"  Response: {response.text}\n")
+            stdout.writeln(f"ERROR: Unexpected status code {response.status_code}")
+            stdout.writeln(f"  Response: {response.text}")
 
     except requests.exceptions.ConnectionError as e:
-        stdout.write(f"ERROR: Could not connect to server\n")
-        stdout.write(f"  Check that the host URL is correct and the server is running\n")
-        stdout.write(f"  Details: {e}\n")
+        stdout.writeln(f"ERROR: Could not connect to server")
+        stdout.writeln(f"  Check that the host URL is correct and the server is running")
+        stdout.writeln(f"  Details: {e}")
     except requests.exceptions.Timeout:
-        stdout.write(f"ERROR: Connection timed out\n")
-        stdout.write(f"  The server took too long to respond\n")
+        stdout.writeln(f"ERROR: Connection timed out")
+        stdout.writeln(f"  The server took too long to respond")
     except Exception as e:
-        stdout.write(f"ERROR: {type(e).__name__}: {e}\n")
+        stdout.writeln(f"ERROR: {type(e).__name__}: {e}")
 
 
-def _test_bambu_connection(ctx: Context, stdout: TextIO):
+def _test_bambu_connection(ctx: Context, stdout: OutputStream):
     """Test Bambu Labs printer connection via FTP and MQTT"""
 
     if not ctx.options.bambu_host:
-        stdout.write("ERROR: bambu_host is not configured\n")
+        stdout.writeln("ERROR: bambu_host is not configured")
         return
 
     if not ctx.options.bambu_serial_number:
-        stdout.write("ERROR: bambu_serial_number is not configured\n")
+        stdout.writeln("ERROR: bambu_serial_number is not configured")
         return
 
     if not ctx.options.bambu_access_code:
-        stdout.write("ERROR: bambu_access_code is not configured\n")
+        stdout.writeln("ERROR: bambu_access_code is not configured")
         return
 
-    stdout.write(f"Host: {ctx.options.bambu_host}\n")
+    stdout.writeln(f"Host: {ctx.options.bambu_host}")
     stdout.write(f"Serial: {ctx.options.bambu_serial_number}\n\n")
 
     # Test FTP connection
-    stdout.write("Testing FTP connection (port 990)...\n")
+    stdout.writeln("Testing FTP connection (port 990)...")
     ftp_success = _test_bambu_ftp(ctx, stdout)
 
     stdout.write("\n")
 
     # Test MQTT connection
-    stdout.write("Testing MQTT connection (port 8883)...\n")
+    stdout.writeln("Testing MQTT connection (port 8883)...")
     mqtt_success = _test_bambu_mqtt(ctx, stdout)
 
     if ftp_success and mqtt_success:
@@ -112,7 +112,7 @@ def _test_bambu_connection(ctx: Context, stdout: TextIO):
         stdout.write("\nERROR: Some connections failed\n")
 
 
-def _test_bambu_ftp(ctx: Context, stdout: TextIO) -> bool:
+def _test_bambu_ftp(ctx: Context, stdout: OutputStream) -> bool:
     """Test FTP connection to Bambu printer"""
     try:
         ftp_client = ImplicitFTPS()
@@ -125,25 +125,25 @@ def _test_bambu_ftp(ctx: Context, stdout: TextIO) -> bool:
 
         ftp_client.quit()
 
-        stdout.write("  FTP: SUCCESS - Connected and authenticated\n")
+        stdout.writeln("  FTP: SUCCESS - Connected and authenticated")
         return True
 
     except Exception as e:
         error_type = type(e).__name__
         error_msg = str(e)
 
-        stdout.write(f"  FTP: ERROR - {error_type}\n")
+        stdout.writeln(f"  FTP: ERROR - {error_type}")
 
         if 'authentication' in error_msg.lower() or 'login' in error_msg.lower():
-            stdout.write(f"    Check that your access code is correct\n")
+            stdout.writeln(f"    Check that your access code is correct")
         elif 'connection' in error_msg.lower() or 'timed out' in error_msg.lower():
-            stdout.write(f"    Check that the host IP is correct and printer is on the network\n")
+            stdout.writeln(f"    Check that the host IP is correct and printer is on the network")
 
-        stdout.write(f"    Details: {error_msg}\n")
+        stdout.writeln(f"    Details: {error_msg}")
         return False
 
 
-def _test_bambu_mqtt(ctx: Context, stdout: TextIO) -> bool:
+def _test_bambu_mqtt(ctx: Context, stdout: OutputStream) -> bool:
     """Test MQTT connection to Bambu printer"""
 
     connection_result = {'success': False, 'error': None}
@@ -174,17 +174,17 @@ def _test_bambu_mqtt(ctx: Context, stdout: TextIO) -> bool:
         client.loop_stop()
 
         if connection_result['success']:
-            stdout.write("  MQTT: SUCCESS - Connected and authenticated\n")
+            stdout.writeln("  MQTT: SUCCESS - Connected and authenticated")
             return True
         elif connection_result['error']:
-            stdout.write(f"  MQTT: ERROR - {connection_result['error']}\n")
-            stdout.write(f"    Check that your access code is correct\n")
+            stdout.writeln(f"  MQTT: ERROR - {connection_result['error']}")
+            stdout.writeln(f"    Check that your access code is correct")
             return False
         else:
-            stdout.write(f"  MQTT: ERROR - Connection timed out\n")
-            stdout.write(f"    Check that the host IP is correct and printer is on the network\n")
+            stdout.writeln(f"  MQTT: ERROR - Connection timed out")
+            stdout.writeln(f"    Check that the host IP is correct and printer is on the network")
             return False
 
     except Exception as e:
-        stdout.write(f"  MQTT: ERROR - {type(e).__name__}: {e}\n")
+        stdout.writeln(f"  MQTT: ERROR - {type(e).__name__}: {e}")
         return False

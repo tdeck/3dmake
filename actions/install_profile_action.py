@@ -1,12 +1,13 @@
-from typing import TextIO, Optional
+from typing import Optional
 import shutil
 
 from .framework import Context, isolated_action
 import utils.print_config as print_config
+from utils.output_streams import OutputStream
 from utils.user_prompts import yes_or_no
 
 @isolated_action(needs_options=True, input_file_type='.ini')
-def install_profile(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+def install_profile(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     ''' Installs a new printer profile .INI file '''
     if not ctx.files.explicit_input_file:
         raise RuntimeError(f"You must specify a profile .ini file.")
@@ -16,4 +17,4 @@ def install_profile(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
             return
 
     shutil.copy2(ctx.files.explicit_input_file, dest_file)
-    stdout.write('Profile installed.\n')
+    stdout.writeln('Profile installed.')

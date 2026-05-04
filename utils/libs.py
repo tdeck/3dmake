@@ -5,6 +5,9 @@ from dataclasses import dataclass
 from packaging.version import Version
 import tomllib
 
+from coretypes import CommandOptions
+from utils.bundle_paths import BUNDLED_SCAD_LIB_PATH
+
 CATALOG_FILE = 'library_catalog.toml'
 INSTALLED_LIBS_FILE = 'installed_libraries.json'
 
@@ -96,6 +99,34 @@ def load_installed_libs(config_dir: Path) -> InstalledLibRegistry:
 def save_installed_libs(config_dir: Path, registry: InstalledLibRegistry) -> None:
     with open(config_dir / INSTALLED_LIBS_FILE, 'w') as fh:
         registry.write_json(fh)
+
+
+def resolve_lib_include_dirs(config_dir: Path, options: CommandOptions) -> list[Path]:
+    lib_registry = load_installed_libs(config_dir)
+    needed_libs = set(options.libraries) - set(lib_registry.libs.keys())
+
+    if needed_libs:
+        raise RuntimeError(
+            f"Some needed libraries are not installed: {' '.join(needed_libs)}"
+            "\nRun 3dm install-libraries."
+        )
+
+    lib_include_dirs = [
+        lib_registry.lookup(lib_name).latest_version_dir()
+        for lib_name in options.libraries
+    ]
+
+    for local_lib in options.local_libraries:
+        ll_path = Path(local_lib)
+        if not ll_path.is_absolute():
+            ll_path = ll_path.absolute()
+            # TODO if these paths are relative, it'll work now because of how
+            # 3dm is always run from a project root, but it may not work in the
+            # future
+        lib_include_dirs.append(ll_path)
+
+    lib_include_dirs.append(BUNDLED_SCAD_LIB_PATH)
+    return lib_include_dirs
 
 
 def load_library_catalog(config_dir: Path) -> LibraryCatalog:

@@ -1,15 +1,15 @@
 import shutil
 from pathlib import Path
-from typing import TextIO
 
 from .framework import Context, isolated_action
 from utils.print_config import list_printer_profiles, list_overlays, OverlayName
 from utils.user_prompts import yes_or_no, option_select, prompt
 from utils.editor import launch_editor
 from utils.llm_prompt import ensure_custom_prompt_exists
+from utils.output_streams import OutputStream
 
 @isolated_action(needs_options=True, uses_project_files=True)
-def edit_model(ctx: Context, stdout, __):
+def edit_model(ctx: Context, stdout: OutputStream, __):
     ''' Open model SCAD file in your editor (affected by -m) '''
     if not ctx.files.scad_source.exists():
         parent_dir = ctx.files.scad_source.parent
@@ -21,7 +21,7 @@ def edit_model(ctx: Context, stdout, __):
 
         # Some editors might not like being asked to open a file that does not
         # exist, so we just make one
-        stdout.write("Model file does not exist; creating an empty model.\n")
+        stdout.writeln("Model file does not exist; creating an empty model.")
         ctx.files.scad_source.touch()
 
     launch_editor(ctx.options, ctx.files.scad_source)
@@ -93,15 +93,15 @@ def edit_overlay(ctx: Context, _, __):
     launch_editor(ctx.options, overlay_file)
 
 @isolated_action(needs_options=True)
-def edit_prompt(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+def edit_prompt(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     """Edit the AI prompt used by the info command"""
 
     # Ensure the prompt file exists (creates with default if needed)
     prompt_file = ensure_custom_prompt_exists(ctx.config_dir)
 
     if not prompt_file.exists():
-        stdout.write(f"Created new prompt file at {prompt_file}\n")
+        stdout.writeln(f"Created new prompt file at {prompt_file}")
     else:
-        stdout.write(f"Editing existing prompt file at {prompt_file}\n")
+        stdout.writeln(f"Editing existing prompt file at {prompt_file}")
 
     launch_editor(ctx.options, prompt_file)

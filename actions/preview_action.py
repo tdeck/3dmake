@@ -3,7 +3,6 @@ import os
 import json
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import TextIO
 from dataclasses import dataclass
 import tempfile
 
@@ -12,7 +11,7 @@ import numpy as np
 from .framework import Context, pipeline_action
 from .mesh_actions import measure_mesh
 from utils.bundle_paths import DEPS, BUNDLED_SCAD_LIB_PATH
-from utils.stream_wrappers import FilterPipe
+from utils.output_streams import OutputStream, FilterStream, OutputPipe
 from utils.openscad import should_print_openscad_log, run_openscad
 from utils.logging import throw_subprogram_error
 
@@ -21,7 +20,7 @@ from utils.logging import throw_subprogram_error
     input_file_type='.stl',
     implied_actions=[measure_mesh]
 )
-def preview(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
+def preview(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     ''' Produce a 2-D representation of the object '''
     view_name = ctx.options.view
     if view_name in PROJECTION_CODE:
@@ -46,46 +45,41 @@ def preview(ctx: Context, stdout: TextIO, debug_stdout: TextIO):
     sizes = ctx.mesh_metrics.sizes()
     midpoints = ctx.mesh_metrics.midpoints()
 
-    if ctx.options.debug:
-        filter_stdout = stdout
-    else:
-        filter_stdout = FilterPipe(
-            stdout,
-            filter_fn=should_print_openscad_log,
-        )
+    filter_stderr = stdout if ctx.options.debug else FilterStream(stdout, should_print_openscad_log)
 
-    # Step 1: Project to SVG
-    result = subprocess.run([
-        DEPS.OPENSCAD,
-        '--quiet',
-        '--hardwarnings',
-        '--export-format', 'svg',
-        '-o', ctx.files.preview_svg,
-        '-D', f'stl_file={json.dumps(str(ctx.files.model_to_project().absolute()))};',
-        '-D', f'x_mid={midpoints.x:.2f};',
-        '-D', f'y_mid={midpoints.y:.2f};',
-        '-D', f'z_mid={midpoints.z:.2f};',
-        '-D', f'x_size={sizes.x:.2f};',
-        '-D', f'y_size={sizes.y:.2f};',
-        '-D', f'z_size={sizes.z:.2f};',
-        '-D', svg_code,
-        os.devnull,
-    ], stdout=debug_stdout, stderr=filter_stdout)
+    with OutputPipe(debug_stdout) as debug_pipe, OutputPipe(filter_stderr) as stderr_pipe:
+        # Step 1: Project to SVG
+        result = subprocess.run([
+            DEPS.OPENSCAD,
+            '--quiet',
+            '--hardwarnings',
+            '--export-format', 'svg',
+            '-o', ctx.files.preview_svg,
+            '-D', f'stl_file={json.dumps(str(ctx.files.model_to_project().absolute()))};',
+            '-D', f'x_mid={midpoints.x:.2f};',
+            '-D', f'y_mid={midpoints.y:.2f};',
+            '-D', f'z_mid={midpoints.z:.2f};',
+            '-D', f'x_size={sizes.x:.2f};',
+            '-D', f'y_size={sizes.y:.2f};',
+            '-D', f'z_size={sizes.z:.2f};',
+            '-D', svg_code,
+            os.devnull,
+        ], stdout=debug_pipe, stderr=stderr_pipe)
 
-    if result.returncode != 0:
-        throw_subprogram_error('OpenSCAD', result.returncode, ctx.options.debug)
+        if result.returncode != 0:
+            throw_subprogram_error('OpenSCAD', result.returncode, ctx.options.debug)
 
-    # Step 2: Extrude the SVG to STL
-    extrude_code = f'HEIGHT = .6; linear_extrude(HEIGHT) import({json.dumps(str(ctx.files.preview_svg.absolute()))});'
-    result = subprocess.run([
-        DEPS.OPENSCAD,
-        '--quiet',
-        '--hardwarnings',
-        '--export-format', 'binstl',
-        '-o', ctx.files.projected_model,
-        '-D', extrude_code,
-        os.devnull,
-    ], stdout=debug_stdout, stderr=filter_stdout)
+        # Step 2: Extrude the SVG to STL
+        extrude_code = f'HEIGHT = .6; linear_extrude(HEIGHT) import({json.dumps(str(ctx.files.preview_svg.absolute()))});'
+        result = subprocess.run([
+            DEPS.OPENSCAD,
+            '--quiet',
+            '--hardwarnings',
+            '--export-format', 'binstl',
+            '-o', ctx.files.projected_model,
+            '-D', extrude_code,
+            os.devnull,
+        ], stdout=debug_pipe, stderr=stderr_pipe)
 
     if result.returncode != 0:
         throw_subprogram_error('OpenSCAD', result.returncode, ctx.options.debug)
@@ -127,12 +121,12 @@ class Plane:
     origin: tuple[float, float, float]
     normal: tuple[float, float, float]
 
-def build_and_locate_preview_plane(model_source: Path, plane_name: str, debug_stdout: TextIO):
+def build_and_locate_preview_plane(model_source: Path, plane_name: str, debug_stdout: OutputStream):
     with tempfile.TemporaryDirectory() as stl_dir:
         #plane_stl = Path(stl_dir) / "plane.stl"
         plane_stl = Path("/tmp/troysplane.stl") # TODO DO NOT MERGE
         lib_include_dirs = [BUNDLED_SCAD_LIB_PATH] # TODO DO NOT MERGE
-        subproc = run_openscad(
+        with run_openscad(
             model_file=model_source,
             output_file=plane_stl,
             stdout=debug_stdout, # TODO collect info
@@ -140,9 +134,8 @@ def build_and_locate_preview_plane(model_source: Path, plane_name: str, debug_st
             lib_include_dirs=lib_include_dirs,
             hardwarnings=False,
             var_defs={"$THREEDMAKE_PREVIEW_PLANE": plane_name},
-        )
-
-        print(subproc.wait()) # TODO debug DO NOT MERGE
+        ) as run:
+            pass # TODO add a timer here
 
         print("Preview plane", extract_stl_preview_plane(plane_stl))
 
