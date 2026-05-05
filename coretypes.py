@@ -94,9 +94,6 @@ class FileSet:
     sliced_gcode: Optional[Path] = None
     rendered_images: dict[str, Optional[Path]]
 
-    def model_to_project(self) -> Optional[Path]:
-        return self.oriented_model or self.model
-
     def model_to_slice(self) -> Optional[Path]:
         return self.projected_model or self.oriented_model or self.model
 

@@ -6,7 +6,7 @@ from coretypes import MeshMetrics # TODO need a better home for this
 @internal_action
 def load_mesh(ctx: Context, _, __):
     """Load the STL mesh into context"""
-    mesh = stl.mesh.Mesh.from_file(ctx.files.model_to_project())
+    mesh = stl.mesh.Mesh.from_file(ctx.files.oriented_model or ctx.files.model)
     ctx.mesh = mesh
 
 @internal_action(implied_actions=[load_mesh])
