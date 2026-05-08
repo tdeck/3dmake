@@ -20,6 +20,10 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import socket
 
 
+def fixture_path(name: str) -> Path:
+    return Path(__file__).parent / "test_fixtures" / name
+
+
 def test_3dm_setup():
     with isolated_3dmake_env() as config_dir:
         print(f"Testing 3dmake setup in: {config_dir}")
@@ -113,7 +117,7 @@ def test_3dm_build_input_file():
 
         with tempfile.TemporaryDirectory() as work_dir:
             work_path = Path(work_dir)
-            test_scad = Path(__file__).parent / "tests" / "pyramid.scad"
+            test_scad = fixture_path("pyramid.scad")
 
             result = run_3dmake(['build', str(test_scad)], cwd=work_path)
 
@@ -136,7 +140,7 @@ def test_3dm_slice_input_file():
         # Create temporary working directory
         with tempfile.TemporaryDirectory() as work_dir:
             work_path = Path(work_dir)
-            test_stl = Path(__file__).parent / "tests" / "hexagon.stl"
+            test_stl = fixture_path("hexagon.stl")
 
             result = run_3dmake(['slice', str(test_stl)], cwd=work_path)
 
@@ -163,7 +167,7 @@ def test_3dm_info_input_file():
 
         with tempfile.TemporaryDirectory() as work_dir:
             work_path = Path(work_dir)
-            stl_path = Path(__file__).parent / "tests" / "hexagon.stl"
+            stl_path = fixture_path("hexagon.stl")
 
             result = run_3dmake(['info', str(stl_path)], cwd=work_path)
             assert result.returncode == 0
@@ -186,8 +190,8 @@ def test_3dm_orient_input_file():
 
         with tempfile.TemporaryDirectory() as work_dir:
             work_path = Path(work_dir)
-            test_stl = Path(__file__).parent / "tests" / "inverted_pyramid.stl"
-            expected_oriented_stl = Path(__file__).parent / "tests" / "inverted_pyramid-oriented.stl"
+            test_stl = fixture_path("inverted_pyramid.stl")
+            expected_oriented_stl = fixture_path("inverted_pyramid-oriented.stl")
 
             result = run_3dmake(['orient', str(test_stl)], cwd=work_path)
 
@@ -210,7 +214,7 @@ def test_3dm_build_slice_print_input_file():
 
             with tempfile.TemporaryDirectory() as work_dir:
                 work_path = Path(work_dir)
-                test_stl = Path(__file__).parent / "tests" / "pyramid.scad"
+                test_stl = fixture_path("pyramid.scad")
 
                 result = run_3dmake(['print', str(test_stl)], cwd=work_path)
 
@@ -258,8 +262,8 @@ def test_library_dependencies():
 # Utility functions
 #
 def setup_sample_project(work_dir: Path):
-    """Copy the sample project contents from tests/sample_project to work_dir"""
-    sample_project_src = Path(__file__).parent / "tests" / "sample_project"
+    """Copy the sample project contents from test_fixtures/sample_project to work_dir"""
+    sample_project_src = fixture_path("sample_project")
     shutil.copytree(sample_project_src, work_dir, dirs_exist_ok=True)
 
 
