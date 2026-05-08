@@ -8,7 +8,7 @@ import tempfile
 
 import trimesh
 import numpy as np
-from .framework import Context, pipeline_action
+from .framework import Context, internal_action, pipeline_action
 from .build_action import build
 from .mesh_actions import measure_mesh
 from utils.bundle_paths import DEPS
@@ -19,10 +19,26 @@ from utils.libs import resolve_lib_include_dirs
 
 SELECTED_PLANE_KEY = 'selected_preview_plane'
 
+@internal_action
+def ensure_previewable_model(
+    ctx: Context, stdout: OutputStream, debug_stdout: OutputStream
+):
+    # This ensures we rebuild the model if we're doing a preview plane build, because
+    # the plane is extracted based on the current SCAD code, and if the build is stale
+    # it won't correspond properly.
+    if ctx.options.view in NAMED_PROJECTION_CODE:
+        return # No need for a fresh build
+    elif ctx.build_metadata is not None:
+        return # Already built, they ran `3dm build preview`
+
+    # TODO this is a bit hacky because we're creating a new wrapper around stdout
+    # rather than using the existing chain
+    build(ctx)
+
 @pipeline_action(
     gerund='preparing preview',
     input_file_type='.stl',
-    implied_actions=[build, measure_mesh],
+    implied_actions=[ensure_previewable_model, measure_mesh],
 )
 def preview(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     ''' Produce a 2-D representation of the object '''
