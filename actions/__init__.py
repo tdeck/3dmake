@@ -28,6 +28,7 @@ _actions_in_order = [
     new_action.new,
 
     build_action.build, # must be before load_mesh
+    preview_action.ensure_previewable_model, # must be after build
     orient_action.orient, # must be before load_mesh
     mesh_actions.load_mesh,
     mesh_actions.measure_mesh,
