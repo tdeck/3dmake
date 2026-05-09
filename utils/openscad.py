@@ -88,6 +88,7 @@ def should_print_openscad_log(line: str) -> bool:
         'EXPORT-ERROR:',
         'PARSER-ERROR:',
         'ECHO:', # Logs from within OpenSCAD code; this will need better handling for multi-line echos
+        'Current top level object is empty', # This has no prefix but will fail the build
     ]
 
     # This may be inefficient but the number of log lines should be low
