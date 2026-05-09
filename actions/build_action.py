@@ -6,6 +6,7 @@ from utils.output_streams import OutputStream, FilterStream, TransformerStream
 from utils.openscad import run_openscad, should_print_openscad_log
 from utils.libs import resolve_lib_include_dirs
 from utils.logging import throw_subprogram_error, show_subprocess_timer
+from utils.scad_snippets import NAMED_PROJECTION_CODE
 
 @pipeline_action(input_file_type='.scad')
 def build(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
@@ -55,6 +56,8 @@ def build(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
             if count > 1:
                 stdout.writeln(f"WARNING: Preview plane {plane} defined {count} times")
                 found_dups = True
+            elif plane in NAMED_PROJECTION_CODE:
+                raise RuntimeError(f"Cannot name a preview plane {plane}, this conflicts with a built-in preview")
 
         if found_dups and ctx.options.strict_warnings:
             raise RuntimeError("Build failed with duplicate preview warnings (strict_warnings=true)")
