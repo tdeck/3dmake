@@ -26,9 +26,8 @@ When extending existing code to a new use case, it's better to refactor the exis
   - `python 3dm.py help` - Show all available actions
 
 ### Testing
-- No formal test suite is present in the main codebase
-- Testing appears to be manual through the CLI interface
-- Sample projects exist in `troys_local_sample_poject/` for testing
+- E2E tests live in `e2e_test.py`, run with `pytest e2e_test.py`
+- Test fixture files (STL, SCAD, sample projects) live in `test_fixtures/`
 
 ## Coding Style
 
@@ -110,6 +109,45 @@ Actions are organized by functionality:
 - **Tweaker3**: Auto-orientation algorithm
 - **Google Generative AI**: Model description via image analysis
 - **paho-mqtt**: Bambu Labs printer communication
+
+### Preview Planes
+
+Preview planes generate 2D cross-sectional slices through a model at an arbitrary plane, producing an SVG and a thin extruded STL suitable for tactile graphics printing.
+
+#### How they work
+
+1. **SCAD definition** — The user places marker modules from `scad_library/3dmake/preview.scad` in their OpenSCAD source:
+   ```scad
+   include <3dmake/preview.scad>
+   xy_preview_plane("level", 1);        // XY plane named "level#1"
+   up(10) xy_preview_plane("level", 2); // XY plane named "level#2"
+   xz_preview_plane("front");
+   ```
+   Each module renders a giant pyramid (base 10,000,000 units wide, apex 20 units tall) whose base defines the plane. The pyramid only renders when `$THREEDMAKE_PREVIEW_PLANE` matches its name, otherwise it only logs its name via `echo`.
+
+2. **Build phase** (`build_action.py`) — During a normal build, OpenSCAD stderr is parsed for `_3dm_log_scalar` log lines. All available plane names are collected into `ctx.build_metadata.preview_plane_names`.
+
+3. **Plane location** (`preview_action.py: build_and_locate_preview_plane`) — When the user runs `3dm preview --view level#1`, OpenSCAD is invoked again with `-D '$THREEDMAKE_PREVIEW_PLANE="level#1"'` so only that pyramid renders. The resulting STL is parsed to find the 4 extreme vertices (coordinates ≥ 100,000), fit a plane through them, and determine normal direction from the apex position. This yields a `Plane(origin, normal)`.
+
+4. **Projection** — OpenSCAD is called with `projection(cut=true)` after rotating/translating the model so the target plane aligns with the XY plane. Output: `{stem}-{plane_name}.svg`.
+
+5. **SVG styling** — Path fill and stroke-width are updated in the SVG XML for tactile printing aesthetics.
+
+6. **STL extrusion** — The SVG is extruded 0.6mm via `linear_extrude` to produce `{stem}-{plane_name}.stl`.
+
+#### Key implementation details
+
+- Preview planes always use the un-oriented model (`ctx.files.model`, not `oriented_model`) because plane coordinates are defined in the original SCAD coordinate system.
+- `ensure_previewable_model` forces a fresh build when a preview plane is requested, since plane coordinates must match the current SCAD source.
+- The `PLANE_TOLERANCE` for coplanarity checks is 1 unit (may need tuning).
+- Silhouette previews (`topsil`, `3sil`, etc.) are a separate code path using orthographic projection; they don't go through the plane location machinery.
+
+#### Relevant files
+- `scad_library/3dmake/preview.scad` — User-facing SCAD modules
+- `scad_library/3dmake/_internal.scad` — `_3dm_log_scalar` logging helper
+- `actions/preview_action.py` — All plane location, projection, and styling logic
+- `actions/build_action.py` — Collects plane names from build stderr
+- `utils/openscad.py` — Log line parsing (`_3DM_PATTERN` regex)
 
 ### Key Design Patterns
 - **Action Pipeline**: Sequential execution of configurable actions

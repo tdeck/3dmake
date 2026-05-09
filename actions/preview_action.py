@@ -71,6 +71,7 @@ def preview(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
         scad_vars = {
             "normal_vector": _format_scad_vector(plane.normal),
             "origin_vector": _format_scad_vector(plane.origin),
+            "right_vector": _format_scad_vector(plane.right),
         }
     else:
         raise RuntimeError(f"No view or preview plane called '{view_name}' exists")
@@ -158,6 +159,7 @@ INVALID_PLANE_ERROR = RuntimeError(
 class Plane:
     origin: tuple[float, float, float]
     normal: tuple[float, float, float]
+    right: tuple[float, float, float]
 
 def build_and_locate_preview_plane(
     ctx: Context,
@@ -201,23 +203,35 @@ def extract_stl_preview_plane(stl_file: Path, debug_stdout: OutputStream) -> Pla
     with open(stl_file, 'rb') as fh:
         tm = trimesh.Trimesh(**trimesh.exchange.stl.load_stl_binary(fh))
 
-    # Find all the vertices that could be part of a preview plane
-    far_vertex_indices = np.where(np.any(np.abs(tm.vertices) >= CUTOFF_COORD, axis=1))[0]
+    # Find all the vertices that could be part of a preview plane.
+    # Expect 5: the 4 large base corners plus 1 orientation marker.
+    all_far_indices = np.where(np.any(np.abs(tm.vertices) >= CUTOFF_COORD, axis=1))[0]
 
-    if len(far_vertex_indices) != 4:
+    if len(all_far_indices) != 5:
         raise INVALID_PLANE_ERROR
 
-    # Since the plane object is a giant pyramid with a low peak, each of these
-    # vertices should be one corner of the base. 
+    # The 4 corners all sit at the same distance from the origin (SIZE*sqrt(2)).
+    # The marker is at a different distance (SIZE+1000), so it's the outlier.
+    all_far_vertices = tm.vertices[all_far_indices]
+    distances = np.linalg.norm(all_far_vertices, axis=1)
+    marker_local_idx = int(np.argmax(np.abs(distances - np.median(distances))))
+    marker_vertex = all_far_vertices[marker_local_idx]
+    corner_indices = np.delete(all_far_indices, marker_local_idx)
+    corner_vertices = tm.vertices[corner_indices]
 
-    # Check that the base points are coplanar
-    far_vertices = tm.vertices[far_vertex_indices]
-    plane_origin, plane_normal = trimesh.points.plane_fit(far_vertices)
-    plane_distances = trimesh.points.point_plane_distance(far_vertices, plane_normal, plane_origin)
+    # Check that the 4 base corners are coplanar
+    plane_origin, plane_normal = trimesh.points.plane_fit(corner_vertices)
+    plane_distances = trimesh.points.point_plane_distance(corner_vertices, plane_normal, plane_origin)
     # Note: I have confirmed that point_plane_distance returns a signed value
     if np.any(np.abs(plane_distances) > PLANE_TOLERANCE):
         debug_stdout.writeln(f"Plane distances exceed tolerance: {plane_distances}")
         raise INVALID_PLANE_ERROR
+
+    # Derive the in-plane right direction from the marker.
+    # The 4 corners are symmetric so their centroid is at the plane origin.
+    marker_dir = marker_vertex - corner_vertices.mean(axis=0)
+    marker_dir -= np.dot(marker_dir, plane_normal) * plane_normal  # project onto plane
+    plane_right = marker_dir / np.linalg.norm(marker_dir)
 
     # Now identify the direction of the pyramid apex, so we can tell if the plane
     # should be inverted. It's very likely that the plane will have been merged with
@@ -225,7 +239,7 @@ def extract_stl_preview_plane(stl_file: Path, debug_stdout: OutputStream) -> Pla
     # non-planar vectors are pointing.
     min_dist = 0.0
     max_dist = 0.0
-    for plane_vertex_idx in far_vertex_indices:
+    for plane_vertex_idx in corner_indices:
         neighbor_vertices = tm.vertices[tm.vertex_neighbors[plane_vertex_idx]]
         neighbor_plane_dists = trimesh.points.point_plane_distance(
             neighbor_vertices,
@@ -249,10 +263,10 @@ def extract_stl_preview_plane(stl_file: Path, debug_stdout: OutputStream) -> Pla
         plane_normal = -plane_normal
 
     debug_stdout.writeln(
-        f"Detected preview origin={plane_origin} normal={plane_normal}"
+        f"Detected preview origin={plane_origin} normal={plane_normal} right={plane_right}"
     )
 
-    return Plane(origin=plane_origin, normal=plane_normal)
+    return Plane(origin=plane_origin, normal=plane_normal, right=tuple(plane_right))
     
 
 NAMED_PROJECTION_CODE = {
@@ -321,26 +335,18 @@ NAMED_PROJECTION_CODE = {
 PREVIEW_PLANE_PROJECTION_CODE = '''
     module plane_aligned_model() {
         n_hat = normal_vector / norm(normal_vector);
-        xy_plane = [0, 0, 1];
-        rot_axis = cross(n_hat, xy_plane);
-        rot_angle = acos(n_hat * xy_plane);
+        plane_right = right_vector / norm(right_vector);
+        plane_up = cross(n_hat, plane_right); /* the +z dir (vertical planes) or +y dir (horizontal) */
 
-        if (norm(rot_axis) < 1e-6) {
-            /* Aligned or flipped 180 degrees */
-            if (n_hat * xy_plane < 0) {
-                /* Flipped plane; rotate 180° around Y axis */
-                rotate(a=180, v=[0, 1, 0]) {
-                    translate(-origin_vector) import(stl_file);
-                }
-            } else {
-                /* Already aligned */
-                translate(-origin_vector) import(stl_file);
-            }
-        } else {
-            rotate(a = rot_angle, v = rot_axis) {
-                translate(-origin_vector) import(stl_file);
-            }
-        }
+        /* Build a rotation matrix with rows [plane_right, plane_up, n_hat].
+           This maps: plane_right -> X, plane_up -> Y, n_hat -> Z.
+           After this, projection(cut=true) cuts at z=0, which is the plane. */
+        multmatrix([
+            [plane_right[0], plane_right[1], plane_right[2], 0],
+            [plane_up[0],    plane_up[1],    plane_up[2],    0],
+            [n_hat[0],       n_hat[1],       n_hat[2],       0],
+            [0,              0,              0,              1]
+        ]) translate(-origin_vector) import(stl_file);
     }
 
     projection(cut=true) plane_aligned_model();
