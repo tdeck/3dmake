@@ -1,4 +1,5 @@
 import sys
+from collections import Counter
 
 from .framework import Context, BuildMetadata, pipeline_action
 from utils.output_streams import OutputStream, FilterStream, TransformerStream
@@ -42,6 +43,20 @@ def build(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     if run.process.returncode != 0:
         throw_subprogram_error('OpenSCAD', run.process.returncode, ctx.options.debug)
 
-    ctx.build_metadata = BuildMetadata(
-        preview_plane_names=set(run.logged_key_values.get("preview_plane_option", []))
-    )
+    # List preview planes and error on any duplicates
+    preview_planes = run.logged_key_values.get("preview_plane_option", [])
+    if preview_planes:
+        stdout.writeln(f"Preview planes: {' '.join(preview_planes)}")
+
+        name_counts = Counter(preview_planes)
+
+        found_dups = False
+        for plane, count in name_counts.items():
+            if count > 1:
+                stdout.writeln(f"WARNING: Preview plane {plane} defined {count} times")
+                found_dups = True
+
+        if found_dups and ctx.options.strict_warnings:
+            raise RuntimeError("Build failed with duplicate preview warnings (strict_warnings=true)")
+
+    ctx.build_metadata = BuildMetadata(preview_plane_names=set(preview_planes))
