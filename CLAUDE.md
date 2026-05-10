@@ -118,18 +118,19 @@ Preview planes generate 2D cross-sectional slices through a model at an arbitrar
 
 1. **SCAD definition** — The user places marker modules from `scad_library/3dmake/preview.scad` in their OpenSCAD source:
    ```scad
-   include <3dmake/preview.scad>
-   xy_preview_plane("level", 1);        // XY plane named "level#1"
-   up(10) xy_preview_plane("level", 2); // XY plane named "level#2"
+   use <3dmake/preview.scad>
+   xy_preview_plane("level", 1);                           // XY plane named "level#1"
+   translate([0, 0, 10]) xy_preview_plane("level", 2);    // XY plane named "level#2"
    xz_preview_plane("front");
+   rotate([0, 0, 45]) xz_preview_plane("diagonal");
    ```
-   Each module renders a giant pyramid (base 10,000,000 units wide, apex 20 units tall) whose base defines the plane. The pyramid only renders when `$THREEDMAKE_PREVIEW_PLANE` matches its name, otherwise it only logs its name via `echo`.
+   Each module renders a pentagonal pyramid whose base defines the plane. The pyramid only renders when `$THREEDMAKE_PREVIEW_PLANE` matches its name, otherwise it only logs its name via `echo`.
 
 2. **Build phase** (`build_action.py`) — During a normal build, OpenSCAD stderr is parsed for `_3dm_log_scalar` log lines. All available plane names are collected into `ctx.build_metadata.preview_plane_names`.
 
-3. **Plane location** (`preview_action.py: build_and_locate_preview_plane`) — When the user runs `3dm preview --view level#1`, OpenSCAD is invoked again with `-D '$THREEDMAKE_PREVIEW_PLANE="level#1"'` so only that pyramid renders. The resulting STL is parsed to find the 4 extreme vertices (coordinates ≥ 100,000), fit a plane through them, and determine normal direction from the apex position. This yields a `Plane(origin, normal)`.
+3. **Plane location** (`preview_action.py: build_and_locate_preview_plane`) — When the user runs `3dm preview --view level#1`, OpenSCAD is invoked again with `-D '$THREEDMAKE_PREVIEW_PLANE="level#1"'` so only that pyramid renders. The resulting STL is parsed to find the 5 extreme vertices (coordinates ≥ 100,000). Four of these are the square base corners; the fifth is an orientation marker on the +X side of the base that sticks out to `SIZE+1000` (making it the outlier by Euclidean distance from origin). The 4 corners are used to fit the plane and determine normal direction from the apex position. The marker direction from the corner centroid gives the in-plane `right` vector. This yields a `Plane(origin, normal, right)`.
 
-4. **Projection** — OpenSCAD is called with `projection(cut=true)` after rotating/translating the model so the target plane aligns with the XY plane. Output: `{stem}-{plane_name}.svg`.
+4. **Projection** — OpenSCAD is called with `projection(cut=true)` after aligning the model so the target plane sits at z=0. The alignment uses a `multmatrix` built from `[plane_right, plane_up, n_hat]` as rows, where `plane_up = cross(n_hat, plane_right)`. This fully constrains the in-plane orientation so that rotating the plane marker in SCAD produces a correspondingly rotated cross-section in the output. Output: `{stem}-{plane_name}.svg`.
 
 5. **SVG styling** — Path fill and stroke-width are updated in the SVG XML for tactile printing aesthetics.
 
@@ -140,6 +141,7 @@ Preview planes generate 2D cross-sectional slices through a model at an arbitrar
 - Preview planes always use the un-oriented model (`ctx.files.model`, not `oriented_model`) because plane coordinates are defined in the original SCAD coordinate system.
 - `ensure_previewable_model` forces a fresh build when a preview plane is requested, since plane coordinates must match the current SCAD source.
 - The `PLANE_TOLERANCE` for coplanarity checks is 1 unit (may need tuning).
+- The orientation marker is identified as the outlier among the 5 far vertices using `argmax(|distance - median(distances)|)`, which works whether the marker is closer or farther than the corners depending on SIZE.
 - Silhouette previews (`topsil`, `3sil`, etc.) are a separate code path using orthographic projection; they don't go through the plane location machinery.
 
 #### Relevant files

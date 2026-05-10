@@ -223,6 +223,100 @@ def test_3dm_build_slice_print_input_file():
                 assert "Slicing..." in result.stdout
                 assert "File uploaded successfully" in result.stdout
 
+def test_3dm_preview_input_stl():
+    with isolated_3dmake_env() as config_dir:
+        populate_config()
+
+        with tempfile.TemporaryDirectory() as work_dir:
+            work_path = Path(work_dir)
+            test_stl = fixture_path("upright_T.stl")
+
+            result = run_3dmake(['preview', str(test_stl)], cwd=work_path)
+            assert result.returncode == 0, f"Preview failed: {result.stderr}"
+
+            output_svg = work_path / "upright_T-3sil.svg"
+            output_stl = work_path / "upright_T-3sil.stl"
+
+            assert_files_equal(output_svg, fixture_path("previews/upright_T-3sil.svg"))
+            assert_stl_vertices_close(output_stl, fixture_path("previews/upright_T-3sil.stl"))
+
+
+def test_3dm_build_preview_3sil():
+    with isolated_3dmake_env() as config_dir:
+        populate_config()
+
+        with tempfile.TemporaryDirectory() as work_dir:
+            work_path = Path(work_dir)
+            setup_sample_project(work_path)
+            result = run_3dmake(['build', 'preview', '-m', 'pagoda'], cwd=work_path)
+            assert result.returncode == 0, f"Preview failed: {result.stderr}"
+
+            assert_files_equal(
+                work_path / "build/pagoda-3sil.svg",
+                fixture_path("previews/pagoda-3sil.svg")
+            )
+            assert_stl_vertices_close(
+                work_path / "build/pagoda-3sil.stl",
+                fixture_path("previews/pagoda-3sil.stl")
+            )
+
+def test_3dm_build_preview_named_planes():
+    with isolated_3dmake_env() as config_dir:
+        populate_config()
+
+        with tempfile.TemporaryDirectory() as work_dir:
+            work_path = Path(work_dir)
+            setup_sample_project(work_path)
+
+            # Named plane without index
+            result = run_3dmake(['preview', '-m', 'pagoda', '-v', 'face_front'], cwd=work_path)
+            assert result.returncode == 0, f"Preview failed: {result.stderr}"
+
+            assert_files_equal(
+                work_path / "build/pagoda-face_front.svg",
+                fixture_path("previews/pagoda-face_front.svg")
+            )
+            assert_stl_vertices_close(
+                work_path / "build/pagoda-face_front.stl",
+                fixture_path("previews/pagoda-face_front.stl")
+            )
+
+            # Named plane with index 0
+            result = run_3dmake(['preview', '-m', 'pagoda', '-v', 'level#0'], cwd=work_path)
+            assert result.returncode == 0, f"Preview failed: {result.stderr}"
+
+            assert_files_equal(
+                    work_path / "build/pagoda-level#0.svg", 
+                    fixture_path("previews/pagoda-level#0.svg")
+            )
+            assert_stl_vertices_close(
+                work_path / "build/pagoda-level#0.stl",
+                fixture_path("previews/pagoda-level#0.stl")
+            )
+
+            # Named plane with index 3
+            result = run_3dmake(['preview', '-m', 'pagoda', '-v', 'level#3'], cwd=work_path)
+            assert result.returncode == 0, f"Preview failed: {result.stderr}"
+
+            assert_files_equal(
+                work_path / "build/pagoda-level#3.svg",
+                fixture_path("previews/pagoda-level#3.svg")
+            )
+            assert_stl_vertices_close(
+                work_path / "build/pagoda-level#3.stl",
+                fixture_path("previews/pagoda-level#3.stl")
+            )
+
+def test_3dm_build_preview_no_such_plane():
+    with isolated_3dmake_env() as config_dir:
+        populate_config()
+
+        with tempfile.TemporaryDirectory() as work_dir:
+            work_path = Path(work_dir)
+            setup_sample_project(work_path)
+            result = run_3dmake(['preview', '-m', 'pagoda', '-v', 'nothing'], cwd=work_path)
+            assert result.returncode != 0
+            assert 'No view or preview plane called' in result.stdout
 
 def test_3dm_edit_model():
     with isolated_3dmake_env() as config_dir:
@@ -246,25 +340,37 @@ def test_library_dependencies():
         with tempfile.TemporaryDirectory() as work_dir:
             print(f"Working dir {work_dir}")
             work_path = Path(work_dir)
-            setup_sample_project(work_path)
+            setup_sample_project(work_path, dict(libraries=['bosl']))
 
             result = run_3dmake(['install-libraries'], cwd=work_path)
             assert result.returncode == 0
             assert 'Downloading bosl' in result.stdout
             assert 'Extracting library' in result.stdout
 
-            result = run_3dmake(['build'], cwd=work_path)
+            result = run_3dmake(['build', '-m', 'model_using_bosl'], cwd=work_path)
             assert result.returncode == 0
             assert 'Building...' in result.stdout
-            assert work_path.joinpath("build/main.stl").exists()
+            assert work_path.joinpath("build/model_using_bosl.stl").exists()
 
 #
 # Utility functions
 #
-def setup_sample_project(work_dir: Path):
+def setup_sample_project(work_dir: Path, configs_to_add: dict[str, Any]={}):
     """Copy the sample project contents from test_fixtures/sample_project to work_dir"""
     sample_project_src = fixture_path("sample_project")
     shutil.copytree(sample_project_src, work_dir, dirs_exist_ok=True)
+
+    with open(work_dir / "3dmake.toml", 'a') as fh:
+        for key, value in configs_to_add.items():
+            fh.write(f"{key} = {json.dumps(value)}\n")
+
+
+def assert_files_equal(actual: Path | str, expected: Path | str):
+    actual = Path(actual)
+    expected = Path(expected)
+
+    assert actual.exists(), f"Output file {actual} does not exist"
+    assert actual.read_text() == expected.read_text()
 
 
 def assert_stl_vertices_close(stl_path1: Path, stl_path2: Path, delta: float = 1e-6):
@@ -361,7 +467,10 @@ def get_config_dir() -> Path:
 
 
 def populate_config(overrides: dict[str, Any] = {}) -> dict[str, Any]:
-    """ This must be called within a isolated_3dmake_env() block. Returns populated settings. """
+    """
+    This must be called within a isolated_3dmake_env() block.
+    Populates the global 3dmake config. Returns populated settings.
+    """
     # Get the config directory (should be our isolated temp dir)
     config_dir = get_config_dir()
     script_dir = Path(__file__).parent

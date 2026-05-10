@@ -1,3 +1,1 @@
-use <bosl/shapes.scad>
-
-upcube(10);
+cube(10);
