@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "e0a61d91fac7fe654c19800f6a7a184095bbcb10d3f934038629cc294fa13174"
+            "sha256": "7529383d144abbebaef983a2086e9bed8b7df7f3fb2842daab2db2d325811137"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -1742,6 +1742,14 @@
             ],
             "markers": "python_version >= '3.9'",
             "version": "==4.15.0"
+        },
+        "macholib": {
+            "hashes": [
+                "sha256:da1a3fa8266e30f0ce7e97c6a54eefaae8edd1e5f86f3eb8b95457cae90265ea",
+                "sha256:f408c93ab2e995cd2c46e34fe328b130404be143469e41bc366c807448979362"
+            ],
+            "markers": "sys_platform == 'darwin'",
+            "version": "==1.16.4"
         }
     }
 }

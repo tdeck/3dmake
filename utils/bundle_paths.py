@@ -36,26 +36,33 @@ class Dependencies:
 
 def get_deps() -> Dependencies:
     os_type = platform.system()
+    bundled_deps = {
+        'Linux': Dependencies(
+            Path('deps/linux/OpenSCAD.AppImage'),
+            Path('deps/linux/PrusaSlicer.AppImage'),
+        ),
+        'Windows': Dependencies(
+            Path('deps/windows/openscad/openscad.exe'),
+            Path('deps/windows/prusaslicer/prusa-slicer-console.exe'),
+        ),
+        'Darwin': Dependencies(
+            Path('deps/macos/OpenSCAD.app/Contents/MacOS/OpenSCAD'),
+            Path('deps/macos/PrusaSlicer.app/Contents/MacOS/PrusaSlicer'),
+        ),
+    }
+
+    if os_type not in bundled_deps:
+        raise RuntimeError(f"Unsupported operating system: {os_type}")
 
     if openscad_env := os.environ.get('THREEDMAKE_OPENSCAD_PATH'):
         openscad_path = Path(openscad_env)
     else:
-        openscad_path = SCRIPT_DIR.joinpath(
-            {
-                'Linux': 'deps/linux/OpenSCAD.AppImage',
-                'Windows': 'deps/windows/openscad/openscad.exe',
-            }[os_type]
-        )
+        openscad_path = SCRIPT_DIR / bundled_deps[os_type].OPENSCAD
 
     if slicer_env := os.environ.get('THREEDMAKE_SLICER_PATH'):
         slicer_path = Path(slicer_env)
     else:
-        slicer_path = SCRIPT_DIR.joinpath(
-            {
-                'Linux': 'deps/linux/PrusaSlicer.AppImage',
-                'Windows': 'deps/windows/prusaslicer/prusa-slicer-console.exe',
-            }[os_type]
-        )
+        slicer_path = SCRIPT_DIR / bundled_deps[os_type].SLICER
 
     return Dependencies(openscad_path, slicer_path)
 

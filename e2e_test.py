@@ -394,6 +394,10 @@ def assert_stl_vertices_close(stl_path1: Path, stl_path2: Path, delta: float = 1
 class MockOctoPrintHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == '/api/files/local':
+            content_length = int(self.headers.get('Content-Length', 0))
+            if content_length:
+                self.rfile.read(content_length)
+
             api_key = self.headers.get('X-Api-Key')
             if api_key == 'test_api_key':
                 self.send_response(201)

@@ -19,6 +19,7 @@ Thanks for trying 3DMake!
 Download the latest version of 3DMake for your operating system by following these links:
 - [Windows](https://github.com/tdeck/3dmake/releases/latest/download/3dmake_windows.zip)
 - [Linux (x86-64)](https://github.com/tdeck/3dmake/releases/latest/download/3dmake_linux.tar.gz)
+- [macOS](https://github.com/tdeck/3dmake/releases/latest/download/3dmake_macos.tar.gz)
 
 3DMake is a command line program, which means you need to run it from the terminal (or command prompt). If you've never used the terminal before, read the [terminal quick start guide](docs/terminal_quick_start.md).
 
@@ -268,7 +269,7 @@ Some of these settings can be further overridden on the command line (for exampl
 
 [^1]: `strict_warnings` is `false` in your global config, but it's `true` for 3dmake.toml files in newly created projects. This is because if you are trying to build OpenSCAD files you downloaded directly, many of them will produce warnings and be broken by a global setting of `true`. However, setting this to `true` for your new code is a good idea.
 
-[^2]: In Linux, 3DMake tries to use your existing `VISUAL` and `EDITOR` environment variables if you don't set an editor. If it finds none of those, it uses GNU Nano.
+[^2]: In macOS and Linux, 3DMake tries to use your existing `VISUAL` and `EDITOR` environment variables if you don't set an editor. If it finds none of those, it uses GNU Nano.
 
 [^3]: If your text editor opens a new window, you generally want this to be true so you can keep the editor open and still use 3DMake in your terminal window. However, if your editor runs in the terminal (like Vim, for example), it will be broken by this setting.
 
