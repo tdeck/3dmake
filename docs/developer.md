@@ -23,7 +23,7 @@ In order to avoid making the user install Python and a bunch of dependences, we 
 
 Release builds must be created on the operating system they're targeting. To make a release build, you must first install pipenv and pyenv. Then cd into the 3dmake repo's root directory and run `pipenv install`. Finally, you can run one of the build scripts `scripts/linux_build.sh`, `scripts/macos_build.sh`, or `scripts/windows_build.ps1` from the repo's root dir.
 
-Bundled OpenSCAD and PrusaSlicer dependencies live under `deps/<platform>`. Run `scripts/get_deps.sh macos` on macOS before building the macOS release; the macOS script copies `OpenSCAD.app` from `/Applications` by default, extracts `PrusaSlicer.app` from the current stable DMG into `deps/macos`, and writes compressed `*.app.tar.xz` archives. The app bundles themselves are ignored by Git; `scripts/macos_build.sh` extracts the compressed archives if the bundles are missing.
+Bundled OpenSCAD and PrusaSlicer dependencies live under `deps/<platform>`. Run `scripts/get_deps.sh macos` on macOS before building the macOS release; the macOS script copies `OpenSCAD.app` from `/Applications` by default and extracts `PrusaSlicer.app` from the current stable DMG into `deps/macos`. The macOS app bundles are ignored by Git, so each macOS build machine should populate them locally before building.
 
 ### Steps to make a new release:
 For now Troy will make all the releases, following this process:

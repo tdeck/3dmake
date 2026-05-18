@@ -22,6 +22,7 @@ from utils.output_streams import OutputStream
 from utils.test_flags import in_test_mode, test_flag_set
 
 DEFAULT_WINDOWS_EDITOR = 'notepad'
+DEFAULT_MACOS_EDITOR = 'open -t'
 OLLAMA_LOCALHOST = 'http://localhost:11434'
 BAMBU_CONNECT_DOWNLOAD_PAGE = "https://wiki.bambulab.com/en/software/bambu-connect"
 
@@ -50,10 +51,11 @@ def get_default_settings() -> Dict[str, Any]:
         auto_start_prints=True,
     )
 
-    # For the most common platform, we pre-populate the defaults so that it makes
-    # the file easier to edit
     if platform.system() == 'Windows':
         settings['editor'] = DEFAULT_WINDOWS_EDITOR
+        settings['edit_in_background'] = True
+    elif platform.system() == 'Darwin':
+        settings['editor'] = DEFAULT_MACOS_EDITOR
         settings['edit_in_background'] = True
 
     return settings
@@ -349,4 +351,3 @@ def add_self_to_path(bin_path: Path):
             print(f"this to your shell config file (e.g. {shell_config_file}):")
             print(f'export PATH="{bin_path.parent}:$PATH"')
             print(f"After doing this, you must reload your shell.")
-

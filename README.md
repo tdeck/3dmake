@@ -40,7 +40,7 @@ Model design in 3DMake is based on [OpenSCAD](https://openscad.org/), a text-bas
 
 You can open your project's main model in a text editor with `3dm edit-model` - this will simply open the file `src/main.scad`. You can select a different model name with the `-m` option when running 3DMake; if you want to edit the "lid.scad" model, you'd run `3dm edit-model -m lid`.
 
-By default, 3DMake's edit commands use Notepad in Windows. To configure a different editor, you can set its path in the [3DMake configuration](#global-config) For example, to configure Notepad++ on Windows, you might add this line to your config:
+By default, 3DMake's edit commands use Notepad in Windows and the system text editor in macOS. To configure a different editor, you can set its path in the [3DMake configuration](#global-config) For example, to configure Notepad++ on Windows, you might add this line to your config:
 
 ```
 # The triple quotes below allow your program's path to contain backslashes
@@ -247,8 +247,8 @@ bambu_access_code | The access code for your Bambu printer          | none      
 bambu_serial_number | The serial number of your Bambu printer       | none                          | `"1234ABCDEF..."`
 auto_start_prints | When uploading to `3dm print`, start the print right away | `true`              | `false`
 strict_warnings | Fail `3dm build` when OpenSCAD sees a problem with your code | `false`[^1]           | `true`
-editor          | Command to open your preferred text editor        | "notepad" in Windows[^2]      | `"code"`
-edit_in_background | Exit 3DMake after starting an editor           | `true` when using Notepad, `false` otherwise     | `false`
+editor          | Command to open your preferred text editor        | "notepad" in Windows, "open -t" in macOS[^2] | `"code"`
+edit_in_background | Exit 3DMake after starting an editor           | `true` when using Notepad or `open -t`, `false` otherwise | `false`
 gemini_key      | Your Gemini API key (do not share this)           | What you set in 3dm setup     | `"47b64..."`
 llm_name        | The name of the gemini or OpenRouter model to use | Depends on 3dmake version     | `"gemini-2.5-pro"`
 openrouter_key  | Your OpenRouter API key (takes priority over Gemini) | none | `"sk-or-v1-1234..."`
@@ -269,7 +269,7 @@ Some of these settings can be further overridden on the command line (for exampl
 
 [^1]: `strict_warnings` is `false` in your global config, but it's `true` for 3dmake.toml files in newly created projects. This is because if you are trying to build OpenSCAD files you downloaded directly, many of them will produce warnings and be broken by a global setting of `true`. However, setting this to `true` for your new code is a good idea.
 
-[^2]: In macOS and Linux, 3DMake tries to use your existing `VISUAL` and `EDITOR` environment variables if you don't set an editor. If it finds none of those, it uses GNU Nano.
+[^2]: In macOS, 3DMake setup uses `open -t` so files open in your system text editor. If you don't set an editor in macOS or Linux, 3DMake tries your existing `VISUAL` and `EDITOR` environment variables. If it finds none of those, it uses GNU Nano.
 
 [^3]: If your text editor opens a new window, you generally want this to be true so you can keep the editor open and still use 3DMake in your terminal window. However, if your editor runs in the terminal (like Vim, for example), it will be broken by this setting.
 

@@ -5,15 +5,14 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DEPDIR="$(cd "$SCRIPT_DIR/../deps" && pwd)"
 
 OPENSCAD_VERSION="2021.01"
-PRUSASLICER_LEGACY_VERSION="2.8.1"
 PRUSASLICER_MACOS_VERSION="2.9.4"
 
 OPENSCAD_LINUX_URL="https://files.openscad.org/OpenSCAD-${OPENSCAD_VERSION}-x86_64.AppImage"
 OPENSCAD_WINDOWS_URL="https://files.openscad.org/OpenSCAD-${OPENSCAD_VERSION}-x86-64.zip"
 OPENSCAD_MACOS_URL="https://files.openscad.org/OpenSCAD-${OPENSCAD_VERSION}.dmg"
 
-PRUSASLICER_LINUX_URL="https://github.com/prusa3d/PrusaSlicer/releases/download/version_${PRUSASLICER_LEGACY_VERSION}/PrusaSlicer-${PRUSASLICER_LEGACY_VERSION}%2Blinux-x64-older-distros-GTK3-202409181354.AppImage"
-PRUSASLICER_WINDOWS_URL="https://github.com/prusa3d/PrusaSlicer/releases/download/version_${PRUSASLICER_LEGACY_VERSION}/PrusaSlicer-${PRUSASLICER_LEGACY_VERSION}%2Bwin64-202409181359.zip"
+PRUSASLICER_LINUX_URL="https://github.com/prusa3d/PrusaSlicer/releases/download/version_2.8.1/PrusaSlicer-2.8.1%2Blinux-x64-older-distros-GTK3-202409181354.AppImage"
+PRUSASLICER_WINDOWS_URL="https://github.com/prusa3d/PrusaSlicer/releases/download/version_2.8.1/PrusaSlicer-2.8.1%2Bwin64-202409181359.zip"
 PRUSASLICER_MACOS_URL="https://github.com/prusa3d/PrusaSlicer/releases/download/version_${PRUSASLICER_MACOS_VERSION}/PrusaSlicer-${PRUSASLICER_MACOS_VERSION}.dmg"
 OPENSCAD_MACOS_APP="${OPENSCAD_MACOS_APP:-/Applications/OpenSCAD.app}"
 
@@ -23,6 +22,7 @@ usage() {
 }
 
 new_tmpdir() {
+    # GNU mktemp accepts `mktemp -d`, but some BSD/macOS versions expect a template.
     mktemp -d 2>/dev/null || mktemp -d -t 3dmake_deps
 }
 
@@ -75,6 +75,7 @@ copy_app_from_dmg() {
     hdiutil attach "$dmg_path" -mountpoint "$mount_path" -nobrowse -quiet
     rm -rf "$dest_path"
     local mounted_app
+    # PrusaSlicer's DMG nests the app under "Original Prusa Drivers" instead of the volume root.
     mounted_app="$(find "$mount_path" -maxdepth 3 -name "$app_name" -type d -print -quit)"
     if [[ -z "$mounted_app" ]]; then
         echo "Could not find $app_name in $dmg_path" >&2
@@ -88,23 +89,9 @@ copy_app_from_dmg() {
     hdiutil detach "$mount_path" -quiet
 
     if command -v xattr >/dev/null; then
+        # Downloaded DMGs can add quarantine metadata that makes Gatekeeper warn or block helper apps.
         xattr -dr com.apple.quarantine "$dest_path" 2>/dev/null || true
     fi
-}
-
-archive_macos_app() {
-    local app_name="$1"
-    local app_path="$DEPDIR/macos/$app_name"
-    local archive_path="$DEPDIR/macos/$app_name.tar.xz"
-
-    if [[ ! -d "$app_path" ]]; then
-        echo "Cannot archive missing app bundle: $app_path" >&2
-        exit 1
-    fi
-
-    echo "Creating $archive_path"
-    rm -f "$archive_path"
-    COPYFILE_DISABLE=1 tar -cJf "$archive_path" -C "$DEPDIR/macos" "$app_name"
 }
 
 download_macos() {
@@ -130,9 +117,6 @@ download_macos() {
     curl -L "$PRUSASLICER_MACOS_URL" -o "$tmpdir/prusaslicer.dmg"
 
     copy_app_from_dmg "$tmpdir/prusaslicer.dmg" "PrusaSlicer.app" "$DEPDIR/macos/PrusaSlicer.app" "$tmpdir/prusaslicer_mount"
-
-    archive_macos_app "OpenSCAD.app"
-    archive_macos_app "PrusaSlicer.app"
 
     rm -rf "$tmpdir"
 }

@@ -17,6 +17,8 @@ datas = [
     (f'template.gcode.3mf', '.'),
 ]
 
+# macOS helper apps are already complete app bundles; copy them after PyInstaller
+# so it does not rewrite or re-sign their internal executables and frameworks.
 if platform.system() != 'Darwin':
     datas.append((f'./{deps_dir}', deps_dir))
 
