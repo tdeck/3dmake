@@ -7,22 +7,28 @@ from PyInstaller.utils.hooks import collect_submodules
 deps_dir = {
     'Linux': 'deps/linux',
     'Windows': 'deps/windows',
+    'Darwin': 'deps/macos',
 }[platform.system()]
 
+datas = [
+    (f'./default_config', 'default_config'),
+    (f'./scad_library', 'scad_library'),
+    (f'README.md', '.'),
+    (f'template.gcode.3mf', '.'),
+]
+
+# macOS helper apps are already complete app bundles; copy them after PyInstaller
+# so it does not rewrite or re-sign their internal executables and frameworks.
+if platform.system() != 'Darwin':
+    datas.append((f'./{deps_dir}', deps_dir))
 
 a = Analysis(
     ['3dm.py'],
     pathex=[],
     binaries=[],
-    datas=[
-        (f'./{deps_dir}', deps_dir),
-        (f'./default_config', 'default_config'),
-        (f'./scad_library', 'scad_library'),
-        (f'README.md', '.'),
-        (f'template.gcode.3mf', '.'),
-    ],
+    datas=datas,
     hiddenimports=[
-        'prompt-toolkit', # For some reason pyinstaller doesn't pick this up in Windows
+        'prompt_toolkit', # For some reason pyinstaller doesn't pick this up in Windows
     ] + collect_submodules('vtkmodules'),
     hookspath=[],
     hooksconfig={},
