@@ -284,3 +284,4 @@ Some of these settings can be further overridden on the command line (for exampl
 The people below have generously contributed code that is included in the release of 3DMake.
 
 - Ryan (Michael) Hunsaker
+- Ashley Cox
