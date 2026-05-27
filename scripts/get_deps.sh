@@ -27,6 +27,7 @@ new_tmpdir() {
 }
 
 download_linux() {
+    echo "Downloading Linux deps..."
     mkdir -p "$DEPDIR/linux"
     curl -L "$OPENSCAD_LINUX_URL" -o "$DEPDIR/linux/OpenSCAD.AppImage"
     curl -L "$PRUSASLICER_LINUX_URL" -o "$DEPDIR/linux/PrusaSlicer.AppImage"
@@ -35,6 +36,7 @@ download_linux() {
 }
 
 download_windows() {
+    echo "Downloading Windows deps..."
     mkdir -p "$DEPDIR/windows"
 
     local tmpdir
@@ -101,6 +103,7 @@ download_macos() {
         echo "macOS dependencies must be extracted on macOS because they are distributed as DMG files." >&2
         exit 1
     fi
+    echo "Downloading MacOS deps..."
 
     mkdir -p "$DEPDIR/macos"
 
@@ -123,15 +126,15 @@ download_macos() {
     rm -rf "$tmpdir"
 }
 
-target="${1:-windows}"
+target="${1:-$(uname -s)}"
 case "$target" in
-    linux)
+    linux|Linux)
         download_linux
         ;;
-    windows)
+    windows) # TODO this should perhaps be ported to PowerShell
         download_windows
         ;;
-    macos|darwin)
+    macos|darwin|Darwin)
         download_macos
         ;;
     all)
