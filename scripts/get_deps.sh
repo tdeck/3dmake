@@ -79,6 +79,8 @@ copy_app_from_dmg() {
     mounted_app="$(find "$mount_path" -maxdepth 3 -name "$app_name" -type d -print -quit)"
     if [[ -z "$mounted_app" ]]; then
         echo "Could not find $app_name in $dmg_path" >&2
+        echo "File in DMG:"
+        find "$mount_path" -maxdepth 3
         hdiutil detach "$mount_path" -quiet
         return 1
     fi
@@ -111,7 +113,7 @@ download_macos() {
         cp -R "$OPENSCAD_MACOS_APP" "$DEPDIR/macos/OpenSCAD.app"
     else
         curl -L "$OPENSCAD_MACOS_URL" -o "$tmpdir/openscad.dmg"
-        copy_app_from_dmg "$tmpdir/openscad.dmg" "OpenSCAD.app" "$DEPDIR/macos/OpenSCAD.app" "$tmpdir/openscad_mount"
+        copy_app_from_dmg "$tmpdir/openscad.dmg" "OpenSCAD-$OPENSCAD_VERSION.app" "$DEPDIR/macos/OpenSCAD.app" "$tmpdir/openscad_mount"
     fi
 
     curl -L "$PRUSASLICER_MACOS_URL" -o "$tmpdir/prusaslicer.dmg"
