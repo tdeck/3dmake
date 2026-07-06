@@ -4,6 +4,7 @@ import shutil
 import json
 import hashlib
 import platform
+import subprocess
 import tomllib
 import requests
 import webbrowser
@@ -320,24 +321,30 @@ def add_self_to_path(bin_path: Path):
             # TODO not sure whether to give a setx command or not, hopefully this is a rare case
 
     else:  # Assume a Linux/Unix platform
-        bin_dir = Path(os.getenv('HOME')) / '.local' / 'bin' # This is in the XDG spec
+        bin_dir = Path.home() / '.local' / 'bin'  # This is in the XDG spec
 
         if bin_dir.exists():
             symlink_path = bin_dir / '3dm'
-            symlink_path.unlink(missing_ok=True) # Replace if one already exists
+            symlink_path.unlink(missing_ok=True)  # Replace if one already exists
             symlink_path.symlink_to(bin_path)
-        else:
-            # If it doesn't exist, maybe we could create it and it'll be in the PATH, but maybe
-            # not. Better to assume it won't work and tell the user to set things up themselves.
+            return
+        elif os_type == 'Darwin':
+            if yes_or_no("Do you want to make the 3dm command run from any folder? (recommended, requires admin password)"):
+                result = subprocess.run(['sudo', 'ln', '-sf', str(bin_path), '/usr/local/bin/3dm'], check=False)
+                if result.returncode == 0:
+                    return
+                else:
+                    print("Could not add to /usr/local/bin.")
 
-            user_shell = os.getenv('SHELL', '')
-            shell_config_file = '~/.profile'
-            if 'bash' in user_shell:
-                shell_config_file = '~/.bashrc'
-            elif 'zsh' in user_shell:
-                shell_config_file = '~/.zshrc'
+        # Fallback if we couldn't put it somewhere nice
+        user_shell = os.getenv('SHELL', '')
+        shell_config_file = '~/.profile'
+        if 'bash' in user_shell:
+            shell_config_file = '~/.bashrc'
+        elif 'zsh' in user_shell:
+            shell_config_file = '~/.zshrc'
 
-            print("3DMake was not added to your PATH automatically. Consider adding a line like")
-            print(f"this to your shell config file (e.g. {shell_config_file}):")
-            print(f'export PATH="{bin_path.parent}:$PATH"')
-            print(f"After doing this, you must reload your shell.")
+        print("3DMake was not added to your PATH automatically. Consider adding a line like")
+        print(f"this to your shell config file (e.g. {shell_config_file}):")
+        print(f'export PATH="{bin_path.parent}:$PATH"')
+        print(f"After doing this, you must reload your shell.")
