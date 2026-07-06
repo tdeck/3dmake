@@ -32,7 +32,10 @@ def help(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
         {action_descriptions}
 
         Options:
-            --scale 1.0         Scale by a decimal factor
+            --scale N           Uniform scale factor or percentage (e.g. 1.5 or 150%)
+            --scale-x N         Scale factor or percentage for X axis only (--sx)
+            --scale-y N         Scale factor or percentage for Y axis only (--sy)
+            --scale-z N         Scale factor or percentage for Z axis only (--sz)
             --model NAME        Choose a model in a multi-model project
             --profile NAME      Select a printer profile
             --overlay NAME      Apply an overlay to slicer settings; can be used multiple times
@@ -43,5 +46,5 @@ def help(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
             --colorscheme NAME  The name of the color used for an image export (short name)
             --image-size WxH    Image dimensions in pixels (e.g., 1920x1080, default: 1080x720)
 
-        Most options can be abbreviated as one letter with a single dash (e.g. -s 50% to scale)
+        Most options can be abbreviated as one letter with a single dash (e.g. -s 150% to scale)
     ''').format(action_descriptions=action_descriptions))

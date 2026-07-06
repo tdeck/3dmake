@@ -31,6 +31,14 @@ def error_out(message: str):
     print(message)
     sys.exit(1)
 
+def parse_scale_value(raw: str, flag_name: str) -> float:
+    try:
+        if raw.endswith('%'):
+            return float(raw[:-1]) / 100.0
+        return float(raw)
+    except ValueError:
+        error_out(f"Invalid value for {flag_name}, must be a number or percentage (e.g. 1.5 or 150%)")
+
 def load_config() -> Tuple[CommandOptions, Optional[Path]]:
     """ Returns merged options, project root """
     project_root = None
@@ -73,9 +81,13 @@ class VersionAction(argparse.Action):
 parser = argparse.ArgumentParser(
     prog='3dmake',
     add_help=False,
+    allow_abbrev=False,
 )
 
-parser.add_argument('-s', '--scale') # can be either "auto" or a float
+parser.add_argument('-s', '--scale') # factor (1.5) or percentage (150%)
+parser.add_argument('--scale-x', '--sx')
+parser.add_argument('--scale-y', '--sy')
+parser.add_argument('--scale-z', '--sz')
 parser.add_argument('-m', '--model')
 parser.add_argument('-v', '--view', type=str)
 parser.add_argument('-p', '--profile', type=str)
@@ -182,13 +194,15 @@ if should_load_options:
             error_out(f"This project requires 3DMake version {options.min_3dmake_version} or newer. "
                      f"Current version is {VERSION}. Please update 3DMake to continue.")
 
-    if args.scale: # TODO support x,y,z scaling
-        if args.scale.replace('.', '').isdecimal():
-            options.scale = float(args.scale)
-        elif args.scale.lower() == 'auto':
-            options.scale = 'auto'
-        else:
-            raise error_out("Invalid value for --scale, must be a decimal number or auto")
+    if args.scale:
+        options.scale = parse_scale_value(args.scale, '--scale')
+
+    if args.scale_x:
+        options.scale_x = parse_scale_value(args.scale_x, '--scale-x')
+    if args.scale_y:
+        options.scale_y = parse_scale_value(args.scale_y, '--scale-y')
+    if args.scale_z:
+        options.scale_z = parse_scale_value(args.scale_z, '--scale-z')
 
     if args.model:
         if infiles:
@@ -228,8 +242,11 @@ if should_load_options:
     if args.debug:
         options.debug = True
 
-    if options.scale == 'auto':
-        error_out("Auto-scaling is not supported yet") # TODO
+    if options.scale is not None and any([options.scale_x, options.scale_y, options.scale_z]):
+        error_out("Cannot use 'scale' and per-axis scale options (scale_x/y/z) together")
+
+    if options.scale is not None:
+        options.scale_x = options.scale_y = options.scale_z = options.scale
 
     file_set = FileSet(options, project_root)
 

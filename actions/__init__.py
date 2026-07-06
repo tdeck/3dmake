@@ -12,6 +12,7 @@ import actions.build_action as build_action
 import actions.mesh_actions as mesh_actions
 import actions.info_action as info_action
 import actions.orient_action as orient_action
+import actions.scale_action as scale_action
 import actions.preview_action as preview_action
 import actions.slice_action as slice_action
 import actions.print_action as print_action
@@ -29,6 +30,7 @@ _actions_in_order = [
 
     build_action.build, # must be before load_mesh
     preview_action.ensure_previewable_model, # must be after build
+    scale_action.scale,
     orient_action.orient, # must be before load_mesh
     mesh_actions.load_mesh,
     mesh_actions.measure_mesh,

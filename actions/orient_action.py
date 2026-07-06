@@ -12,7 +12,7 @@ def orient(ctx: Context, _, __):
     # This was basically copied from Tweaker.py since it doesn't have a code-based interface
     # to handle all meshes at once
     file_handler = FileHandler.FileHandler()
-    mesh_objects = file_handler.load_mesh(ctx.files.model)
+    mesh_objects = file_handler.load_mesh(ctx.files.model_to_orient())
     info = {}  # This is what Tweaker calls this; it needs a better name
     for part, content in mesh_objects.items():
         tweak_res = MeshTweaker.Tweak(

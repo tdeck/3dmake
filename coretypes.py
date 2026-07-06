@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Literal, Union, List, Tuple
+from typing import Optional, List, Tuple
 
 
 # For now this is a holding area for classes used in multiple places
@@ -15,7 +15,10 @@ class CommandOptions:
     view: str
     printer_profile: str
     copies: int = 1
-    scale: Union[float, Literal["auto"]] = 1.0
+    scale: Optional[float] = None
+    scale_x: Optional[float] = None
+    scale_y: Optional[float] = None
+    scale_z: Optional[float] = None
     overlays: List[str] = field(default_factory=list)
     auto_start_prints: bool = False
     debug: bool = False
@@ -88,14 +91,21 @@ class FileSet:
     scad_source: Optional[Path] = None
     model: Optional[Path] = None
 
+    scaled_model: Optional[Path] = None
     oriented_model: Optional[Path] = None
     projected_model: Optional[Path] = None
     preview_svg: Optional[Path] = None
     sliced_gcode: Optional[Path] = None
     rendered_images: dict[str, Optional[Path]]
 
+    def model_to_orient(self) -> Optional[Path]:
+        return self.scaled_model or self.model
+
+    def model_to_preview(self) -> Optional[Path]:
+        return self.oriented_model or self.scaled_model or self.model
+
     def model_to_slice(self) -> Optional[Path]:
-        return self.projected_model or self.oriented_model or self.model
+        return self.projected_model or self.oriented_model or self.scaled_model or self.model
 
     def final_outputs(self) -> list[Path]:
         """ Returns the most processed output file; which will be the command's final result in single file mode. """
@@ -111,7 +121,7 @@ class FileSet:
                 outputs.append(self.preview_svg)
             return outputs
 
-        res = self.oriented_model or (self.scad_source and self.model)
+        res = self.oriented_model or self.scaled_model or (self.scad_source and self.model)
 
         if res:
             return [res]

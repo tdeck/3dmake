@@ -5,6 +5,7 @@ from datetime import timedelta
 import subprocess
 
 from .framework import Context, SliceMetadata, pipeline_action
+from .scale_action import scale
 from utils.bundle_paths import DEPS
 from utils.logging import throw_subprogram_error
 from utils.output_streams import OutputStream, AccumulatorStream, OutputPipe
@@ -17,7 +18,7 @@ PRINT_WARNING_REGEX = re.compile(r'^(print(?:_object)?) warning:')
 
 MAX_CALCULATED_FILAMENT_DEVIATION_MM = 10
 
-@pipeline_action(gerund='slicing', input_file_type='.stl')
+@pipeline_action(gerund='slicing', input_file_type='.stl', implied_actions=[scale])
 def slice(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     ''' Slice the model and produce a printable gcode file '''
     if not ctx.files.model.exists():
@@ -54,7 +55,6 @@ def slice(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
         '--export-gcode',
         '-o', gcode_file,
         '--loglevel=1', # Log only errors
-        '--scale', str(ctx.options.scale),
     ]
 
     # Add duplicate option if more than 1 copy requested

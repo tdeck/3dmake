@@ -10,6 +10,7 @@ import trimesh
 import numpy as np
 from .framework import Context, internal_action, pipeline_action
 from .build_action import build
+from .scale_action import scale
 from .mesh_actions import measure_mesh
 from utils.bundle_paths import DEPS
 from utils.output_streams import OutputStream, FilterStream, OutputPipe
@@ -39,7 +40,7 @@ def ensure_previewable_model(
 @pipeline_action(
     gerund='preparing preview',
     input_file_type='.stl',
-    implied_actions=[ensure_previewable_model, measure_mesh],
+    implied_actions=[ensure_previewable_model, scale, measure_mesh],
 )
 def preview(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     ''' Produce a 2-D representation of the object '''
@@ -47,7 +48,7 @@ def preview(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     scad_vars: dict[str, str] = {} # Values should be code literals
 
     if view_name in NAMED_PROJECTION_CODE: # One of the default silhouettes
-        model_to_project = ctx.files.oriented_model or ctx.files.model
+        model_to_project = ctx.files.model_to_preview()
         to_svg_code = NAMED_PROJECTION_CODE[view_name]
         sizes = ctx.mesh_metrics.sizes()
         midpoints = ctx.mesh_metrics.midpoints()
