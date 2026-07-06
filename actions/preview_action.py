@@ -10,7 +10,6 @@ import trimesh
 import numpy as np
 from .framework import ActionResult, Context, internal_action, pipeline_action
 from .build_action import build
-from .scale_action import scale
 from .mesh_actions import measure_mesh
 from utils.bundle_paths import DEPS
 from utils.output_streams import OutputStream, FilterStream, OutputPipe
@@ -39,7 +38,7 @@ def ensure_previewable_model(
 @pipeline_action(
     gerund='preparing preview',
     input_file_types=['.stl'],
-    implied_actions=[ensure_previewable_model, scale, measure_mesh],
+    implied_actions=[ensure_previewable_model, measure_mesh],
 )
 def preview(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     ''' Produce a 2-D representation of the object '''

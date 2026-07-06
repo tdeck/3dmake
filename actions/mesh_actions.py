@@ -1,9 +1,10 @@
 import stl.mesh
 
 from .framework import Context, internal_action
+from .scale_action import scale
 from coretypes import MeshMetrics # TODO need a better home for this
 
-@internal_action
+@internal_action(implied_actions=[scale])
 def load_mesh(ctx: Context, _, __):
     """Load the STL mesh into context"""
     mesh = stl.mesh.Mesh.from_file(ctx.files.model_to_preview())
