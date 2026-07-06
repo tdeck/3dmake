@@ -43,6 +43,11 @@ SAME_KEYS = [
     'ironing_speed',
     #'ironing_type', # TODO not sure if this is formatted right so for now I disable
     'layer_height',
+    # NOTE: Bambu Studio embeds these as single values (the physical hardware max), while PrusaSlicer
+    # expects "normal,silent" pairs. A single value is safe — PrusaSlicer's get_option_value() clamps
+    # to values.back() for out-of-range indices, so silent mode silently inherits the normal-mode value.
+    # Gcode output is unaffected (always uses values.front()). For accuracy, verify silent-mode values
+    # against OrcaSlicer/BambuStudio JSON profiles and add the second value manually if needed.
     'machine_max_acceleration_e',
     'machine_max_acceleration_extruding',
     'machine_max_acceleration_retracting',
