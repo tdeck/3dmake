@@ -242,7 +242,10 @@ project_name    | The project's name, used to name GCODE files      | Project fo
 model_name      | The project's default model name                  | `"main"`                      | `"box_lid"`
 view            | The default view to use in [previews](#Previews)  | `"3sil"`                        | `"topsil"`
 printer_profile | The default printer profile name                  | What you set in 3dm setup     | `"prusa_MK4"`
-scale           | Uniform scale factor when slicing the model       | `1.0`                         | `1.05`
+scale           | Uniform scale factor applied to the model (factor or percentage, e.g. `1.5` or `150%`) | none (no scaling) | `1.05`
+scale_x         | Scale factor for the X axis only                  | none (no scaling)             | `2.0`
+scale_y         | Scale factor for the Y axis only                  | none (no scaling)             | `0.5`
+scale_z         | Scale factor for the Z axis only                  | none (no scaling)             | `150%`
 overlays        | Default overlays to apply when printing           | `[]` (empty list)             | `["supports"]`
 print_mode      | How to connect to the printer (for 3dm print). Options are `octoprint`, `bambu_connect`, and `bambu_lan`    | `"octoprint"`                 | `"bambu_connect"`
 octoprint_host  | The URL of your OctoPrint instance                | What you set in 3dm setup     | `"http://192.168.1.10"`
