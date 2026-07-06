@@ -44,6 +44,7 @@ _actions_in_order = [
     edit_actions.edit_model,
     edit_actions.edit_overlay,
     edit_actions.edit_profile,
+    edit_actions.clone_profile,
     edit_profile_gcode_action.edit_profile_gcode,
     edit_actions.edit_prompt,
     edit_actions.edit_global_config,

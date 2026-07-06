@@ -3,7 +3,7 @@ from pathlib import Path
 
 from .framework import Context, isolated_action
 from utils.print_config import list_printer_profiles, list_overlays, OverlayName
-from utils.user_prompts import yes_or_no, option_select, prompt
+from utils.user_prompts import yes_or_no, option_select, option_select_with_current, prompt
 from utils.editor import launch_editor
 from utils.llm_prompt import ensure_custom_prompt_exists
 from utils.output_streams import OutputStream
@@ -30,6 +30,33 @@ def edit_model(ctx: Context, stdout: OutputStream, __):
 def edit_global_config(ctx: Context, _, __):
     ''' Edit 3DMake user settings file (default printer, API keys, etc...) '''
     launch_editor(ctx.options, ctx.config_dir / "defaults.toml")
+
+@isolated_action(needs_options=True)
+def clone_profile(ctx: Context, stdout: OutputStream, __):
+    ''' Clone an existing printer profile under a new name '''
+
+    profiles = list_printer_profiles(ctx.config_dir)
+    if not profiles:
+        raise RuntimeError("No printer profiles found.")
+
+    profile_options = [(p.replace('_', ' '), p) for p in profiles]
+    source_profile = option_select_with_current("Choose a profile to clone", profile_options, ctx.options.printer_profile)
+
+    new_name = prompt("Name for new profile: ").strip()
+    if not new_name:
+        raise RuntimeError("Profile name cannot be empty.")
+
+    new_name_key = new_name.replace(' ', '_')
+    dest_path = ctx.config_dir / "profiles" / f"{new_name_key}.ini"
+    if dest_path.exists():
+        raise RuntimeError(f"A profile named '{new_name_key}' already exists.")
+
+    source_path = ctx.config_dir / "profiles" / f"{source_profile}.ini"
+    shutil.copy(source_path, dest_path)
+    stdout.writeln(f"Created profile '{new_name_key}'.")
+
+    if yes_or_no("Open new profile in editor?"):
+        launch_editor(ctx.options, dest_path)
 
 @isolated_action(needs_options=True)
 def edit_profile(ctx: Context, _, __):

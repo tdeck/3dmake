@@ -12,7 +12,7 @@ from typing import Dict, Any
 
 from .framework import Context, isolated_action
 from utils.print_config import list_printer_profiles, read_profile_config
-from utils.user_prompts import yes_or_no, option_select, prompt
+from utils.user_prompts import yes_or_no, option_select, option_select_with_current, prompt
 from utils.bundle_paths import SCRIPT_DIR, SCRIPT_BIN_PATH, IS_PYINSTALLER_DISTRIBUTION, INSTALL_DIR
 from version import VERSION
 from default_file_hashes import BUNDLED_PATH_HASHES
@@ -78,16 +78,6 @@ def prompt_with_current(question: str, current_value: Any = None) -> str:
     else:
         return prompt(f"{question}: ").strip()
 
-def option_select_with_current(question: str, options, current_value: str = None):
-    """Option select with current value shown and option to keep it"""
-    if current_value is not None:
-        print(f"{question}, or press ENTER to keep current value ({current_value}):")
-        result = option_select("", options, allow_none=True)
-        if result is None:
-            return current_value
-        return result
-    else:
-        return option_select(question, options)
 
 @isolated_action
 def setup(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):

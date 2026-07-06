@@ -38,7 +38,7 @@ def list_overlays(config_dir: Path) -> List[OverlayName]:
         for filename in filenames:
             if filename.lower().endswith(".ini"):
                 results.append(OverlayName(name=filename[:-4], profile=profile))
-    return results
+    return sorted(results, key=lambda o: (o.name, o.profile or ''))
 
 
 def read_config_values(ini_files: list[Path]) -> dict[str, str]:

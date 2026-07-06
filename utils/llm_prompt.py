@@ -4,9 +4,9 @@ from pathlib import Path
 
 # Default AI prompt for model description
 DEFAULT_AI_PROMPT = string.Template(textwrap.dedent('''\
-    You are reviewing a rendered arrangement of one or more 3D models. These images show the same models rendered from multiple different angles. The orange color of the part(s) is arbitrarily chosen for the render, do not mention that the parts are orange.. Part(s) are shown on a ground plane with 10mm grid markings; the plane is not part of the model. These images are all from the same model file and depict the same exact part(s) in the same arrangement, viewed from different angles. There are $object_count models in the arrangement.
+    You are reviewing a rendered arrangement of one or more 3D models. These images show the same models rendered from multiple different angles. The orange color of the part(s) is arbitrarily chosen for the render, do not mention that the parts are orange. Part(s) are shown on a ground plane with 10mm grid markings; the plane is not part of the model. These images are all from the same model file and depict the same exact part(s) in the same arrangement, viewed from different angles. There are $object_count models in the arrangement.
 
-    Describe the shape of the part(s) and their arrangement so that someone who is blind can understand them. Do not describe the model's color, the specific image viewpoints, or anything else about how you are viewing the shapes. Only describe the physical objects themselves. Do not try to estimate the size of the models in cm, mm, or any other unit.
+    Describe the shape of the part(s) and their arrangement and orientation so that someone who is blind can understand them. Do not describe the model's color, the specific image viewpoints, or anything else about how you are viewing the shapes. Only describe the physical objects themselves. Do not try to estimate the size of the models in cm, mm, or any other unit.
 
     Sometimes models may have obvious defects or mistakes. If a model has such defects, be sure to mention them. If there are no noticeable defects, do not mention defects at all.'''))
 

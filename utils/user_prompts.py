@@ -18,6 +18,17 @@ def yes_or_no(question: str) -> bool:
     answer = prompt(f"{question} (y or n): ").strip()
     return answer == 'y'
 
+def option_select_with_current(question: str, options: List[Tuple[str, Any]], current_value: str = None) -> Any:
+    if current_value is not None:
+        print(f"{question}, or press ENTER to use the current value ({current_value}):")
+        result = option_select("", options, allow_none=True)
+        if result is None:
+            print(f"Selected: {current_value}")
+            return current_value
+        return result
+    else:
+        return option_select(question, options)
+
 def option_select(prompt_msg: str, options: List[Tuple[str, Any]], allow_none=False) -> Optional[Any]:
     while True:
         print(prompt_msg)
