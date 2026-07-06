@@ -21,7 +21,7 @@ from version import VERSION
 from coretypes import FileSet, CommandOptions
 from utils.user_prompts import yes_or_no, prompt
 from utils.update_check import newer_3dmake_version
-from actions import ALL_ACTIONS_IN_ORDER, Context
+from actions import ALL_ACTIONS_IN_ORDER, Context, ActionResult
 
 CONFIG_DIR = Path(os.environ['THREEDMAKE_CONFIG_DIR']) if 'THREEDMAKE_CONFIG_DIR' in os.environ else user_config_path('3dmake', None)
 PROFILES_DIR = CONFIG_DIR / 'profiles'
@@ -137,13 +137,16 @@ if infiles and Path(infiles[0]).suffix.lower() == '.scad':
     verbs.add('build')
 
 # Check verbs and insert any implied ones (recursively)
-def add_implied_actions(verb_name, mutable_verbs_set):
+def add_implied_actions(verb_name, mutable_verbs_set) -> set[str]:
+    added = set()
     action = ALL_ACTIONS_IN_ORDER.get(verb_name)
     if action:
         for dependency in action.implied_actions:
             if dependency not in mutable_verbs_set:
                 mutable_verbs_set.add(dependency)
-                add_implied_actions(dependency, mutable_verbs_set)
+                added.add(dependency)
+                added.update(add_implied_actions(dependency, mutable_verbs_set))
+    return added
 
 verb_count = len(verbs)
 should_load_options = False
@@ -162,8 +165,7 @@ for verb in list(verbs):
         should_load_options = True
     if action.uses_project_files:
         needs_project_files = True
-    if action.input_file_type:
-        accepted_input_types.add(action.input_file_type)
+    accepted_input_types.update(action.input_file_types)
 
     # Add implied actions recursively
     add_implied_actions(verb, verbs)
@@ -272,6 +274,8 @@ elif infiles:
     elif extension == '.scad':
         file_set.scad_source = single_infile
         file_set.model = file_set.build_dir / f"{options.model_name}.stl"
+    elif extension == '.gcode':
+        file_set.sliced_gcode = single_infile
 elif not needs_project_files:
     pass # Skip setting up the project root since we shouldn't need it
 elif project_root:
@@ -291,10 +295,29 @@ with ThreadPoolExecutor(max_workers=1) as executor:
     try:
         update_check_future = executor.submit(newer_3dmake_version, CONFIG_DIR, VERSION)
 
+        action_names = list(ALL_ACTIONS_IN_ORDER.keys())
         for name, action in ALL_ACTIONS_IN_ORDER.items():
             if name in verbs:
                 try:
-                    action(context)
+                    result = action(context)
+                    if isinstance(result, ActionResult):
+                        current_idx = action_names.index(name)
+                        for after_action in result.after_actions:
+                            after_idx = action_names.index(after_action.name)
+                            if after_idx <= current_idx:
+                                raise RuntimeError(
+                                    f"Bug: '{name}' returned after_action '{after_action.name}'"
+                                    f" which comes before it in ALL_ACTIONS_IN_ORDER"
+                                )
+                            newly_added = add_implied_actions(after_action.name, verbs)
+                            verbs.add(after_action.name)
+                            for added_name in newly_added:
+                                if action_names.index(added_name) <= current_idx:
+                                    raise RuntimeError(
+                                        f"Bug: '{name}' returned after_action '{after_action.name}'"
+                                        f" whose implied action '{added_name}' comes before '{name}'"
+                                        f" in ALL_ACTIONS_IN_ORDER"
+                                    )
                 except Exception as e:
                     if options and options.debug:
                         raise

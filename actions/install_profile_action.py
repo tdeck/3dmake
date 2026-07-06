@@ -6,7 +6,7 @@ import utils.print_config as print_config
 from utils.output_streams import OutputStream
 from utils.user_prompts import yes_or_no
 
-@isolated_action(needs_options=True, input_file_type='.ini')
+@isolated_action(needs_options=True, input_file_types=['.ini'])
 def install_profile(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     ''' Installs a new printer profile .INI file '''
     if not ctx.files.explicit_input_file:

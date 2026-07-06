@@ -42,6 +42,10 @@ class Context:
     # These are attached by the slicing step
     slice_metadata: Optional[SliceMetadata] = None
 
+@dataclass
+class ActionResult:
+    after_actions: List['Action'] = field(default_factory=list)
+
 ActionName = str
 ActionFunc = Callable[[Context, OutputStream, OutputStream], None] # stdout, verbose stdout
 
@@ -55,7 +59,7 @@ class Action:
     isolated: bool  # True means the verb can't be run with other verbs
     needs_options: bool
     uses_project_files: bool
-    input_file_type: Optional[str] = None  # File extension this action accepts as input (e.g. '.stl')
+    input_file_types: List[str] = field(default_factory=list)
     last_in_chain: bool = False  # True means no later actions in internal ordering can be executed
     implied_actions: List[ActionName] = field(default_factory=list)
     impl: ActionFunc
@@ -99,7 +103,7 @@ def isolated_action(
     name: Optional[str] = None,
     needs_options:bool = False,
     uses_project_files:bool = False,
-    input_file_type: Optional[str] = None,
+    input_file_types: List[str] = [],
 ):
     def wrap(func: ActionFunc) -> ActionFunc:
         return Action(
@@ -108,7 +112,7 @@ def isolated_action(
             isolated=True,
             uses_project_files=uses_project_files,
             needs_options=needs_options,
-            input_file_type=input_file_type,
+            input_file_types=input_file_types,
             impl=func,
         )
 
@@ -124,7 +128,7 @@ def pipeline_action(
     implied_actions: List[Action] = [],
     internal = False,  # Note: It would be better to call @internal_action for internal actions!
     last_in_chain: bool = False,
-    input_file_type: Optional[str] = None,
+    input_file_types: List[str] = [],
 ):
     # This is a little convenience thing we do so that the caller of pipeline_actions
     # needs to specify actions that actually exist, and we save them from calling .name
@@ -140,7 +144,7 @@ def pipeline_action(
             needs_options=True,
             internal=internal,
             last_in_chain=last_in_chain,
-            input_file_type=input_file_type,
+            input_file_types=input_file_types,
             implied_actions=implied_action_names,
             impl=func,
         )

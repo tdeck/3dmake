@@ -13,12 +13,12 @@ import paho.mqtt.client as mqtt
 
 from .framework import Context, SliceMetadata, pipeline_action
 from utils.output_streams import OutputStream
-from .slice_action import slice as slice_model
+from .slice_action import load_gcode_or_slice
 from utils.bundle_paths import BAMBU_3MF_TEMPLATE_PATH
 from utils.ftp import ImplicitFTPS
 from utils.bambu import SLICE_INFO_CONFIG_TEMPLATE, vendor_is_bambu
 
-@pipeline_action(name='print', implied_actions=[slice_model], input_file_type='.stl')
+@pipeline_action(name='print', implied_actions=[load_gcode_or_slice], input_file_types=['.stl', '.gcode'])
 def print_3d(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     ''' Send the sliced model to the printer '''
 

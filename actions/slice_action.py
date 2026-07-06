@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import timedelta
 import subprocess
 
-from .framework import Context, SliceMetadata, pipeline_action
+from .framework import Context, SliceMetadata, ActionResult, pipeline_action, internal_action
 from .scale_action import scale
 from utils.bundle_paths import DEPS
 from utils.logging import throw_subprogram_error
@@ -18,7 +18,36 @@ PRINT_WARNING_REGEX = re.compile(r'^(print(?:_object)?) warning:')
 
 MAX_CALCULATED_FILAMENT_DEVIATION_MM = 10
 
-@pipeline_action(gerund='slicing', input_file_type='.stl', implied_actions=[scale])
+def parse_gcode_metadata(gcode_file: Path) -> SliceMetadata:
+    slicer_keys = extract_slicer_keys(gcode_file)
+    time_str = (
+        slicer_keys.get('estimated printing time (normal mode)')
+        or slicer_keys.get('estimated printing time (silent mode)')
+    )
+    return SliceMetadata(
+        printer_model=slicer_keys.get('printer_model', ''),
+        printer_settings_id=slicer_keys.get('printer_settings_id', ''),
+        printer_vendor=slicer_keys.get('printer_vendor', ''),
+        nozzle_diameters=[float(d) for d in slicer_keys.get('nozzle_diameter', '0.4').split(',')],
+        supports_enabled=slicer_keys.get('support_material', '0').strip() == '1',
+        estimated_duration=parse_gcode_time(time_str) if time_str else timedelta(),
+        estimated_grams=float(slicer_keys.get('total filament used [g]') or 0),
+    )
+
+@internal_action
+def load_gcode_or_slice(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
+    # This is run early in the pipeline for a print action. If the user provided a gcode
+    # file, it simply loads that file's slice metadata. Otherwise, it will ensure that
+    # a build step is added to the pipeline (if not already present) so that we always
+    # have a built model ready to print.
+    if ctx.files.sliced_gcode is not None:
+        if ctx.slice_metadata is None:
+            ctx.slice_metadata = parse_gcode_metadata(ctx.files.sliced_gcode)
+            debug_stdout.writeln(f"Parsed slice metadata: {ctx.slice_metadata}")
+        return
+    return ActionResult(after_actions=[slice])
+
+@pipeline_action(gerund='slicing', input_file_types=['.stl'], implied_actions=[scale])
 def slice(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     ''' Slice the model and produce a printable gcode file '''
     if not ctx.files.model.exists():

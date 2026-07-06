@@ -21,7 +21,7 @@ from utils.user_prompts import prompt
 @pipeline_action(
     gerund='examining',
     implied_actions=[measure_mesh],
-    input_file_type='.stl',
+    input_file_types=['.stl'],
     last_in_chain=True,
 )
 def info(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):

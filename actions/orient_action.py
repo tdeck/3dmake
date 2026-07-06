@@ -2,7 +2,7 @@ import threading
 
 from .framework import Context, pipeline_action
 
-@pipeline_action(gerund='auto-orienting', input_file_type='.stl')
+@pipeline_action(gerund='auto-orienting', input_file_types=['.stl'])
 def orient(ctx: Context, _, __):
     ''' Auto-orient the model to minimize support '''
     from tweaker3 import MeshTweaker, FileHandler  # Slow import

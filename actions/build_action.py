@@ -8,7 +8,7 @@ from utils.libs import resolve_lib_include_dirs
 from utils.logging import throw_subprogram_error, show_subprocess_timer
 from utils.scad_snippets import NAMED_PROJECTION_CODE
 
-@pipeline_action(input_file_type='.scad')
+@pipeline_action(input_file_types=['.scad'])
 def build(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     ''' Build the OpenSCAD model and produce an STL file '''
 

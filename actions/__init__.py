@@ -2,7 +2,7 @@ import importlib
 import pkgutil
 from collections import OrderedDict
 
-from .framework import Context
+from .framework import Context, ActionResult
 import actions.setup_action as setup_action
 import actions.new_action as new_action
 import actions.help_action as help_action
@@ -28,8 +28,12 @@ _actions_in_order = [
     setup_action.setup,
     new_action.new,
 
+    # The following group should be at the start of a chain,
+    # they produce after_actions
+    slice_action.load_gcode_or_slice,
+    preview_action.ensure_previewable_model,
+
     build_action.build, # must be before load_mesh
-    preview_action.ensure_previewable_model, # must be after build
     scale_action.scale,
     orient_action.orient, # must be before load_mesh
     mesh_actions.load_mesh,

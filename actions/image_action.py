@@ -16,7 +16,7 @@ COLORSCHEMES = {
 
 @pipeline_action(
     gerund='imaging',
-    input_file_type='.stl',
+    input_file_types=['.stl'],
     last_in_chain=True,
     implied_actions=[load_mesh],
 )

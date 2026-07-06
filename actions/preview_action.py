@@ -8,7 +8,7 @@ import tempfile
 
 import trimesh
 import numpy as np
-from .framework import Context, internal_action, pipeline_action
+from .framework import ActionResult, Context, internal_action, pipeline_action
 from .build_action import build
 from .scale_action import scale
 from .mesh_actions import measure_mesh
@@ -28,18 +28,17 @@ def ensure_previewable_model(
     # This ensures we rebuild the model if we're doing a preview plane build, because
     # the plane is extracted based on the current SCAD code, and if the build is stale
     # it won't correspond properly.
-    if ctx.options.view in NAMED_PROJECTION_CODE:
-        return # No need for a fresh build
-    elif ctx.build_metadata is not None:
-        return # Already built, they ran `3dm build preview`
-
-    # TODO this is a bit hacky because we're creating a new wrapper around stdout
-    # rather than using the existing chain
-    build(ctx)
+    if ctx.files.model_to_preview() and ctx.options.view in NAMED_PROJECTION_CODE:
+        # Named projections can use a model even if it's older than the scad source
+        return
+    else:
+        # If they ran `3dm build preview` this will be a no-op since build is already
+        # in the chain
+        return ActionResult(after_actions=[build])
 
 @pipeline_action(
     gerund='preparing preview',
-    input_file_type='.stl',
+    input_file_types=['.stl'],
     implied_actions=[ensure_previewable_model, scale, measure_mesh],
 )
 def preview(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
