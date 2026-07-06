@@ -26,7 +26,6 @@ SAME_KEYS = [
     'filament_cost',
     'filament_density',
     'filament_diameter',
-    'filament_max_volumetric_speed',
     'filament_minimal_purge_on_wipe_tower',
     'filament_notes',
     'filament_settings_id',
@@ -168,6 +167,12 @@ MAPPED_KEYS = {
     # Bed geometry
     'printable_area': 'bed_shape',
     'printable_height': 'max_print_height',
+
+    # NOTE: Bambu's filament_max_volumetric_speed is per-filament and may be comma-separated
+    # for multi-material prints (e.g. "21,13"). For single-material prints this is just a number.
+    # PrusaSlicer's max_volumetric_speed is a single printer-level value, so for multi-material
+    # extractions you may want to take the minimum value and set it manually.
+    'filament_max_volumetric_speed': 'max_volumetric_speed',
 
     # Pattern settings (strings)
     # TODO these pattern names may need to be translated
