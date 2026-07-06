@@ -4,11 +4,11 @@ from typing import List, Optional
 from dataclasses import dataclass
 
 def list_printer_profiles(config_dir: Path)-> List[str]:
-    return [
+    return sorted([
         file_name[:-4] # Strip extension
         for file_name in os.listdir(config_dir / "profiles")
-            if file_name.endswith(".ini")  # Filter for INI files
-    ]
+            if file_name.endswith(".ini")
+    ])
 
 @dataclass(kw_only=True)
 class OverlayName:

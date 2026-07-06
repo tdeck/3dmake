@@ -31,6 +31,7 @@ def option_select(prompt_msg: str, options: List[Tuple[str, Any]], allow_none=Fa
         if allow_none and res == '':
             return None
         if res.isdigit() and int(res) in index_to_opts:
+            print(f"Selected: {options[int(res) - 1][0]}")
             return index_to_opts[int(res)]
         elif res.lower() == 'again':
             continue
