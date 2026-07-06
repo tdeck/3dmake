@@ -19,13 +19,14 @@ Thanks for trying 3DMake!
 Download the latest version of 3DMake for your operating system by following these links:
 - [Windows](https://github.com/tdeck/3dmake/releases/latest/download/3dmake_windows.zip)
 - [Linux (x86-64)](https://github.com/tdeck/3dmake/releases/latest/download/3dmake_linux.tar.gz)
+- [macOS](https://github.com/tdeck/3dmake/releases/latest/download/3dmake_macos.tar.gz)
 
 3DMake is a command line program, which means you need to run it from the terminal (or command prompt). If you've never used the terminal before, read the [terminal quick start guide](docs/terminal_quick_start.md).
 
 To set up 3DMake, extract the release for your operating system and navigate to the 3DMake folder
 in your terminal. Run `./3dm setup` and answer a few questions to complete the setup process.
 
-Once this is done, `3dm` should be installed so that you can run it by simply typing 3dm in your terminal from any folder. Do not delete the original directory where you extracted 3DMake.
+Once this is done, `3dm` should be installed so that you can run it by simply typing 3dm in your terminal from any folder. You can then delete the files you downloaded and extracted.
 
 ## Starting a new project
 
@@ -39,7 +40,7 @@ Model design in 3DMake is based on [OpenSCAD](https://openscad.org/), a text-bas
 
 You can open your project's main model in a text editor with `3dm edit-model` - this will simply open the file `src/main.scad`. You can select a different model name with the `-m` option when running 3DMake; if you want to edit the "lid.scad" model, you'd run `3dm edit-model -m lid`.
 
-By default, 3DMake's edit commands use Notepad in Windows. To configure a different editor, you can set its path in the [3DMake configuration](#global-config) For example, to configure Notepad++ on Windows, you might add this line to your config:
+By default, 3DMake's edit commands use Notepad in Windows and the system text editor in macOS. To configure a different editor, you can set its path in the [3DMake configuration](#global-config) For example, to configure Notepad++ on Windows, you might add this line to your config:
 
 ```
 # The triple quotes below allow your program's path to contain backslashes
@@ -185,6 +186,9 @@ There is no need to run `3dm install-libraries` for local libraries. When you us
 
 If you come across and OpenSCAD library that you'd like to see included in 3DMake's library manager, please get in touch. I'd like to grow the list of libraries in the future.
 
+## Updating 3DMake
+When a new version of 3DMake is released, you can upgrade simply by running `3dm self-update`.
+
 ## Advanced AI options
 Google Gemini is the easiest way to get started with AI model descriptions for free, but advanced users may want to try different AI models or edit the prompt that 3DMake uses. This can be done by editing 3DMake's configuration files.
 
@@ -193,6 +197,8 @@ Google Gemini is the easiest way to get started with AI model descriptions for f
 
 ### Changing the prompt
 You can customize the prompt that gets sent to the AI model using the `3dm edit-prompt` command. The first time you run this command, you'll start with a text file containing the default prompt. The AI will always get the same images of the model from the same set of camera angles, so it's a good idea to keep some text explaining what the images are.
+
+AI models often have trouble counting objects, so 3DMake can provide a count of the solid objects within the prompt. If you include the string `$object_count` in your prompt, it will be replaced with the number of solid objects when prompting the AI.
 
 ### Changing the model
 3DMake has a default Gemini model it uses, which is the best image description model available to users of Gemini's free tier. If you want to change it, you can set the `llm_name` configuration key to one of Google's model variant names. [Here is Google's official documentation for the model variants](https://ai.google.dev/gemini-api/docs/models). Example model variant names are `gemini-2.5-pro` and `gemini-2.5-flash`.
@@ -236,7 +242,10 @@ project_name    | The project's name, used to name GCODE files      | Project fo
 model_name      | The project's default model name                  | `"main"`                      | `"box_lid"`
 view            | The default view to use in [previews](#Previews)  | `"3sil"`                        | `"topsil"`
 printer_profile | The default printer profile name                  | What you set in 3dm setup     | `"prusa_MK4"`
-scale           | Uniform scale factor when slicing the model       | `1.0`                         | `1.05`
+scale           | Uniform scale factor applied to the model (factor or percentage, e.g. `1.5` or `150%`) | none (no scaling) | `1.05`
+scale_x         | Scale factor for the X axis only                  | none (no scaling)             | `2.0`
+scale_y         | Scale factor for the Y axis only                  | none (no scaling)             | `0.5`
+scale_z         | Scale factor for the Z axis only                  | none (no scaling)             | `150%`
 overlays        | Default overlays to apply when printing           | `[]` (empty list)             | `["supports"]`
 print_mode      | How to connect to the printer (for 3dm print). Options are `octoprint`, `bambu_connect`, and `bambu_lan`    | `"octoprint"`                 | `"bambu_connect"`
 octoprint_host  | The URL of your OctoPrint instance                | What you set in 3dm setup     | `"http://192.168.1.10"`
@@ -246,8 +255,8 @@ bambu_access_code | The access code for your Bambu printer          | none      
 bambu_serial_number | The serial number of your Bambu printer       | none                          | `"1234ABCDEF..."`
 auto_start_prints | When uploading to `3dm print`, start the print right away | `true`              | `false`
 strict_warnings | Fail `3dm build` when OpenSCAD sees a problem with your code | `false`[^1]           | `true`
-editor          | Command to open your preferred text editor        | "notepad" in Windows[^2]      | `"code"`
-edit_in_background | Exit 3DMake after starting an editor           | `true` when using Notepad, `false` otherwise     | `false`
+editor          | Command to open your preferred text editor        | "notepad" in Windows, "open -t" in macOS[^2] | `"code"`
+edit_in_background | Exit 3DMake after starting an editor           | `true` when using Notepad or `open -t`, `false` otherwise | `false`
 gemini_key      | Your Gemini API key (do not share this)           | What you set in 3dm setup     | `"47b64..."`
 llm_name        | The name of the gemini or OpenRouter model to use | Depends on 3dmake version     | `"gemini-2.5-pro"`
 openrouter_key  | Your OpenRouter API key (takes priority over Gemini) | none | `"sk-or-v1-1234..."`
@@ -268,7 +277,7 @@ Some of these settings can be further overridden on the command line (for exampl
 
 [^1]: `strict_warnings` is `false` in your global config, but it's `true` for 3dmake.toml files in newly created projects. This is because if you are trying to build OpenSCAD files you downloaded directly, many of them will produce warnings and be broken by a global setting of `true`. However, setting this to `true` for your new code is a good idea.
 
-[^2]: In Linux, 3DMake tries to use your existing `VISUAL` and `EDITOR` environment variables if you don't set an editor. If it finds none of those, it uses GNU Nano.
+[^2]: In macOS, 3DMake setup uses `open -t` so files open in your system text editor. If you don't set an editor in macOS or Linux, 3DMake tries your existing `VISUAL` and `EDITOR` environment variables. If it finds none of those, it uses GNU Nano.
 
 [^3]: If your text editor opens a new window, you generally want this to be true so you can keep the editor open and still use 3DMake in your terminal window. However, if your editor runs in the terminal (like Vim, for example), it will be broken by this setting.
 
@@ -278,3 +287,4 @@ Some of these settings can be further overridden on the command line (for exampl
 The people below have generously contributed code that is included in the release of 3DMake.
 
 - Ryan (Michael) Hunsaker
+- Ashley Cox
