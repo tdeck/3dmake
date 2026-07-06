@@ -1,5 +1,5 @@
 # Generate by scripts/list_default_file_hashes.py
-LATEST_TAG_RECORDED = 'v0.9'
+LATEST_TAG_RECORDED = 'v0.9.1+macos'
 BUNDLED_PATH_HASHES = {'library_catalog.toml': {'3964d6d30ce75682e3fd6e4efe7282644f262ec5eb082e5be37341e1aeb1c31b',
                           '7d4c3dffaef6632cb47b2e552c618d1692c867bfea630842b7991d8e4b5b58f3'},
  'overlays/default/ABS.ini': {'18c54212207def44caae3e0f901461ae0a2033fbf1b0697eb8ccef86b0cdfc85',
