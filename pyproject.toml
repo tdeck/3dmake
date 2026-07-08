@@ -21,6 +21,7 @@ dependencies = [
     "packaging",
     "trimesh",
     "networkx",
+    "toga>=0.5.6",
 ]
 
 [tool.uv]
@@ -37,6 +38,7 @@ dev = [
     "pywin32-ctypes; sys_platform == 'win32'",
     "pefile; sys_platform == 'win32'",
     "macholib; sys_platform == 'darwin'",
+    "py-spy>=0.4.2",
 ]
 
 [tool.uv.sources.tweaker3]

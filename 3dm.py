@@ -21,6 +21,7 @@ from version import VERSION
 from coretypes import FileSet, CommandOptions
 from utils.user_prompts import yes_or_no, prompt
 from utils.update_check import newer_3dmake_version
+from utils.test_flags import test_flag_set
 from actions import ALL_ACTIONS_IN_ORDER, Context, ActionResult
 
 CONFIG_DIR = Path(os.environ['THREEDMAKE_CONFIG_DIR']) if 'THREEDMAKE_CONFIG_DIR' in os.environ else user_config_path('3dmake', None)
@@ -341,7 +342,8 @@ with ThreadPoolExecutor(max_workers=1) as executor:
                     print(f"Result files:")
                     for file in outputs:
                         print(f"    {file.name}")
-        print("Done.")
+        if not test_flag_set('GUI_MODE'):
+            print("Done.")
 
     finally:
         try:

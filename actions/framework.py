@@ -8,6 +8,7 @@ from datetime import timedelta
 from stl.mesh import Mesh
 
 from utils.output_streams import OutputStream, PipeOutputStream, TransformerStream, NullOutputStream
+from utils.test_flags import test_flag_set
 from coretypes import CommandOptions, FileSet, MeshMetrics
 
 @dataclass(kw_only=True)
@@ -75,13 +76,18 @@ class Action:
             stdout_stream = PipeOutputStream(sys.stdout)
             return self.impl(context, stdout_stream, stdout_stream if debug_mode else NullOutputStream())
         else:
-            if not self.internal:
+            gui_mode = test_flag_set('GUI_MODE')
+
+            if not self.internal and not gui_mode:
                 # I'm not sure what I should do if the internal action *does* produce output;
                 # would be good to have a heading
                 gerund_str = self.gerund or (self.name + 'ing')
                 print(f"\n{gerund_str.capitalize()}...")
 
-            stdout_stream = TransformerStream(PipeOutputStream(sys.stdout), lambda t: f"    {t}")
+            if gui_mode:
+                stdout_stream = PipeOutputStream(sys.stdout)
+            else:
+                stdout_stream = TransformerStream(PipeOutputStream(sys.stdout), lambda t: f"    {t}")
             debug_stream = stdout_stream if debug_mode else NullOutputStream()
 
             return self.impl(context, stdout_stream, debug_stream)
