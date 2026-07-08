@@ -16,14 +16,14 @@ if [[ ! -x "deps/macos/OpenSCAD.app/Contents/MacOS/OpenSCAD" || ! -x "deps/macos
     exit 1
 fi
 
-pipenv sync --dev
+uv sync -q
 
 if [[ "${1:-}" == "--release" ]]; then
     echo "Release build"
-    pipenv run python scripts/release_check.py
+    uv run python scripts/release_check.py
 fi
 
-pipenv run pyinstaller --clean -y 3dm.spec
+uv run pyinstaller --clean -y 3dm.spec
 rm -rf dist/3dmake/_internal/deps/macos
 mkdir -p dist/3dmake/_internal/deps
 mkdir -p dist/3dmake/_internal/deps/macos

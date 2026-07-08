@@ -10,10 +10,10 @@ When extending existing code to a new use case, it's better to refactor the exis
 ## Commands
 
 ### Development Environment
-- **Dependencies**: Uses Pipenv for dependency management
-  - `pipenv install` - Install dependencies
-  - `pipenv shell` - Activate virtual environment
-  - Python 3.13 is required (see Pipfile)
+- **Dependencies**: Uses [uv](https://docs.astral.sh/uv/) for dependency management
+  - `uv sync` - Install dependencies (including dev dependencies)
+  - `uv run <command>` - Run a command inside the project's virtual environment
+  - Python 3.13 is required (see pyproject.toml)
 
 ### Running the Application
 - **Main entry point**: `python 3dm.py` or `./3dm.py` (executable Python script)

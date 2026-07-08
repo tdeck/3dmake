@@ -5,3 +5,4 @@ __pycache__/
 .DS_Store
 /deps/macos/*.app/
 /deps/macos/*.app.tar.xz
+/.venv/

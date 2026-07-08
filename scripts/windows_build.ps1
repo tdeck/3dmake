@@ -1,12 +1,12 @@
 $ErrorActionPreference = "Stop"
-pipenv sync --dev
+uv sync -q
 
 if ($args[0] -eq "--release") {
     Write-Output "Release build"
-    pipenv run python scripts/release_check.py
+    uv run python scripts/release_check.py
 }
 
-pipenv run pyinstaller 3dm.spec -y
+uv run pyinstaller 3dm.spec -y
 Add-Type -Assembly System.IO.Compression.FileSystem
 $distDir = Resolve-Path 'dist'
 Remove-Item -Force "$distDir\3dmake_windows.zip" -ErrorAction SilentlyContinue

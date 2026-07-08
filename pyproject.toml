@@ -1,0 +1,44 @@
+[project]
+name = "3dmake"
+version = "0" # Dummy value for now
+description = "A tool for designing, inspecting, and printing 3D models, built for non-visual workflows."
+readme = "README.md"
+requires-python = "==3.13.*"
+dependencies = [
+    "tweaker3",
+    "numpy-stl",
+    "requests",
+    "platformdirs",
+    "mslex; sys_platform == 'win32'",
+    "colorama; sys_platform == 'win32'",
+    "prompt-toolkit",
+    "vtkplotlib",
+    "pillow",
+    "google-genai",
+    "openai",
+    "vtk",
+    "paho-mqtt",
+    "packaging",
+    "trimesh",
+    "networkx",
+]
+
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = [
+    "pyinstaller>=6.19",
+    "pytest",
+    "pexpect",
+    "mypy",
+    # Transitive deps of PyInstaller, only used on platform-specific builds;
+    # locked here to avoid churn when building releases on each OS.
+    "pywin32-ctypes; sys_platform == 'win32'",
+    "pefile; sys_platform == 'win32'",
+    "macholib; sys_platform == 'darwin'",
+]
+
+[tool.uv.sources.tweaker3]
+git = "https://github.com/ChristophSchranz/Tweaker-3.git"
+rev = "0f2112644a46cd89c403d8706d6deae2d4f98a8a" # This was v3.9.1

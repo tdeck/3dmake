@@ -4,7 +4,7 @@ This developer documentation is very much a work in progress. If you're working 
 It's always better to document what a field or datatype means in the code, rather than somewhere else. Prefer meaningful names + comments that don't require external documentation.
 
 ## Program structure
-3DMake is a Python program that ships with two embedded binaries (OpenSCAD for building models, and PrusaSlicer for slicing).  Python dependencies are managed using [PipEnv](https://pipenv.pypa.io/en/latest/). The entry point is `3dm.py`. This top level file mainly loads configuration from your global config, the project 3dmake.toml, and the command line, and figures out what to do next.
+3DMake is a Python program that ships with two embedded binaries (OpenSCAD for building models, and PrusaSlicer for slicing).  Python dependencies are managed using [uv](https://docs.astral.sh/uv/). The entry point is `3dm.py`. This top level file mainly loads configuration from your global config, the project 3dmake.toml, and the command line, and figures out what to do next.
 
 Running 3DMake means invoking one or more top-level commands called actions (for example, `new`, `build`, and `slice` are all actions). These actions are defined in functions in the `actions/` folder, and the selected actions will be run in a specific order according to the list in (actions/__init__.py)[../actions/__init__.py]. So evn if
 
@@ -21,7 +21,7 @@ Functions used by more than one action should be placed in a file in the (utils 
 ## Release builds
 In order to avoid making the user install Python and a bunch of dependences, we use [PyInstaller](https://pyinstaller.org/en/stable/) to create a directory with an executable entry point. PyInstaller can also bundle everything into an EXE, but we don't do that because it works by extracting the EXE every single time, and we have very large bundled binaries that would be inefficient to extract.
 
-Release builds must be created on the operating system they're targeting. To make a release build, you must first install pipenv and pyenv. Then cd into the 3dmake repo's root directory and run `pipenv install`. Finally, you can run one of the build scripts `scripts/linux_build.sh`, `scripts/macos_build.sh`, or `scripts/windows_build.ps1` from the repo's root dir.
+Release builds must be created on the operating system they're targeting. To make a release build, you must first install [uv](https://docs.astral.sh/uv/) and pyenv. Then cd into the 3dmake repo's root directory and run `uv sync`. Finally, you can run one of the build scripts `scripts/linux_build.sh`, `scripts/macos_build.sh`, or `scripts/windows_build.ps1` from the repo's root dir.
 
 Bundled OpenSCAD and PrusaSlicer dependencies live under `deps/<platform>`. Run `scripts/get_deps.sh macos` on macOS before building the macOS release; the macOS script copies `OpenSCAD.app` from `/Applications` by default and extracts `PrusaSlicer.app` from the current stable DMG into `deps/macos`. The macOS app bundles are ignored by Git, so each macOS build machine should populate them locally before building.
 
