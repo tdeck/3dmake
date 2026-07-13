@@ -19,6 +19,7 @@ TODO:
     - Announce output from slice command, make it easy to read
         - Factor out "calling 3dm amd putting the content in an accessible console thing"
     - Display overlays, changed value text
+    - Make sure all text is relative font sizes
 Lower priority:
     - Editing gcode settings
 

@@ -285,8 +285,10 @@ class ProfileEditor(QWidget):
     before slicing (see STLWorkspaceWindow._write_edited_settings_overlay).
     """
 
-    CHANGED_STYLE = "border: 2px solid #d4900a;"
-    OVERLAY_STYLE = "border: 2px solid #2b7de9;"
+    CHANGED_COLOR = "#d4900a"
+    OVERLAY_COLOR = "#2b7de9"
+    CHANGED_STYLE = f"border: 2px solid {CHANGED_COLOR};"
+    OVERLAY_STYLE = f"border: 2px solid {OVERLAY_COLOR};"
 
     def __init__(self, profile_config: ProfileConfig, parent=None):
         super().__init__(parent)
@@ -294,6 +296,7 @@ class ProfileEditor(QWidget):
         self.profile_config = profile_config
         self.value_edits: dict[str, QLineEdit] = {}
         self.revert_buttons: dict[str, QPushButton] = {}
+        self.status_labels: dict[str, QLabel] = {}
 
         outer_layout = QHBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 0, 0)
@@ -305,6 +308,7 @@ class ProfileEditor(QWidget):
 
         scroll_area = QScrollArea(self)
         scroll_area.setWidgetResizable(True)
+        scroll_area.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         outer_layout.addWidget(scroll_area, 1)
 
         self.category_pages = QStackedWidget()
@@ -341,20 +345,35 @@ class ProfileEditor(QWidget):
             self.revert_buttons[key] = revert_button
 
             edit.textChanged.connect(lambda _text, k=key: self._on_value_changed(k))
-            self._on_value_changed(key)  # apply initial styling, e.g. an overlay highlight
 
             field_row = QHBoxLayout()
             field_row.addWidget(edit)
             field_row.addWidget(revert_button)
 
-            # addRow(QWidget*, QLayout*) - unlike the addRow(str, QWidget*)
+            status_label = QLabel("", box)
+            f = status_label.font()
+            f.setPointSizeF(f.pointSizeF() * 0.85)
+            status_label.setFont(f)
+            status_label.setVisible(False)
+            self.status_labels[key] = status_label
+
+            field_container = QWidget(box)
+            field_vbox = QVBoxLayout(field_container)
+            field_vbox.setContentsMargins(0, 0, 0, 0)
+            field_vbox.setSpacing(2)
+            field_vbox.addLayout(field_row)
+            field_vbox.addWidget(status_label)
+
+            self._on_value_changed(key)  # apply initial styling, e.g. an overlay highlight
+
+            # addRow(QWidget*, QWidget*) - unlike the addRow(str, QWidget*)
             # overload used elsewhere in this file - does NOT auto-buddy the
             # label to the field, so it has to be done explicitly here or
             # every field in a category falls back to being announced as the
             # QGroupBox's own title instead of its own setting name.
             label = QLabel(key.replace('_', ' '), box)
             label.setBuddy(edit)
-            form.addRow(label, field_row)
+            form.addRow(label, field_container)
 
         return box
 
@@ -374,14 +393,24 @@ class ProfileEditor(QWidget):
         # for a field an overlay also touched.
         if changed:
             style, description = self.CHANGED_STYLE, "Changed from original value"
+            status_text, status_color = "Edited", self.CHANGED_COLOR
         elif overlay_source:
             style, description = self.OVERLAY_STYLE, f"Set by overlay: {overlay_source}"
+            status_text, status_color = f"Set by overlay: {overlay_source}", self.OVERLAY_COLOR
         else:
             style, description = "", ""
+            status_text, status_color = "", ""
 
         edit.setStyleSheet(style)
         edit.setAccessibleDescription(description)
         self.revert_buttons[key].setEnabled(changed)
+
+        status_label = self.status_labels.get(key)
+        if status_label is not None:
+            status_label.setText(status_text)
+            if status_text:
+                status_label.setStyleSheet(f"color: {status_color};")
+            status_label.setVisible(bool(status_text))
 
     def _revert_value(self, key: str):
         # Setting text fires textChanged, which re-runs _on_value_changed and
@@ -403,12 +432,21 @@ class STLWorkspaceWindow(WorkspaceWindow):
 
         tabs = QTabWidget()
         tabs.addTab(self._build_examine_tab(stl_path), "E&xamine model")
-        tabs.addTab(self._build_slice_tab(), "&Slice")
+        self._slice_tab_index = tabs.addTab(self._build_slice_tab(), "&Slice")
         tabs.addTab(QWidget(), "&Print")
 
         build_file_menu(self)
         self.setCentralWidget(tabs)
+        # setTabOrder is ignored when the target widgets aren't visible, and
+        # QTabWidget hides non-current pages via its internal QStackedWidget.
+        # Re-run tab-order setup each time the Slice tab becomes current so
+        # our setTabOrder calls happen on visible widgets and take effect.
+        tabs.currentChanged.connect(self._on_tab_changed)
         self._start_info_process(stl_path)
+
+    def _on_tab_changed(self, index: int):
+        if index == self._slice_tab_index:
+            self._setup_tab_order()
 
     def _build_examine_tab(self, stl_path: Path) -> QWidget:
         tab = QWidget()
@@ -462,12 +500,12 @@ class STLWorkspaceWindow(WorkspaceWindow):
         layout.addLayout(form)
 
         self.overlay_selection = QComboBox()
-        add_overlay_button = QPushButton("&Add")
-        add_overlay_button.clicked.connect(self._add_overlay)
+        self.add_overlay_button = QPushButton("&Add")
+        self.add_overlay_button.clicked.connect(self._add_overlay)
 
         overlay_row = QHBoxLayout()
         overlay_row.addWidget(self.overlay_selection)
-        overlay_row.addWidget(add_overlay_button)
+        overlay_row.addWidget(self.add_overlay_button)
 
         # addRow(str, QLayout*), unlike addRow(str, QWidget*), does not
         # auto-buddy the label (there's no single field widget to buddy to
@@ -507,12 +545,12 @@ class STLWorkspaceWindow(WorkspaceWindow):
         layout.addLayout(self.profile_settings_layout)
 
         self.profile_editor = None
-        self.printer_profile_selection.currentTextChanged.connect(self._rebuild_profile_settings)
-        self._rebuild_profile_settings()
-
         self.slice_button = QPushButton("&Slice")
         self.slice_button.clicked.connect(self._run_slice)
         layout.addWidget(self.slice_button)
+
+        self.printer_profile_selection.currentTextChanged.connect(self._rebuild_profile_settings)
+        self._rebuild_profile_settings()
 
         # Hidden until the first slice run - nothing to show before then.
         self.slice_console_label = bold_label("Slice output")
@@ -599,6 +637,29 @@ class STLWorkspaceWindow(WorkspaceWindow):
         profile_config = read_profile_config(CONFIG_DIR, profile_name, self._selected_overlay_names())
         self.profile_editor = ProfileEditor(profile_config)
         self.profile_settings_layout.addWidget(self.profile_editor)
+        self._setup_tab_order()
+
+    def _setup_tab_order(self):
+        import traceback
+        print(f"[TAB_ORDER] _setup_tab_order called; profile_editor={self.profile_editor!r}")
+        if self.profile_editor is not None:
+            cl = self.profile_editor.category_list
+            print(f"[TAB_ORDER]   category_list={cl!r}, focusPolicy={cl.focusPolicy()!r}, "
+                  f"isVisible={cl.isVisible()}, window={cl.window()!r}, "
+                  f"slice_button.window={self.slice_button.window()!r}")
+        traceback.print_stack()
+
+        QWidget.setTabOrder(self.printer_profile_selection, self.overlay_selection)
+        QWidget.setTabOrder(self.overlay_selection, self.add_overlay_button)
+        QWidget.setTabOrder(self.add_overlay_button, self.overlay_list)
+        if self.profile_editor is not None:
+            QWidget.setTabOrder(self.overlay_list, self.profile_editor.category_list)
+            # Tab from the category list jumps directly to Slice, skipping the
+            # individual setting fields. Press Enter/Return on a category to
+            # focus its first field (wired via itemActivated → _focus_first_field).
+            QWidget.setTabOrder(self.profile_editor.category_list, self.slice_button)
+        else:
+            QWidget.setTabOrder(self.overlay_list, self.slice_button)
 
     def _selected_overlay_names(self) -> list[str]:
         return [self.overlay_list.item(i).text() for i in range(self.overlay_list.count())]
