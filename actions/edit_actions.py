@@ -2,7 +2,7 @@ import shutil
 from pathlib import Path
 
 from .framework import Context, isolated_action
-from utils.print_config import list_printer_profiles, list_overlays, OverlayName
+from utils.print_config import list_printer_profiles, list_overlays, resolve_profile_path, OverlayName
 from utils.user_prompts import yes_or_no, option_select, option_select_with_current, prompt
 from utils.editor import launch_editor
 from utils.llm_prompt import ensure_custom_prompt_exists
@@ -62,16 +62,13 @@ def clone_profile(ctx: Context, stdout: OutputStream, __):
 def edit_profile(ctx: Context, _, __):
     ''' Open printer profile in your editor (affected by -p) '''
 
-    profiles = list_printer_profiles(ctx.config_dir)
-    if ctx.options.printer_profile not in profiles:
+    profile_path = resolve_profile_path(ctx.config_dir, ctx.options.printer_profile)
+    if not profile_path.exists():
         # TODO offer to create a new one or copy one. Unfortunately this is a
         # little bit complicated
         raise RuntimeError(f"Printer profile '{ctx.options.printer_profile}' does not exist.")
 
-    launch_editor(
-        ctx.options,
-        ctx.config_dir / "profiles" / f"{ctx.options.printer_profile}.ini"
-    )
+    launch_editor(ctx.options, profile_path)
 
 @isolated_action(needs_options=True)
 def edit_overlay(ctx: Context, _, __):

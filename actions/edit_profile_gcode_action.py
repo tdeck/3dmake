@@ -2,7 +2,7 @@ import tempfile
 from pathlib import Path
 
 from .framework import Context, isolated_action
-from utils.print_config import read_config_values, list_printer_profiles
+from utils.print_config import read_config_values, resolve_profile_path
 from utils.user_prompts import option_select
 from utils.editor import launch_editor
 from utils.output_streams import OutputStream
@@ -84,11 +84,9 @@ def edit_profile_gcode(ctx: Context, stdout: OutputStream, debug_stdout: OutputS
     """Edit GCODE scripts in printer profile (affected by -p)"""
 
     # Check that the printer profile exists
-    profiles = list_printer_profiles(ctx.config_dir)
-    if ctx.options.printer_profile not in profiles:
+    profile_path = resolve_profile_path(ctx.config_dir, ctx.options.printer_profile)
+    if not profile_path.exists():
         raise RuntimeError(f"Printer profile '{ctx.options.printer_profile}' does not exist.")
-
-    profile_path = ctx.config_dir / "profiles" / f"{ctx.options.printer_profile}.ini"
 
     # Read all config values from the profile
     config_values = read_config_values([profile_path])

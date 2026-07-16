@@ -9,7 +9,7 @@ from .scale_action import scale
 from utils.bundle_paths import DEPS
 from utils.logging import throw_subprogram_error
 from utils.output_streams import OutputStream, AccumulatorStream, OutputPipe
-from utils.print_config import read_config_values
+from utils.print_config import read_config_values, resolve_profile_path, resolve_overlay_path
 from utils.gcode_parser import parse_gcode_stats, FeatureStats
 
 CANT_FIT_ERROR_MESSAGE = ': No outline can be derived for object'
@@ -53,22 +53,10 @@ def slice(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     if not ctx.files.model.exists():
         raise RuntimeError("Model has not been built")
 
-    PROFILES_DIR = ctx.config_dir / 'profiles'
-    OVERLAYS_DIR = ctx.config_dir / 'overlays'
-
     profile = ctx.options.printer_profile
-    ini_files: List[Path] = [PROFILES_DIR / f"{profile}.ini"]
+    ini_files: List[Path] = [resolve_profile_path(ctx.config_dir, profile)]
     for overlay in ctx.options.overlays:
-        # If there is a printer-specific version of this overlay, prefer it. Otherwise
-        # use the default version
-        profile_specific_path =  OVERLAYS_DIR / profile / f"{overlay}.ini"
-        default_path = OVERLAYS_DIR / "default" / f"{overlay}.ini"
-        if profile_specific_path.exists():
-            ini_files.append(profile_specific_path)
-        elif default_path.exists():
-            ini_files.append(default_path)
-        else:
-            raise RuntimeError(f"Could not find overlay '{overlay}' for profile '{profile}'")
+        ini_files.append(resolve_overlay_path(ctx.config_dir, profile, overlay))
 
     project_prefix = ''
     copies_suffix = ''

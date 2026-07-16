@@ -1,18 +1,17 @@
 import platform
 import os
 import shutil
-import json
 import hashlib
 import platform
 import subprocess
-import tomllib
 import requests
 import webbrowser
 from pathlib import Path
 from typing import Dict, Any
 
 from .framework import Context, isolated_action
-from utils.print_config import list_printer_profiles, read_profile_config
+from utils.global_settings import load_global_settings, save_global_settings
+from utils.print_config import list_printer_profiles, read_profile_config, ProfileConfig
 from utils.user_prompts import yes_or_no, option_select, option_select_with_current, prompt
 from utils.bundle_paths import SCRIPT_DIR, SCRIPT_BIN_PATH, IS_PYINSTALLER_DISTRIBUTION, INSTALL_DIR
 from version import VERSION
@@ -61,13 +60,6 @@ def get_default_settings() -> Dict[str, Any]:
 
     return settings
 
-def load_existing_settings(defaults_toml_path: Path) -> Dict[str, Any]:
-    """Load existing settings from defaults.toml if it exists"""
-    if defaults_toml_path.exists():
-        with open(defaults_toml_path, 'rb') as fh:
-            return tomllib.load(fh)
-    return {}
-
 # TODO Consider merging these with existing prompt functions
 def prompt_with_current(question: str, current_value: Any = None) -> str:
     """Prompt with current value shown and option to keep it"""
@@ -84,10 +76,9 @@ def prompt_with_current(question: str, current_value: Any = None) -> str:
 def setup(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     ''' Set up 3DMake for the first time, or overwrite existing settings '''
     CONFIG_DIR = ctx.config_dir
-    DEFAULTS_TOML = CONFIG_DIR / "defaults.toml"
 
     # Load existing settings if they exist
-    existing_settings = load_existing_settings(DEFAULTS_TOML)
+    existing_settings = load_global_settings(CONFIG_DIR)
 
     default_conf_dir = SCRIPT_DIR / 'default_config'
 
@@ -148,7 +139,7 @@ def setup(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     settings_dict['printer_profile'] = profile_name
 
     # Read the printer profile config, some other settings vary based on this
-    print_profile_config: dict[str, str] = read_profile_config(CONFIG_DIR, profile_name)
+    print_profile_config: ProfileConfig = read_profile_config(CONFIG_DIR, profile_name)
 
     # For Windows users, we have a slightly nicer editor select flow
     if platform.system() == 'Windows':
@@ -268,11 +259,7 @@ def setup(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
             settings_dict['octoprint_key'] = key
     
 
-    with open(DEFAULTS_TOML, 'w') as fh:
-        # TODO write this properly; it's brittle
-        for k, v in settings_dict.items():
-            fh.write(f"{k} = {json.dumps(v)}\n")
-        
+    save_global_settings(CONFIG_DIR, settings_dict)
 
 def offer_to_delete_old_versions():
     install_base = INSTALL_DIR.parent

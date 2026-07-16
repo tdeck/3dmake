@@ -1,6 +1,10 @@
 import os
+import platform
+import shutil
 import signal
 import sys
+import tempfile
+import webbrowser
 from pathlib import Path
 
 # Must be set before QApplication is constructed - Qt reads this during
@@ -21,21 +25,42 @@ if os.environ.get("QT_QPA_PLATFORMTHEME") not in ("gtk3", "xdgdesktopportal"):
     os.environ["QT_QPA_PLATFORMTHEME"] = "gtk3"
 
 from PySide6.QtCore import QProcess, QProcessEnvironment, QSize, Qt, QTimer
-from PySide6.QtGui import QAction, QFont, QKeySequence
+from PySide6.QtGui import QAction, QFont, QKeySequence, QTextCursor
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QApplication,
+    QButtonGroup,
     QComboBox,
+    QDialog,
+    QDialogButtonBox,
+    QFileDialog,
     QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
     QLabel,
+    QLineEdit,
+    QListView,
+    QListWidget,
+    QListWidgetItem,
     QMainWindow,
+    QMessageBox,
     QPushButton,
+    QRadioButton,
+    QScrollArea,
+    QStackedWidget,
     QTabWidget,
     QTextEdit,
     QVBoxLayout,
     QWidget,
 )
 
+from platformdirs import user_config_path
+
+from utils.global_settings import load_global_settings, save_global_settings
+from utils.print_config import ProfileConfig, list_overlays, list_printer_profiles, read_profile_config, write_overlay_file
 from utils.scad_snippets import NAMED_PROJECTION_CODE
+
+CONFIG_DIR = Path(os.environ['THREEDMAKE_CONFIG_DIR']) if 'THREEDMAKE_CONFIG_DIR' in os.environ else user_config_path('3dmake', None)
 
 PROJECTION_LABELS = {
     '3sil': '3 silhouettes (front, top, left)',
@@ -51,6 +76,17 @@ DESTINATION_EMBOSSER = 'Embosser (SVG)'
 
 THREEDMAKE_SCRIPT = Path(__file__).parent / "3dm.py"
 
+# Duplicated from actions/setup_action.py's BAMBU_CONNECT_DOWNLOAD_PAGE rather
+# than imported - gui.py deliberately never imports the actions package (it
+# shells out to 3dm.py as a subprocess instead throughout this file), and that
+# package's __init__ registers every action on import, pulling in numpy/
+# trimesh/vtk/etc. for the sake of one URL string.
+BAMBU_CONNECT_DOWNLOAD_PAGE = "https://wiki.bambulab.com/en/software/bambu-connect"
+
+MODE_GCODE = "gcode"
+MODE_OCTOPRINT = "octoprint"
+MODE_BAMBU_CONNECT = "bambu_connect"
+
 def bold_label(text: str) -> QLabel:
     label = QLabel(text)
     font = label.font()
@@ -58,8 +94,160 @@ def bold_label(text: str) -> QLabel:
     label.setFont(font)
     return label
 
+
+class ConnectionSettingsPanel(QWidget):
+    """Lets the user pick how prints get sent out, and configure that mode."""
+
+    def __init__(self, initial_settings: "dict[str, str] | None" = None, parent=None):
+        super().__init__(parent)
+        initial_settings = initial_settings or {}
+
+        layout = QVBoxLayout(self)
+
+        self.button_group = QButtonGroup(self)
+        self.pages = QStackedWidget(self)
+
+        self._mode_order: list[str] = []
+
+        gcode_radio = self._add_mode(MODE_GCODE, "Save prints as GCODE", self._build_gcode_page())
+        octoprint_radio = self._add_mode(
+            MODE_OCTOPRINT, "Send prints to OctoPrint", self._build_octoprint_page(initial_settings)
+        )
+
+        layout.addWidget(gcode_radio)
+        layout.addWidget(octoprint_radio)
+
+        if True:  # TODO restore: platform.system() in ("Windows", "Darwin")
+            bambu_radio = self._add_mode(
+                MODE_BAMBU_CONNECT, "Send prints to Bambu Connect", self._build_bambu_connect_page()
+            )
+            layout.addWidget(bambu_radio)
+
+        layout.addWidget(self.pages)
+        layout.addStretch(1)
+
+        self.button_group.idClicked.connect(self.pages.setCurrentIndex)
+
+        current_mode = initial_settings.get("print_mode", MODE_GCODE)
+        self._select_mode(current_mode)
+
+    def _add_mode(self, mode: str, label: str, page: QWidget) -> QRadioButton:
+        radio = QRadioButton(label, self)
+        index = self.pages.addWidget(page)
+        self.button_group.addButton(radio, index)
+        self._mode_order.append(mode)
+        return radio
+
+    def _select_mode(self, mode: str) -> None:
+        if mode not in self._mode_order:
+            mode = MODE_GCODE
+        index = self._mode_order.index(mode)
+        self.button_group.button(index).setChecked(True)
+        self.pages.setCurrentIndex(index)
+
+    def collect_settings(self) -> dict[str, str]:
+        """Settings this panel controls, suitable for merging into the global settings dict."""
+        settings = {"print_mode": self._mode_order[self.button_group.checkedId()]}
+
+        if hasattr(self, "octoprint_host_edit"):
+            settings["octoprint_host"] = self.octoprint_host_edit.text()
+            settings["octoprint_key"] = self.octoprint_key_edit.text()
+
+        return settings
+
+    def _build_gcode_page(self) -> QWidget:
+        page = QWidget(self)
+        layout = QVBoxLayout(page)
+        layout.addWidget(QLabel(
+            "The sliced GCODE file will be saved locally. You can send it to your\n"
+            "printer manually (e.g. via SD card or a slicer's own upload feature).",
+            page,
+        ))
+        return page
+
+    def _build_octoprint_page(self, initial_settings: dict[str, str]) -> QWidget:
+        page = QWidget(self)
+        form = QFormLayout(page)
+
+        self.octoprint_host_edit = QLineEdit(initial_settings.get("octoprint_host", ""), page)
+        self.octoprint_host_edit.setPlaceholderText("http://octopi.local")
+        form.addRow("Server URL", self.octoprint_host_edit)
+
+        self.octoprint_key_edit = QLineEdit(initial_settings.get("octoprint_key", ""), page)
+        form.addRow("API Key", self.octoprint_key_edit)
+
+        return page
+
+    def _build_bambu_connect_page(self) -> QWidget:
+        page = QWidget(self)
+        layout = QVBoxLayout(page)
+        layout.addWidget(QLabel(
+            "3DMake can send prints to your Bambu printer using Bambu Connect,\n"
+            "an accessible software tool you can download from Bambu Labs.",
+            page,
+        ))
+
+        download_button = QPushButton("Open download page", page)
+        download_button.clicked.connect(lambda: webbrowser.open(BAMBU_CONNECT_DOWNLOAD_PAGE))
+        layout.addWidget(download_button)
+
+        return page
+
+
+class SettingsDialog(QDialog):
+    """Tabbed settings dialog, backed by the global defaults.toml."""
+
+    def __init__(self, config_dir: Path, parent=None):
+        super().__init__(parent)
+        self.config_dir = config_dir
+        self.settings = load_global_settings(config_dir)
+
+        self.setWindowTitle("3DMake Settings")
+        self.resize(500, 400)
+
+        layout = QVBoxLayout(self)
+
+        tabs = QTabWidget(self)
+        layout.addWidget(tabs)
+
+        self.connection_panel = ConnectionSettingsPanel(self.settings, self)
+        tabs.addTab(self.connection_panel, "Printer")
+
+        tabs.addTab(self._build_ai_settings_page(), "AI")
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self
+        )
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText("Save")
+        buttons.accepted.connect(self._save_and_accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def _build_ai_settings_page(self) -> QWidget:
+        # TODO: real AI settings (Gemini API key, model choice, etc.)
+        page = QWidget(self)
+        layout = QVBoxLayout(page)
+        layout.addWidget(QLabel("AI settings go here.", page))
+        return page
+
+    def _save_and_accept(self):
+        self.settings.update(self.connection_panel.collect_settings())
+        save_global_settings(self.config_dir, self.settings)
+        self.accept()
+
+
+def open_settings_dialog(parent: QWidget):
+    SettingsDialog(CONFIG_DIR, parent).exec()
+
+
 class WorkspaceWindow(QMainWindow):
+    # Shared by every subclass via inheritance - STL and project wsids can
+    # never collide (one's a file path, one's a directory path), so one
+    # registry for all workspace window types is fine.
+    _registry: dict[str, "WorkspaceWindow"] = {}
+
     def __init__(self, base_path: Path):
+        ''' Do not call this constructor, call open_or_focus(). '''
         super().__init__()
         self.base_path = base_path
         self.setWindowTitle(base_path.name)
@@ -68,6 +256,146 @@ class WorkspaceWindow(QMainWindow):
     def wsid(self) -> str:
         return str(self.base_path.absolute())
 
+    @classmethod
+    def open_or_focus(cls, base_path: Path) -> "WorkspaceWindow":
+        wsid = str(Path(base_path).absolute())
+        existing = cls._registry.get(wsid)
+        if existing is not None:
+            existing.show()
+            existing.raise_()
+            existing.activateWindow()
+            return existing
+
+        window = cls(base_path)
+        cls._registry[window.wsid] = window
+        window.destroyed.connect(lambda: cls._registry.pop(window.wsid, None))
+        window.show()
+        close_startup_window()
+        return window
+
+class ProfileEditor(QWidget):
+    """Shows every key/value pair in a ProfileConfig, grouped by category.
+
+    Categories are listed in a sidebar; picking one shows just that category's
+    fields, so keyboard and screen-reader users can jump straight to a category
+    instead of tabbing through all of them in sequence.
+
+    Edited fields are outlined and get an enabled revert button; changed_values()
+    exposes just the edited key/value pairs, for turning into a temp overlay
+    before slicing (see STLWorkspaceWindow._write_edited_settings_overlay).
+    """
+
+    CHANGED_STYLE = "border: 2px solid #d4900a;"
+    OVERLAY_STYLE = "border: 2px solid #2b7de9;"
+
+    def __init__(self, profile_config: ProfileConfig, parent=None):
+        super().__init__(parent)
+
+        self.profile_config = profile_config
+        self.value_edits: dict[str, QLineEdit] = {}
+        self.revert_buttons: dict[str, QPushButton] = {}
+
+        outer_layout = QHBoxLayout(self)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.category_list = QListWidget(self)
+        self.category_list.setAccessibleName("Setting categories")
+        self.category_list.setMaximumWidth(180)
+        outer_layout.addWidget(self.category_list)
+
+        scroll_area = QScrollArea(self)
+        scroll_area.setWidgetResizable(True)
+        outer_layout.addWidget(scroll_area, 1)
+
+        self.category_pages = QStackedWidget()
+        scroll_area.setWidget(self.category_pages)
+
+        for category_name, values in profile_config.by_category.items():
+            if not values:
+                continue
+            self.category_list.addItem(category_name or "Uncategorized")
+            self.category_pages.addWidget(self._build_category_box(category_name, values))
+
+        self.category_list.currentRowChanged.connect(self.category_pages.setCurrentIndex)
+        self.category_list.itemActivated.connect(self._focus_first_field)
+        if self.category_list.count():
+            self.category_list.setCurrentRow(0)
+
+    def _build_category_box(self, category_name: str, values: dict[str, str]) -> QGroupBox:
+        box = QGroupBox(category_name or "Uncategorized", self)
+        form = QFormLayout(box)
+
+        for key, value in values.items():
+            edit = QLineEdit(value, box)
+            self.value_edits[key] = edit
+
+            revert_button = QPushButton("↺", box)
+            revert_button.setFixedWidth(24)
+            revert_button.setEnabled(False)
+            revert_button.setAccessibleName(f"Revert {key.replace('_', ' ')} to original value")
+            revert_button.setStyleSheet(
+                "QPushButton { border: none; background: transparent; border-radius: 8px; }"
+                "QPushButton:hover:enabled { background-color: palette(midlight); }"
+            )
+            revert_button.clicked.connect(lambda _checked, k=key: self._revert_value(k))
+            self.revert_buttons[key] = revert_button
+
+            edit.textChanged.connect(lambda _text, k=key: self._on_value_changed(k))
+            self._on_value_changed(key)  # apply initial styling, e.g. an overlay highlight
+
+            field_row = QHBoxLayout()
+            field_row.addWidget(edit)
+            field_row.addWidget(revert_button)
+
+            # addRow(QWidget*, QLayout*) - unlike the addRow(str, QWidget*)
+            # overload used elsewhere in this file - does NOT auto-buddy the
+            # label to the field, so it has to be done explicitly here or
+            # every field in a category falls back to being announced as the
+            # QGroupBox's own title instead of its own setting name.
+            label = QLabel(key.replace('_', ' '), box)
+            label.setBuddy(edit)
+            form.addRow(label, field_row)
+
+        return box
+
+    def _focus_first_field(self, _item: QListWidgetItem):
+        page = self.category_pages.currentWidget()
+        first_edit = page.findChild(QLineEdit) if page else None
+        if first_edit is not None:
+            first_edit.setFocus()
+            first_edit.selectAll()
+
+    def _on_value_changed(self, key: str):
+        edit = self.value_edits[key]
+        changed = edit.text() != self.profile_config.get(key)
+        overlay_source = self.profile_config.overlay_source(key)
+
+        # A manual change always wins visually over an overlay highlight, even
+        # for a field an overlay also touched.
+        if changed:
+            style, description = self.CHANGED_STYLE, "Changed from original value"
+        elif overlay_source:
+            style, description = self.OVERLAY_STYLE, f"Set by overlay: {overlay_source}"
+        else:
+            style, description = "", ""
+
+        edit.setStyleSheet(style)
+        edit.setAccessibleDescription(description)
+        self.revert_buttons[key].setEnabled(changed)
+
+    def _revert_value(self, key: str):
+        # Setting text fires textChanged, which re-runs _on_value_changed and
+        # clears the styling/accessible description/button state on its own.
+        self.value_edits[key].setText(self.profile_config.get(key, ""))
+
+    def changed_values(self) -> dict[str, str]:
+        return {
+            key: edit.text()
+            for key, edit in self.value_edits.items()
+            if edit.text() != self.profile_config.get(key)
+        }
+
+
 class STLWorkspaceWindow(WorkspaceWindow):
     def __init__(self, stl_path: Path):
         super().__init__(base_path=stl_path)
@@ -75,24 +403,12 @@ class STLWorkspaceWindow(WorkspaceWindow):
 
         tabs = QTabWidget()
         tabs.addTab(self._build_examine_tab(stl_path), "E&xamine model")
-        tabs.addTab(QWidget(), "&Slice")
+        tabs.addTab(self._build_slice_tab(), "&Slice")
         tabs.addTab(QWidget(), "&Print")
 
-        self._build_menu_bar()
+        build_file_menu(self)
         self.setCentralWidget(tabs)
         self._start_info_process(stl_path)
-
-    def _build_menu_bar(self):
-        menu_bar = self.menuBar()
-
-        file_menu = menu_bar.addMenu("&File")
-        open_model_action = QAction("&Open model", self)
-
-        open_project = QAction("Open &project", self)
-        open_model_action.setShortcut(QKeySequence.Open) # Ctrl+O
-        file_menu.addAction(open_model_action)
-
-        pass
 
     def _build_examine_tab(self, stl_path: Path) -> QWidget:
         tab = QWidget()
@@ -134,6 +450,227 @@ class STLWorkspaceWindow(WorkspaceWindow):
 
         return tab
 
+    def _build_slice_tab(self) -> QWidget:
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+
+        self.printer_profile_selection = QComboBox()
+        self.printer_profile_selection.addItems(list_printer_profiles(CONFIG_DIR))
+
+        form = QFormLayout()
+        form.addRow("Printer &profile", self.printer_profile_selection)
+        layout.addLayout(form)
+
+        self.overlay_selection = QComboBox()
+        add_overlay_button = QPushButton("&Add")
+        add_overlay_button.clicked.connect(self._add_overlay)
+
+        overlay_row = QHBoxLayout()
+        overlay_row.addWidget(self.overlay_selection)
+        overlay_row.addWidget(add_overlay_button)
+
+        # addRow(str, QLayout*), unlike addRow(str, QWidget*), does not
+        # auto-buddy the label (there's no single field widget to buddy to
+        # when the field is a layout) - build the label explicitly and buddy
+        # it to the combo box ourselves, same as elsewhere in this file.
+        add_overlay_label = QLabel("Add &overlay")
+        add_overlay_label.setBuddy(self.overlay_selection)
+
+        overlay_add_form = QFormLayout()
+        overlay_add_form.addRow(add_overlay_label, overlay_row)
+        layout.addLayout(overlay_add_form)
+
+        self.overlay_list = QListWidget()
+        self.overlay_list.setFlow(QListView.Flow.LeftToRight)
+        # A single row that scrolls horizontally if it overflows, rather than
+        # wrapping to multiple rows - the overlay count is usually small
+        # enough to fit on one line, and this makes the list's height
+        # trivial to get right (always exactly one row tall) instead of
+        # needing to account for however many wrapped rows are showing.
+        self.overlay_list.setWrapping(False)
+        self.overlay_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.overlay_list.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.overlay_list.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+        self.overlay_list.model().rowsMoved.connect(self._rebuild_profile_settings)
+        selected_overlays_label = bold_label("Selected overlays (applied in order)")
+        selected_overlays_label.setBuddy(self.overlay_list)
+        layout.addWidget(selected_overlays_label)
+        layout.addWidget(self.overlay_list)
+
+        self._refresh_available_overlays()
+        self._update_overlay_list_height()
+
+        layout.addWidget(bold_label("Profile settings"))
+
+        self.profile_settings_layout = QVBoxLayout()
+        self.profile_settings_layout.setContentsMargins(0, 0, 0, 0)
+        layout.addLayout(self.profile_settings_layout)
+
+        self.profile_editor = None
+        self.printer_profile_selection.currentTextChanged.connect(self._rebuild_profile_settings)
+        self._rebuild_profile_settings()
+
+        self.slice_button = QPushButton("&Slice")
+        self.slice_button.clicked.connect(self._run_slice)
+        layout.addWidget(self.slice_button)
+
+        # Hidden until the first slice run - nothing to show before then.
+        self.slice_console_label = bold_label("Slice output")
+        self.slice_console = QTextEdit()
+        self.slice_console.setReadOnly(True)
+        self.slice_console_label.setBuddy(self.slice_console)
+        self.slice_console_label.setVisible(False)
+        self.slice_console.setVisible(False)
+        layout.addWidget(self.slice_console_label)
+        layout.addWidget(self.slice_console)
+
+        return tab
+
+    def _write_edited_settings_overlay(self) -> "Path | None":
+        ''' Writes settings edited in the "Profile settings" editor to a temp
+        overlay file, returned as a Path - or None if nothing's been changed.
+        Shared (not slice-tab-private) since the Print tab will need the exact
+        same thing later, as `3dm print` always implies slicing too. '''
+        changed = self.profile_editor.changed_values()
+        if not changed:
+            return None
+
+        # Delete the previous run's temp dir first so these don't pile up
+        # across repeated slice/print runs within the same session.
+        old_dir = getattr(self, "_edited_settings_temp_dir", None)
+        if old_dir is not None:
+            shutil.rmtree(old_dir, ignore_errors=True)
+
+        self._edited_settings_temp_dir = Path(tempfile.mkdtemp(prefix="3dmake-gui-"))
+        overlay_path = self._edited_settings_temp_dir / "edited_settings.ini"
+        write_overlay_file(overlay_path, changed)
+        return overlay_path
+
+    def _run_slice(self):
+        if getattr(self, "slice_process", None) is not None \
+                and self.slice_process.state() != QProcess.ProcessState.NotRunning:
+            return
+
+        self.slice_console.clear()
+        self.slice_console_label.setVisible(True)
+        self.slice_console.setVisible(True)
+        self.slice_button.setEnabled(False)
+
+        args = ["slice", str(self.base_path), "--profile", self.printer_profile_selection.currentText()]
+        for overlay_name in self._selected_overlay_names():
+            args += ["--overlay", overlay_name]
+
+        edited_overlay_path = self._write_edited_settings_overlay()
+        if edited_overlay_path is not None:
+            args += ["--overlay", str(edited_overlay_path)]
+
+        # Parented to self so Qt keeps it alive for the window's lifetime -
+        # an unparented/unreferenced QProcess can get garbage collected mid-run.
+        self.slice_process = QProcess(self)
+        self.slice_process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
+
+        env = QProcessEnvironment.systemEnvironment()
+        env.insert("_3DMAKE_TEST_FLAGS", "GUI_MODE")
+        env.insert("PYTHONUNBUFFERED", "1")
+        self.slice_process.setProcessEnvironment(env)
+
+        self.slice_process.readyReadStandardOutput.connect(self._on_slice_output_ready)
+        self.slice_process.finished.connect(self._on_slice_finished)
+        self.slice_process.start(sys.executable, [str(THREEDMAKE_SCRIPT), *args])
+
+    def _on_slice_finished(self):
+        self.slice_button.setEnabled(True)
+
+    def _on_slice_output_ready(self):
+        output = bytes(self.slice_process.readAllStandardOutput()).decode()
+        self.slice_console.insertPlainText(output)
+        # Screen readers are only notified of new text if the caret position
+        # changes after the edit - moving just the scrollbar is silent to them.
+        self.slice_console.moveCursor(QTextCursor.MoveOperation.End)
+        scrollbar = self.slice_console.verticalScrollBar()
+        scrollbar.setValue(scrollbar.maximum())
+
+    def _rebuild_profile_settings(self, *_):
+        if self.profile_editor is not None:
+            self.profile_settings_layout.removeWidget(self.profile_editor)
+            self.profile_editor.deleteLater()
+
+        profile_name = self.printer_profile_selection.currentText()
+        profile_config = read_profile_config(CONFIG_DIR, profile_name, self._selected_overlay_names())
+        self.profile_editor = ProfileEditor(profile_config)
+        self.profile_settings_layout.addWidget(self.profile_editor)
+
+    def _selected_overlay_names(self) -> list[str]:
+        return [self.overlay_list.item(i).text() for i in range(self.overlay_list.count())]
+
+    def _refresh_available_overlays(self):
+        selected = set(self._selected_overlay_names())
+        all_names = sorted({o.name for o in list_overlays(CONFIG_DIR)})
+        self.overlay_selection.clear()
+        self.overlay_selection.addItems([n for n in all_names if n not in selected])
+
+    def _add_overlay(self):
+        name = self.overlay_selection.currentText()
+        if not name:
+            return
+
+        item = QListWidgetItem(name)
+        self.overlay_list.addItem(item)
+        row = self._build_overlay_row(item)
+        item.setSizeHint(row.sizeHint())
+        self.overlay_list.setItemWidget(item, row)
+
+        self._refresh_available_overlays()
+        self._update_overlay_list_height()
+        self._rebuild_profile_settings()
+
+    def _build_overlay_row(self, item: QListWidgetItem) -> QWidget:
+        row = QWidget()
+        row.setObjectName("overlayPill")
+        # Scoped to #overlayPill so this doesn't cascade to the label/button
+        # inside it - a bare "QWidget { ... }" selector would style children too.
+        row.setStyleSheet(
+            "QWidget#overlayPill {"
+            "  border: 1px solid palette(mid);"
+            "  border-radius: 10px;"
+            "  background-color: palette(button);"
+            "}"
+        )
+        row_layout = QHBoxLayout(row)
+        row_layout.setContentsMargins(8, 2, 2, 2)
+        row_layout.addWidget(QLabel(item.text()))
+
+        remove_button = QPushButton("×")
+        remove_button.setFixedWidth(20)
+        remove_button.setAccessibleName(f"Remove {item.text()}")
+        remove_button.clicked.connect(lambda: self._remove_overlay_item(item))
+        # De-emphasized so it reads as part of the pill rather than its own
+        # separate button - just a faint hover highlight instead of a border.
+        remove_button.setStyleSheet(
+            "QPushButton { border: none; background: transparent; border-radius: 8px; }"
+            "QPushButton:hover { background-color: palette(midlight); }"
+        )
+        row_layout.addWidget(remove_button)
+
+        return row
+
+    def _remove_overlay_item(self, item: QListWidgetItem):
+        # Look up the item's *current* row rather than capturing an index up
+        # front, since drag-and-drop reordering can move it after this closure
+        # was created.
+        self.overlay_list.takeItem(self.overlay_list.row(item))
+        self._refresh_available_overlays()
+        self._update_overlay_list_height()
+        self._rebuild_profile_settings()
+
+    def _update_overlay_list_height(self):
+        if self.overlay_list.count() > 0:
+            row_height = self.overlay_list.sizeHintForRow(0)
+        else:
+            row_height = self.overlay_list.fontMetrics().height() + 12
+        frame = 2 * self.overlay_list.frameWidth()
+        self.overlay_list.setFixedHeight(row_height + frame + 4)
+
     def make_preview(self):
         preview_type = self.preview_selection.currentData()
         destination = self.preview_destination.currentText()
@@ -166,23 +703,132 @@ class STLWorkspaceWindow(WorkspaceWindow):
         scrollbar.setValue(scrollbar.maximum())
 
 
-# Subclass QMainWindow to customize your application's main window
-class MainWindow(QMainWindow):
+class ProjectWorkspaceWindow(WorkspaceWindow):
+    def __init__(self, base_path: Path):
+        super().__init__(base_path)
+        self.resize(800, 600)
+        build_file_menu(self)
+
+        box = QWidget()
+        layout = QVBoxLayout(box)
+        layout.addWidget(bold_label(base_path.name))
+        self.setCentralWidget(box)
+
+
+def build_file_menu(window: QMainWindow):
+    ''' Shared by every window type (startup, STL, project) so Open/New are
+    available everywhere, not just from the startup window. '''
+    file_menu = window.menuBar().addMenu("&File")
+
+    open_model_action = QAction("Open &Model…", window)
+    open_model_action.setShortcut(QKeySequence.Open)  # Ctrl+O
+    open_model_action.triggered.connect(lambda: open_model(window))
+    file_menu.addAction(open_model_action)
+
+    open_project_action = QAction("Open &Project…", window)
+    open_project_action.triggered.connect(lambda: open_project(window))
+    file_menu.addAction(open_project_action)
+
+    new_project_action = QAction("&New Project…", window)
+    new_project_action.triggered.connect(lambda: new_project(window))
+    file_menu.addAction(new_project_action)
+
+    file_menu.addSeparator()
+
+    settings_action = QAction("&Settings…", window)
+    settings_action.triggered.connect(lambda: open_settings_dialog(window))
+    file_menu.addAction(settings_action)
+
+
+def open_model(parent: QWidget):
+    path, _ = QFileDialog.getOpenFileName(parent, "Open STL File", "", "STL Files (*.stl)")
+    if not path:
+        return
+    path = Path(path)
+    if path.is_dir():
+        # Some file choosers allow selecting a folder from an "open file" dialog;
+        # if that happens, open it as a project instead of failing on it as an STL.
+        open_project_path(parent, path)
+        return
+    STLWorkspaceWindow.open_or_focus(path)
+
+
+def open_project(parent: QWidget):
+    path = QFileDialog.getExistingDirectory(parent, "Open 3DMake Project Folder")
+    if not path:
+        return
+    open_project_path(parent, Path(path))
+
+
+def open_project_path(parent: QWidget, path: Path):
+    if not (path / "3dmake.toml").is_file():
+        QMessageBox.critical(parent, "Not a 3DMake Project", f"'{path}' does not contain a 3dmake.toml file.")
+        return
+    ProjectWorkspaceWindow.open_or_focus(path)
+
+
+_pending_processes: list[QProcess] = []
+
+def new_project(parent: QWidget):
+    filename, _ = QFileDialog.getSaveFileName(parent, "New 3DMake Project", str(Path.home() / "MyProject"))
+    if not filename:
+        return
+    target = Path(filename)
+
+    # Not owned by any window (the project window doesn't exist until this
+    # finishes), so parented to the app and kept alive via this list until done -
+    # an unparented/unreferenced QProcess can get garbage collected mid-run.
+    process = QProcess(QApplication.instance())
+    process.setWorkingDirectory(str(target.parent))
+    process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
+
+    env = QProcessEnvironment.systemEnvironment()
+    env.insert("_3DMAKE_TEST_FLAGS", "GUI_MODE")
+    env.insert("PYTHONUNBUFFERED", "1")
+    process.setProcessEnvironment(env)
+
+    def on_finished():
+        _pending_processes.remove(process)
+        open_project_path(parent, target)
+
+    _pending_processes.append(process)
+    process.finished.connect(on_finished)
+    process.start(sys.executable, [str(THREEDMAKE_SCRIPT), "new"])
+    process.write(f"{target.name}\n".encode())
+    process.closeWriteChannel()
+
+
+class StartupWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.setWindowTitle("3DMake")
+        build_file_menu(self)
 
-        self.setWindowTitle("My App")
+        label = QLabel(
+            "No project or STL file is open.\n\n"
+            "Use File → Open Model… to open an STL file, File → Open "
+            "Project… to open an existing 3DMake project, or File → New "
+            "Project… to create one."
+        )
+        box = QWidget()
+        layout = QVBoxLayout(box)
+        layout.addWidget(label)
+        self.setCentralWidget(box)
 
-        button = QPushButton("Press Me!")
 
-        # Set the central widget of the Window.
-        self.setCentralWidget(button)
+_startup_window: "StartupWindow | None" = None
+
+def close_startup_window():
+    global _startup_window
+    if _startup_window is not None:
+        _startup_window.close()
+        _startup_window = None
 
 
 app = QApplication(sys.argv)
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-window = STLWorkspaceWindow(Path('/home/troy/Downloads/tiny_bottle_S_pet.stl'))
-window.show()
+_startup_window = StartupWindow()
+_startup_window.show()
 
 app.exec()

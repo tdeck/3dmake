@@ -1,0 +1,26 @@
+Three different window types:
+    - STL window
+        - Info
+        - Image
+        - Preview (+print / emboss)
+        - Slice
+        - Print
+    - Project window
+        - Manage and edit files
+        - Build
+        - Info
+        - Image
+        - Preview (+print / emboss)
+        - Slice
+        - Print
+    - GCOde window (DEFERRED)
+
+TODO:
+    - Announce output from slice command, make it easy to read
+        - Factor out "calling 3dm amd putting the content in an accessible console thing"
+    - Display overlays, changed value text
+Lower priority:
+    - Editing gcode settings
+
+
+ALL CODE IN THIS BRANCH MUST BE RE-REVIEWED; IT IS PROTOTYPE SLOP.
