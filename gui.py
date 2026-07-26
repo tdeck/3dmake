@@ -314,14 +314,29 @@ class ProfileEditor(QWidget):
         self.category_pages = QStackedWidget()
         scroll_area.setWidget(self.category_pages)
 
+        self.category_list.currentRowChanged.connect(self.category_pages.setCurrentIndex)
+        self.category_list.itemActivated.connect(self._focus_first_field)
+
+        self.set_profile_config(profile_config)
+
+    def set_profile_config(self, profile_config: ProfileConfig):
+        self.profile_config = profile_config
+        self.value_edits.clear()
+        self.revert_buttons.clear()
+        self.status_labels.clear()
+
+        self.category_list.clear()
+        while self.category_pages.count():
+            page = self.category_pages.widget(0)
+            self.category_pages.removeWidget(page)
+            page.deleteLater()
+
         for category_name, values in profile_config.by_category.items():
             if not values:
                 continue
             self.category_list.addItem(category_name or "Uncategorized")
             self.category_pages.addWidget(self._build_category_box(category_name, values))
 
-        self.category_list.currentRowChanged.connect(self.category_pages.setCurrentIndex)
-        self.category_list.itemActivated.connect(self._focus_first_field)
         if self.category_list.count():
             self.category_list.setCurrentRow(0)
 
@@ -544,13 +559,16 @@ class STLWorkspaceWindow(WorkspaceWindow):
         self.profile_settings_layout.setContentsMargins(0, 0, 0, 0)
         layout.addLayout(self.profile_settings_layout)
 
-        self.profile_editor = None
+        profile_name = self.printer_profile_selection.currentText()
+        initial_config = read_profile_config(CONFIG_DIR, profile_name, self._selected_overlay_names())
+        self.profile_editor = ProfileEditor(initial_config)
+        self.profile_settings_layout.addWidget(self.profile_editor)
+
         self.slice_button = QPushButton("&Slice")
         self.slice_button.clicked.connect(self._run_slice)
         layout.addWidget(self.slice_button)
 
         self.printer_profile_selection.currentTextChanged.connect(self._rebuild_profile_settings)
-        self._rebuild_profile_settings()
 
         # Hidden until the first slice run - nothing to show before then.
         self.slice_console_label = bold_label("Slice output")
@@ -629,37 +647,19 @@ class STLWorkspaceWindow(WorkspaceWindow):
         scrollbar.setValue(scrollbar.maximum())
 
     def _rebuild_profile_settings(self, *_):
-        if self.profile_editor is not None:
-            self.profile_settings_layout.removeWidget(self.profile_editor)
-            self.profile_editor.deleteLater()
-
         profile_name = self.printer_profile_selection.currentText()
         profile_config = read_profile_config(CONFIG_DIR, profile_name, self._selected_overlay_names())
-        self.profile_editor = ProfileEditor(profile_config)
-        self.profile_settings_layout.addWidget(self.profile_editor)
-        self._setup_tab_order()
+        self.profile_editor.set_profile_config(profile_config)
 
     def _setup_tab_order(self):
-        import traceback
-        print(f"[TAB_ORDER] _setup_tab_order called; profile_editor={self.profile_editor!r}")
-        if self.profile_editor is not None:
-            cl = self.profile_editor.category_list
-            print(f"[TAB_ORDER]   category_list={cl!r}, focusPolicy={cl.focusPolicy()!r}, "
-                  f"isVisible={cl.isVisible()}, window={cl.window()!r}, "
-                  f"slice_button.window={self.slice_button.window()!r}")
-        traceback.print_stack()
-
         QWidget.setTabOrder(self.printer_profile_selection, self.overlay_selection)
         QWidget.setTabOrder(self.overlay_selection, self.add_overlay_button)
         QWidget.setTabOrder(self.add_overlay_button, self.overlay_list)
-        if self.profile_editor is not None:
-            QWidget.setTabOrder(self.overlay_list, self.profile_editor.category_list)
-            # Tab from the category list jumps directly to Slice, skipping the
-            # individual setting fields. Press Enter/Return on a category to
-            # focus its first field (wired via itemActivated → _focus_first_field).
-            QWidget.setTabOrder(self.profile_editor.category_list, self.slice_button)
-        else:
-            QWidget.setTabOrder(self.overlay_list, self.slice_button)
+        QWidget.setTabOrder(self.overlay_list, self.profile_editor.category_list)
+        # Tab from the category list jumps directly to Slice, skipping the
+        # individual setting fields. Press Enter/Return on a category to
+        # focus its first field (wired via itemActivated → _focus_first_field).
+        QWidget.setTabOrder(self.profile_editor.category_list, self.slice_button)
 
     def _selected_overlay_names(self) -> list[str]:
         return [self.overlay_list.item(i).text() for i in range(self.overlay_list.count())]
