@@ -21,7 +21,7 @@ dependencies = [
     "packaging",
     "trimesh",
     "networkx",
-    "pyside6>=6.11.1",
+    "pyside6>=6.9,<6.10",
 ]
 
 [tool.uv]
