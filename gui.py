@@ -273,7 +273,7 @@ class WorkspaceWindow(QMainWindow):
         close_startup_window()
         return window
 
-class ProfileEditor(QWidget):
+class ProfileEditor(QGroupBox):
     """Shows every key/value pair in a ProfileConfig, grouped by category.
 
     Categories are listed in a sidebar; picking one shows just that category's
@@ -283,6 +283,14 @@ class ProfileEditor(QWidget):
     Edited fields are outlined and get an enabled revert button; changed_values()
     exposes just the edited key/value pairs, for turning into a temp overlay
     before slicing (see STLWorkspaceWindow._write_edited_settings_overlay).
+
+    THD: The below has not been evaluated for accuracy or whether it actually works!
+    Inherits from QGroupBox rather than a plain QWidget so macOS accessibility
+    tags the wrapper with the Grouping role - a plain QWidget reports the
+    generic Client role, which VoiceOver treats as an opaque container and
+    fails to descend into (children like category_list end up invisible to
+    screen readers even when they're in the focus chain). setFlat(True) and
+    no title keep the visual appearance unchanged.
     """
 
     CHANGED_COLOR = "#d4900a"
@@ -292,6 +300,7 @@ class ProfileEditor(QWidget):
 
     def __init__(self, profile_config: ProfileConfig, parent=None):
         super().__init__(parent)
+        self.setFlat(True)
 
         self.profile_config = profile_config
         self.value_edits: dict[str, QLineEdit] = {}
