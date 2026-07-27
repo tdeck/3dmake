@@ -1,3 +1,4 @@
+import faulthandler
 import os
 import platform
 import shutil
@@ -6,6 +7,11 @@ import sys
 import tempfile
 import webbrowser
 from pathlib import Path
+
+# Print a Python + C stack trace on native crashes (SIGSEGV etc.) instead
+# of just exiting silently with code 139. Useful for diagnosing Qt macOS
+# accessibility crashes and similar; harmless in normal operation.
+faulthandler.enable()
 
 # Must be set before QApplication is constructed - Qt reads this during
 # platform-plugin init. Forces the AT-SPI accessibility bridge active from
@@ -95,6 +101,39 @@ def bold_label(text: str) -> QLabel:
     return label
 
 
+def _strip_mnemonic(text: str) -> str:
+    """Remove '&' mnemonic markers, preserving '&&' as a literal '&'."""
+    return text.replace("&&", "\x00").replace("&", "").replace("\x00", "&")
+
+
+def set_accessible_label(widget: QWidget, label_text: str) -> None:
+    """Set widget's accessible name from label text (stripping mnemonics).
+
+    QLabel.setBuddy() sets up the label-widget relationship that Linux/Orca
+    uses to announce the label when the widget is focused. Qt's macOS Cocoa
+    accessibility bridge doesn't translate that buddy link into an
+    NSAccessibility title-UI-element, so VoiceOver reads only the widget's
+    value with no label at all. Setting accessibleName explicitly gives
+    VoiceOver something to announce. Additive with setBuddy - doesn't affect
+    the Linux/Orca path.
+
+    Deferred via QTimer.singleShot so the accessibility event fires after
+    the current widget-construction burst finishes - setting accessibleName
+    during construction with VoiceOver already active can trigger a Qt 6.9
+    macOS accessibility-cache crash (same class as audacity/audacity#9429).
+    Deferring gets the update out of the construction path."""
+    name = _strip_mnemonic(label_text)
+    QTimer.singleShot(0, lambda: widget.setAccessibleName(name))
+
+
+def add_labeled_form_row(form: QFormLayout, label_text: str, widget: QWidget) -> None:
+    """QFormLayout.addRow(str, widget) + set_accessible_label - use for form
+    rows where you want the label announced by both Linux and macOS screen
+    readers."""
+    form.addRow(label_text, widget)
+    set_accessible_label(widget, label_text)
+
+
 class ConnectionSettingsPanel(QWidget):
     """Lets the user pick how prints get sent out, and configure that mode."""
 
@@ -171,10 +210,10 @@ class ConnectionSettingsPanel(QWidget):
 
         self.octoprint_host_edit = QLineEdit(initial_settings.get("octoprint_host", ""), page)
         self.octoprint_host_edit.setPlaceholderText("http://octopi.local")
-        form.addRow("Server URL", self.octoprint_host_edit)
+        add_labeled_form_row(form, "Server URL", self.octoprint_host_edit)
 
         self.octoprint_key_edit = QLineEdit(initial_settings.get("octoprint_key", ""), page)
-        form.addRow("API Key", self.octoprint_key_edit)
+        add_labeled_form_row(form, "API Key", self.octoprint_key_edit)
 
         return page
 
@@ -395,8 +434,10 @@ class ProfileEditor(QGroupBox):
             # label to the field, so it has to be done explicitly here or
             # every field in a category falls back to being announced as the
             # QGroupBox's own title instead of its own setting name.
-            label = QLabel(key.replace('_', ' '), box)
+            label_text = key.replace('_', ' ')
+            label = QLabel(label_text, box)
             label.setBuddy(edit)
+            set_accessible_label(edit, label_text)
             form.addRow(label, field_container)
 
         return box
@@ -484,6 +525,7 @@ class STLWorkspaceWindow(WorkspaceWindow):
 
         self.model_info_label = bold_label("Model &info (loading...)")
         self.model_info_label.setBuddy(self.info_console)
+        set_accessible_label(self.info_console, "Model info")
         layout.addWidget(self.model_info_label)
         layout.addWidget(self.info_console)
 
@@ -502,8 +544,8 @@ class STLWorkspaceWindow(WorkspaceWindow):
         # label with the control for screen readers (not just visual proximity),
         # and gives free Alt+mnemonic keyboard navigation from the "&" markers.
         preview_form = QFormLayout()
-        preview_form.addRow("Pre&view type", self.preview_selection)
-        preview_form.addRow("Send &to", self.preview_destination)
+        add_labeled_form_row(preview_form, "Pre&view type", self.preview_selection)
+        add_labeled_form_row(preview_form, "Send &to", self.preview_destination)
         layout.addLayout(preview_form)
 
         make_preview_button = QPushButton("Make tactile preview")
@@ -520,7 +562,7 @@ class STLWorkspaceWindow(WorkspaceWindow):
         self.printer_profile_selection.addItems(list_printer_profiles(CONFIG_DIR))
 
         form = QFormLayout()
-        form.addRow("Printer &profile", self.printer_profile_selection)
+        add_labeled_form_row(form, "Printer &profile", self.printer_profile_selection)
         layout.addLayout(form)
 
         self.overlay_selection = QComboBox()
@@ -537,6 +579,7 @@ class STLWorkspaceWindow(WorkspaceWindow):
         # it to the combo box ourselves, same as elsewhere in this file.
         add_overlay_label = QLabel("Add &overlay")
         add_overlay_label.setBuddy(self.overlay_selection)
+        set_accessible_label(self.overlay_selection, "Add overlay")
 
         overlay_add_form = QFormLayout()
         overlay_add_form.addRow(add_overlay_label, overlay_row)
@@ -556,6 +599,7 @@ class STLWorkspaceWindow(WorkspaceWindow):
         self.overlay_list.model().rowsMoved.connect(self._rebuild_profile_settings)
         selected_overlays_label = bold_label("Selected overlays (applied in order)")
         selected_overlays_label.setBuddy(self.overlay_list)
+        set_accessible_label(self.overlay_list, "Selected overlays (applied in order)")
         layout.addWidget(selected_overlays_label)
         layout.addWidget(self.overlay_list)
 
@@ -584,6 +628,7 @@ class STLWorkspaceWindow(WorkspaceWindow):
         self.slice_console = QTextEdit()
         self.slice_console.setReadOnly(True)
         self.slice_console_label.setBuddy(self.slice_console)
+        set_accessible_label(self.slice_console, "Slice output")
         self.slice_console_label.setVisible(False)
         self.slice_console.setVisible(False)
         layout.addWidget(self.slice_console_label)
