@@ -13,22 +13,23 @@ from pathlib import Path
 # accessibility crashes and similar; harmless in normal operation.
 faulthandler.enable()
 
-# Must be set before QApplication is constructed - Qt reads this during
-# platform-plugin init. Forces the AT-SPI accessibility bridge active from
-# startup instead of lazily activating only once a screen reader connects.
-os.environ["QT_LINUX_ACCESSIBILITY_ALWAYS_ON"] = "1"
+if platform.system() == "Linux":
+    # Must be set before QApplication is constructed - Qt reads this during
+    # platform-plugin init. Forces the AT-SPI accessibility bridge active from
+    # startup instead of lazily activating only once a screen reader connects.
+    os.environ["QT_LINUX_ACCESSIBILITY_ALWAYS_ON"] = "1"
 
-# PySide6 bundles its own private copy of Qt, which only ships "gtk3" and
-# "xdgdesktopportal" platform theme plugins - not desktop-specific ones like
-# "lxqt" or "kde" that a system-wide QT_QPA_PLATFORMTHEME might request (or
-# that Qt might auto-detect from XDG_CURRENT_DESKTOP when unset). Either way
-# Qt then silently falls back to a generic default font instead of the real
-# system font. Force "gtk3" (confirmed to correctly read the system font via
-# GTK/gsettings) unless QT_QPA_PLATFORMTHEME is already explicitly set to one
-# of the two plugins we actually have - don't second-guess a deliberate,
-# working choice.
-if os.environ.get("QT_QPA_PLATFORMTHEME") not in ("gtk3", "xdgdesktopportal"):
-    os.environ["QT_QPA_PLATFORMTHEME"] = "gtk3"
+    # PySide6 bundles its own private copy of Qt, which only ships "gtk3" and
+    # "xdgdesktopportal" platform theme plugins - not desktop-specific ones like
+    # "lxqt" or "kde" that a system-wide QT_QPA_PLATFORMTHEME might request (or
+    # that Qt might auto-detect from XDG_CURRENT_DESKTOP when unset). Either way
+    # Qt then silently falls back to a generic default font instead of the real
+    # system font. Force "gtk3" (confirmed to correctly read the system font via
+    # GTK/gsettings) unless QT_QPA_PLATFORMTHEME is already explicitly set to one
+    # of the two plugins we actually have - don't second-guess a deliberate,
+    # working choice.
+    if os.environ.get("QT_QPA_PLATFORMTHEME") not in ("gtk3", "xdgdesktopportal"):
+        os.environ["QT_QPA_PLATFORMTHEME"] = "gtk3"
 
 from PySide6.QtCore import QProcess, QProcessEnvironment, QSize, Qt, QTimer
 from PySide6.QtGui import QAction, QFont, QKeySequence, QTextCursor
@@ -519,15 +520,28 @@ class STLWorkspaceWindow(WorkspaceWindow):
 
         layout.addWidget(QLabel(f"Examining {stl_path.name}"))
 
-        # Model info
-        self.info_console = QTextEdit()
-        self.info_console.setReadOnly(True)
+        # Model info — QLabel so NVDA/VoiceOver announce the full text on focus
+        # rather than entering line-by-line editor navigation as with QTextEdit.
+        self._info_buffer = ""
+        self.info_scroll = QScrollArea()
+        self.info_scroll.setWidgetResizable(True)
+        self.info_scroll.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.info_console = QLabel()
+        self.info_console.setWordWrap(True)
+        self.info_console.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self.info_console.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByKeyboard |
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        self.info_console.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.info_scroll.setWidget(self.info_console)
+        self.info_scroll.viewport().setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         self.model_info_label = bold_label("Model &info (loading...)")
         self.model_info_label.setBuddy(self.info_console)
         set_accessible_label(self.info_console, "Model info")
         layout.addWidget(self.model_info_label)
-        layout.addWidget(self.info_console)
+        layout.addWidget(self.info_scroll)
 
         # Tactile preview
         layout.addWidget(bold_label("Tactile preview"))
@@ -810,12 +824,13 @@ class STLWorkspaceWindow(WorkspaceWindow):
 
     def _on_info_loading_done(self):
         self.model_info_label.setText("Model &info")
+        self.info_scroll.verticalScrollBar().setValue(0)
 
     def _on_info_output_ready(self):
         output = bytes(self.info_process.readAllStandardOutput()).decode()
-        self.info_console.insertPlainText(output)
-        scrollbar = self.info_console.verticalScrollBar()
-        scrollbar.setValue(scrollbar.maximum())
+        self._info_buffer += output
+        self.info_console.setText(self._info_buffer)
+        self.info_scroll.verticalScrollBar().setValue(self.info_scroll.verticalScrollBar().maximum())
 
 
 class ProjectWorkspaceWindow(WorkspaceWindow):
