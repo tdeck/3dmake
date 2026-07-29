@@ -32,9 +32,10 @@ if platform.system() == "Linux":
         os.environ["QT_QPA_PLATFORMTHEME"] = "gtk3"
 
 from PySide6.QtCore import QProcess, QProcessEnvironment, QSize, Qt, QTimer
-from PySide6.QtGui import QAction, QFont, QKeySequence, QTextCursor
+from PySide6.QtGui import QAccessible, QAction, QFont, QKeySequence, QTextCursor
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QAccessibleWidget,
     QApplication,
     QButtonGroup,
     QComboBox,
@@ -133,6 +134,29 @@ def add_labeled_form_row(form: QFormLayout, label_text: str, widget: QWidget) ->
     readers."""
     form.addRow(label_text, widget)
     set_accessible_label(widget, label_text)
+
+
+class InfoTextEdit(QTextEdit):
+    """Read-only text display that reports StaticText accessibility role so
+    NVDA announces the full content on focus instead of entering line-by-line
+    editor navigation mode."""
+    pass
+
+
+class _InfoTextEditAccessible(QAccessibleWidget):
+    def role(self):
+        return QAccessible.Role.StaticText
+
+    def text(self, t):
+        if t == QAccessible.Text.Description:
+            return self.widget().toPlainText()
+        return super().text(t)
+
+
+def _info_text_edit_factory(classname, obj):
+    if classname == "InfoTextEdit" and obj is not None:
+        return _InfoTextEditAccessible(obj)
+    return None
 
 
 class ConnectionSettingsPanel(QWidget):
@@ -520,28 +544,15 @@ class STLWorkspaceWindow(WorkspaceWindow):
 
         layout.addWidget(QLabel(f"Examining {stl_path.name}"))
 
-        # Model info — QLabel so NVDA/VoiceOver announce the full text on focus
-        # rather than entering line-by-line editor navigation as with QTextEdit.
-        self._info_buffer = ""
-        self.info_scroll = QScrollArea()
-        self.info_scroll.setWidgetResizable(True)
-        self.info_scroll.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.info_console = QLabel()
-        self.info_console.setWordWrap(True)
-        self.info_console.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        self.info_console.setTextInteractionFlags(
-            Qt.TextInteractionFlag.TextSelectableByKeyboard |
-            Qt.TextInteractionFlag.TextSelectableByMouse
-        )
-        self.info_console.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.info_scroll.setWidget(self.info_console)
-        self.info_scroll.viewport().setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        # Model info
+        self.info_console = InfoTextEdit()
+        self.info_console.setReadOnly(True)
 
         self.model_info_label = bold_label("Model &info (loading...)")
         self.model_info_label.setBuddy(self.info_console)
         set_accessible_label(self.info_console, "Model info")
         layout.addWidget(self.model_info_label)
-        layout.addWidget(self.info_scroll)
+        layout.addWidget(self.info_console)
 
         # Tactile preview
         layout.addWidget(bold_label("Tactile preview"))
@@ -824,13 +835,13 @@ class STLWorkspaceWindow(WorkspaceWindow):
 
     def _on_info_loading_done(self):
         self.model_info_label.setText("Model &info")
-        self.info_scroll.verticalScrollBar().setValue(0)
+        self.info_console.moveCursor(QTextCursor.MoveOperation.Start)
 
     def _on_info_output_ready(self):
         output = bytes(self.info_process.readAllStandardOutput()).decode()
-        self._info_buffer += output
-        self.info_console.setText(self._info_buffer)
-        self.info_scroll.verticalScrollBar().setValue(self.info_scroll.verticalScrollBar().maximum())
+        self.info_console.insertPlainText(output)
+        scrollbar = self.info_console.verticalScrollBar()
+        scrollbar.setValue(scrollbar.maximum())
 
 
 class ProjectWorkspaceWindow(WorkspaceWindow):
@@ -957,6 +968,7 @@ def close_startup_window():
 
 app = QApplication(sys.argv)
 signal.signal(signal.SIGINT, signal.SIG_DFL)
+QAccessible.installFactory(_info_text_edit_factory)
 
 _startup_window = StartupWindow()
 _startup_window.show()
