@@ -21,12 +21,7 @@ dependencies = [
     "packaging",
     "trimesh",
     "networkx",
-    # Pinned exact: macOS VoiceOver announces QListWidget items on 6.9.0
-    # but stays silent from 6.9.3 onwards (regression inside a patch series
-    # - see PYSIDE-3305 for related). Verified with a11y_test_list.py.
-    # Before bumping this, re-run a11y_test_list.py with VoiceOver on and
-    # confirm each list item is still announced.
-    "pyside6==6.9.0",
+    "nicegui[native]",
 ]
 
 [tool.uv]
