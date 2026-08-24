@@ -34,7 +34,7 @@ Once this is done, `3dm` should be installed so that you can run it by simply ty
 
 To install 3DMake on macOS, first download the [3dmake_macos.tar.gz](https://github.com/tdeck/3dmake/releases/latest/download/3dmake_macos.tar.gz) file and place it in your Downloads folder.
 
-Then open the Mac terminal. You can do this by hitting ⌘+Space and typing "terminal", then hitting enter. Inside the terminal, you type one command per line and hit enter. You can also paste in a series of commands and it will run them. In short, the commands to set up 3dmake are as follows, copy and paste the whole block into your terminal or read below for a line-by-line explanation.
+Then open the Mac terminal. You can do this by hitting ⌘+Space and typing "terminal", then hitting enter. Inside the terminal, you type one command per line and hit enter. You can also paste in a series of commands and it will run them. The commands to set up 3Dmake are as follows, copy and paste the whole block into your terminal:
 
 ```
 cd Downloads
@@ -43,20 +43,10 @@ cd 3dmake
 xattr -rc "$(realpath .)"
 ./3dm setup
 ```
-The 3dm setup will take a while the first time you run it without saying anything while macOS sets things up in the background.
+
+The final command `3dm setup` will take a while the first time you run it without saying anything while macOS sets things up in the background.
 
 Eventually 3DMake will prompt you with some setup questions. If you have an administrator account, I strongly recommend saying yes when asked about installing 3DMake so it can be run from any folder. At that point when you type your password in, it will not print the letters as you type them. If you aren't asked that question, it simply means that 3DMake doesn't need your password to set that up.
-
-### macOS install command explanation 
-`cd Downloads` changes your current directory to to the downloads directory. 
-
-`tar xf 3dmake_macos.tar.gz` extracts (unzips) the 3DMake files into a new 3dmake directory.
-
-`cd 3dmake` navigates into the newly extracted 3dmake folder.
-
-`xattr -rc "$(realpath .)"` changes security settings so that you can run the downloaded program.
-
-`./3dm setup` runs 3DMake's self-setup step.
 
 ## Starting a new project
 
