@@ -23,10 +23,40 @@ Download the latest version of 3DMake for your operating system by following the
 
 3DMake is a command line program, which means you need to run it from the terminal (or command prompt). If you've never used the terminal before, read the [terminal quick start guide](docs/terminal_quick_start.md).
 
+## Windows/Linux setup
+
 To set up 3DMake, extract the release for your operating system and navigate to the 3DMake folder
 in your terminal. Run `./3dm setup` and answer a few questions to complete the setup process.
 
 Once this is done, `3dm` should be installed so that you can run it by simply typing 3dm in your terminal from any folder. You can then delete the files you downloaded and extracted.
+
+## macOS setup
+
+To install 3DMake on macOS, first download the [3dmake_macos.tar.gz](https://github.com/tdeck/3dmake/releases/latest/download/3dmake_macos.tar.gz) file and place it in your Downloads folder.
+
+Then open the Mac terminal. You can do this by hitting ⌘+Space and typing "terminal", then hitting enter. Inside the terminal, you type one command per line and hit enter. You can also paste in a series of commands and it will run them. In short, the commands to set up 3dmake are as follows, copy and paste the whole block into your terminal or read below for a line-by-line explanation.
+
+```
+cd Downloads
+tar xf 3dmake_macos.tar.gz
+cd 3dmake
+xattr -rc "$(realpath .)"
+./3dm setup
+```
+The 3dm setup will take a while the first time you run it without saying anything while macOS sets things up in the background.
+
+Eventually 3DMake will prompt you with some setup questions. If you have an administrator account, I strongly recommend saying yes when asked about installing 3DMake so it can be run from any folder. At that point when you type your password in, it will not print the letters as you type them. If you aren't asked that question, it simply means that 3DMake doesn't need your password to set that up.
+
+### macOS install command explanation 
+`cd Downloads` changes your current directory to to the downloads directory. 
+
+`tar xf 3dmake_macos.tar.gz` extracts (unzips) the 3DMake files into a new 3dmake directory.
+
+`cd 3dmake` navigates into the newly extracted 3dmake folder.
+
+`xattr -rc "$(realpath .)"` changes security settings so that you can run the downloaded program.
+
+`./3dm setup` runs 3DMake's self-setup step.
 
 ## Starting a new project
 
