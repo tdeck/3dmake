@@ -7,6 +7,7 @@ import textwrap
 import numpy as np
 import trimesh
 from pathlib import Path
+from dataclasses import dataclass
 from typing import Any, List, Dict, Optional
 from utils.output_streams import OutputStream
 from utils.renderer import MeshRenderer, VIEWPOINTS
@@ -67,6 +68,11 @@ PLANE_SIZE = 300
 PLANE_OPACITY = .2
 IMAGE_PIXELS = 768
 
+@dataclass
+class CaptionedImage:
+    caption: str
+    png_bytes: bytes
+
 VIEWPOINTS_TO_USE = [
     'above_front_left',
     'above_front_right',
@@ -87,21 +93,23 @@ def print_openai_token_stats(completion: Any, stream: OutputStream) -> None:
         stream.writeln(f"Completion tokens: {completion.usage.completion_tokens}")
         stream.writeln(f"Total tokens: {completion.usage.total_tokens}")
 
-def render_png_images(mesh: Mesh) -> List[bytes]:
+def render_png_images(mesh: Mesh) -> List[CaptionedImage]:
     renderer = MeshRenderer(mesh)
     images = []
     for vp_name in VIEWPOINTS_TO_USE:
         stream = io.BytesIO()
         renderer.get_image(VIEWPOINTS[vp_name], IMAGE_PIXELS, IMAGE_PIXELS).save(stream, format="png")
-        images.append(stream.getvalue())
+        caption = vp_name.replace('_', ' ') + ':'
+        images.append(CaptionedImage(caption, stream.getvalue()))
     return images
 
-def build_openai_image_content(prompt_text: str, images: List[bytes]) -> List[Dict]:
+def build_openai_image_content(prompt_text: str, images: List[CaptionedImage]) -> List[Dict]:
     content = [{"type": "text", "text": prompt_text}]
     for img in images:
+        content.append({"type": "text", "text": img.caption})
         content.append({
             "type": "image_url",
-            "image_url": {"url": f"data:image/png;base64,{base64.b64encode(img).decode()}"}
+            "image_url": {"url": f"data:image/png;base64,{base64.b64encode(img.png_bytes).decode()}"}
         })
     return content
 
@@ -243,10 +251,10 @@ def describe_model_gemini(
     client = genai.Client(api_key=gemini_api_key)
     chat = client.chats.create(model=llm_name)
 
-    parts = [prompt_text] + [
-        types.Part.from_bytes(data=img, mime_type='image/png')
-        for img in images
-    ]
+    parts = [prompt_text]
+    for img in images:
+        parts.append(img.caption)
+        parts.append(types.Part.from_bytes(data=img.png_bytes, mime_type='image/png'))
 
     res = chat.send_message(parts)
     stdout.write(res.text + "\n")
