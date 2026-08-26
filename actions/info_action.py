@@ -3,6 +3,7 @@ import io
 import sys
 import re
 import html
+import tempfile
 import textwrap
 import numpy as np
 import trimesh
@@ -52,6 +53,7 @@ def info(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
             debug_stdout=debug_stdout,
             interactive=ctx.options.interactive,
             prompt_text=prompt_text,
+            log_last_prompt=ctx.options.log_last_prompt,
         )
 
 def count_mesh_solids(mesh: Mesh) -> int:
@@ -99,19 +101,29 @@ def render_png_images(mesh: Mesh) -> List[CaptionedImage]:
     for vp_name in VIEWPOINTS_TO_USE:
         stream = io.BytesIO()
         renderer.get_image(VIEWPOINTS[vp_name], IMAGE_PIXELS, IMAGE_PIXELS).save(stream, format="png")
-        caption = vp_name.replace('_', ' ') + ':'
+        caption = vp_name.replace('_', ' ')
         images.append(CaptionedImage(caption, stream.getvalue()))
     return images
 
 def build_openai_image_content(prompt_text: str, images: List[CaptionedImage]) -> List[Dict]:
     content = [{"type": "text", "text": prompt_text}]
     for img in images:
-        content.append({"type": "text", "text": img.caption})
+        content.append({"type": "text", "text": img.caption + ':'})
         content.append({
             "type": "image_url",
             "image_url": {"url": f"data:image/png;base64,{base64.b64encode(img.png_bytes).decode()}"}
         })
     return content
+
+def save_debug_prompt(prompt_text: str, images: List[CaptionedImage]) -> Path:
+    parts = []
+    for img in images:
+        b64 = base64.b64encode(img.png_bytes).decode()
+        parts.append(f'<p>{html.escape(img.caption)}:</p><img src="data:image/png;base64,{b64}">')
+    parts.append(f'<pre>{html.escape(prompt_text)}</pre>')
+    path = Path(tempfile.gettempdir()) / '3dmake_prompt.html'
+    path.write_text('\n'.join(parts))
+    return path
 
 def describe_model(
     mesh: Mesh,
@@ -124,6 +136,7 @@ def describe_model(
     debug_stdout: OutputStream,
     interactive: bool,
     prompt_text: str,
+    log_last_prompt: bool = False,
 ) -> None:
     """Route to the correct backend based on which credentials/host are configured.
 
@@ -131,41 +144,47 @@ def describe_model(
     openai_compat_host covers Ollama, LM Studio, llama.cpp, ramalama, and any
     other server that exposes an OpenAI-compatible /v1 endpoint.
     """
+    images = render_png_images(mesh)
+
+    if log_last_prompt:
+        path = save_debug_prompt(prompt_text, images)
+        debug_stdout.writeln(f"Prompt log saved to {path}")
+
     if openai_compat_host:
         describe_model_openai_compat(
-            mesh,
+            images,
             openai_compat_host,
             api_key=openai_api_key or "none",
             llm_name=llm_name,
-            stdout=stdout, 
+            stdout=stdout,
             debug_stdout=debug_stdout,
-            interactive=interactive, 
+            interactive=interactive,
             prompt_text=prompt_text,
         )
     elif openrouter_api_key:
         describe_model_openai_compat(
-            mesh, 
-            base_url="https://openrouter.ai/api/v1", 
+            images,
+            base_url="https://openrouter.ai/api/v1",
             api_key=openrouter_api_key,
-            llm_name=llm_name, 
-            stdout=stdout, 
+            llm_name=llm_name,
+            stdout=stdout,
             debug_stdout=debug_stdout,
-            interactive=interactive, 
+            interactive=interactive,
             prompt_text=prompt_text,
         )
     elif gemini_api_key:
         describe_model_gemini(
-            mesh, 
-            gemini_api_key, 
-            llm_name, 
-            stdout, 
-            debug_stdout, 
-            interactive, 
+            images,
+            gemini_api_key,
+            llm_name,
+            stdout,
+            debug_stdout,
+            interactive,
             prompt_text)
 
 
 def describe_model_openai_compat(
-    mesh: Mesh,
+    images: List[CaptionedImage],
     base_url: str,
     api_key: Optional[str],
     llm_name: str,
@@ -190,7 +209,6 @@ def describe_model_openai_compat(
 
     debug_stdout.writeln(f"Using model {llm_name} at {base_url}")
 
-    images = render_png_images(mesh)
     content = build_openai_image_content(prompt_text, images)
 
     client = OpenAI(base_url=base_url, api_key=api_key)
@@ -228,7 +246,7 @@ def describe_model_openai_compat(
 
 
 def describe_model_gemini(
-    mesh: Mesh,
+    images: List[CaptionedImage],
     gemini_api_key: str,
     llm_name: str,
     stdout: OutputStream,
@@ -246,14 +264,12 @@ def describe_model_gemini(
 
     debug_stdout.writeln(f"Using Gemini model {llm_name}")
 
-    images = render_png_images(mesh)
-
     client = genai.Client(api_key=gemini_api_key)
     chat = client.chats.create(model=llm_name)
 
     parts = [prompt_text]
     for img in images:
-        parts.append(img.caption)
+        parts.append(img.caption + ':')
         parts.append(types.Part.from_bytes(data=img.png_bytes, mime_type='image/png'))
 
     res = chat.send_message(parts)

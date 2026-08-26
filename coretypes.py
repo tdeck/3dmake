@@ -21,7 +21,6 @@ class CommandOptions:
     scale_z: Optional[float] = None
     overlays: List[str] = field(default_factory=list)
     auto_start_prints: bool = False
-    debug: bool = False
     strict_warnings: bool = False # This will default to True in new projects though
     editor: Optional[str] = None
     edit_in_background: bool = False # This causes edit commands to open the editor in a BG process; breaks terminal editors
@@ -75,6 +74,11 @@ class CommandOptions:
     # SVG preview options
     svg_stroke_width: float = 1
     svg_fill_color: str = 'oldLace'
+
+    # Debugging
+    debug: bool = False
+    # Log LLM prompt + images to a temporary directory; useful for debugging
+    log_last_prompt: bool = False
 
 
 class FileSet:
