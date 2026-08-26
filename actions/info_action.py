@@ -100,7 +100,7 @@ def render_png_images(mesh: Mesh) -> List[CaptionedImage]:
     images = []
     for vp_name in VIEWPOINTS_TO_USE:
         stream = io.BytesIO()
-        renderer.get_image(VIEWPOINTS[vp_name], IMAGE_PIXELS, IMAGE_PIXELS).save(stream, format="png")
+        renderer.get_image(VIEWPOINTS[vp_name], IMAGE_PIXELS, IMAGE_PIXELS, axis_arrows=True).save(stream, format="png")
         caption = vp_name.replace('_', ' ')
         images.append(CaptionedImage(caption, stream.getvalue()))
     return images
