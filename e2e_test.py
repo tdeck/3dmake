@@ -173,6 +173,7 @@ def test_3dm_info_input_file():
             assert result.returncode == 0
 
             assert "Mesh size: x=20.00, y=17.32, z=20.00" in result.stdout
+            assert "Max width: 20.00, perpendicular width: 17.32" in result.stdout
             assert "Mesh center: x=0.00, y=0.00, z=10.00" in result.stdout
 
             if gemini_key:
@@ -286,7 +287,7 @@ def test_3dm_build_preview_named_planes():
             assert result.returncode == 0, f"Preview failed: {result.stderr}"
 
             assert_files_equal(
-                    work_path / "build/pagoda-level#0.svg", 
+                    work_path / "build/pagoda-level#0.svg",
                     fixture_path("previews/pagoda-level#0.svg")
             )
             assert_stl_vertices_close(
@@ -516,6 +517,16 @@ def search_for_option(child: PopenSpawn, option_name: str) -> str:
         if match:
             return match.group(1)
     raise AssertionError(f"Option {option_name!r} not found in output:\n{child.before}")
+
+
+def test_calculate_xy_widths():
+    import stl.mesh
+    from actions.mesh_actions import calculate_xy_widths
+
+    mesh = stl.mesh.Mesh.from_file(str(fixture_path("hexagon.stl")))
+    max_w, perp_w = calculate_xy_widths(mesh)
+    assert round(max_w, 2) == 20.00
+    assert round(perp_w, 2) == 17.32
 
 
 def _build_test_env(env_flags: set[str]) -> dict:

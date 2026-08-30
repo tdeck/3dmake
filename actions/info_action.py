@@ -34,6 +34,8 @@ def info(ctx: Context, stdout: OutputStream, debug_stdout: OutputStream):
     solid_count = count_mesh_solids(ctx.mesh)
 
     stdout.writeln(f"Mesh size: x={sizes.x:.2f}, y={sizes.y:.2f}, z={sizes.z:.2f}")
+    if ctx.mesh_metrics.max_width is not None and ctx.mesh_metrics.perpendicular_width is not None:
+        stdout.writeln(f"Max width: {ctx.mesh_metrics.max_width:.2f}, perpendicular width: {ctx.mesh_metrics.perpendicular_width:.2f}")
     stdout.writeln(f"Mesh center: x={mid.x:.2f}, y={mid.y:.2f}, z={mid.z:.2f}")
     stdout.writeln(f"Object count: {solid_count}")
 

@@ -143,6 +143,8 @@ class MeshMetrics:
     xrange: Tuple[float, float]
     yrange: Tuple[float, float]
     zrange: Tuple[float, float]
+    max_width: Optional[float] = None
+    perpendicular_width: Optional[float] = None
 
     def sizes(self) -> Thruple:
         return Thruple(
